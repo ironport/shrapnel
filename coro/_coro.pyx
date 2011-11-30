@@ -195,6 +195,7 @@ cdef extern int __swap (void * ts, void * fs)
 cdef extern object void_as_object (void * p)
 cdef extern int frame_getlineno (object frame)
 cdef extern int coro_breakpoint()
+cdef extern int SHRAP_STACK_PAD
 
 # forward
 cdef public class sched  [ object sched_object, type sched_type ]
@@ -320,13 +321,13 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         # a requirement on the amd64.  [Normally the compiler would take
         # care of this for us...]
         #
-        stack_top = <void**> (the_scheduler.stack_base + the_scheduler.stack_size)
+        stack_top = <void**> (the_scheduler.stack_base + (the_scheduler.stack_size - SHRAP_STACK_PAD))
         # bogus return address
-        stack_top[-3] = <void*>NULL
+        stack_top[-2] = <void*>NULL
         # simulate "_wrap0 (<co>)"
-        stack_top[-2] = <void*>self
-        self.state.stack_pointer = <void*> stack_top - (4 * sizeof(void*))
-        self.state.frame_pointer = <void*> stack_top - (3 * sizeof(void*))
+        stack_top[-1] = <void*>self
+        self.state.stack_pointer = &(stack_top[-3])
+        self.state.frame_pointer = &(stack_top[-2])
         self.state.insn_pointer  = <void*> _wrap0
 
     cdef __destroy (self):
