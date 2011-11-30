@@ -1,10 +1,8 @@
-# -*- Mode: Text -*-
-
 This Python library was evolved at IronPort Systems and has been provided
 as open source by Cisco Systems under an MIT license.
 
 Purpose
-======================================================================
+=======
 Shrapnel is a high-performance threading/coroutine library built
 around FreeBSD's kqueue() system call.  It's designed for
 single-process servers that can handle 10,000+ simultaneous network
@@ -34,7 +32,7 @@ restrictions on coroutine switching, and easily allow for complex
 extensions written in C or Pyrex.
 
 Design
-======================================================================
+======
 Shrapnel's overall design is very similar to the previous coro
 systems.  There is a 'main' coroutine, which acts as the scheduler,
 and uses the normal/default stack.  All other coroutines live on a
@@ -54,7 +52,7 @@ stacks rather than just one].
  frame, and insn pointers in/out of the coro structure.]
 
 Scheduler
-======================================================================
+=========
 Shrapnel uses a very simple round-robin scheduler.  All ready coros
 (in the <staging> list) are run.  When a running coro needs to
 schedule itself (or any other coro), it appends the coro to the
@@ -65,7 +63,7 @@ adding them to the <pending> list).  Before entering the main run loop
 we schedule any time-based events that have expired.
 
 Priority Queue
-======================================================================
+==============
 A priority queue is used to store future events by time.  There are
 two kinds of events stored here: timebombs and sleeping coroutines.
 At the top of the event loop, events which have expired are popped off
@@ -73,7 +71,7 @@ the priority queue and scheduled.  The priority queue is implemented
 using a heap.
 
 Timeouts
-======================================================================
+========
 The with_timeout() call places a <timebomb> object onto the priority
 queue.  If this object expires *before* the called function has
 returned, an Interrupted exception will be raised on that coroutine.
@@ -84,7 +82,7 @@ TimeoutError.  This design allows multiple outstanding timebombs on
 the same coroutine.
 
 Sleeping
-======================================================================
+========
 A coroutine goes to sleep by calling sleep_relative() or
 sleep_absolute().  This places the coroutine on the priority queue
 with the desired trigger time.  Once this time has arrived, the
