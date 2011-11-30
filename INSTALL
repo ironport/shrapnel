@@ -1,19 +1,9 @@
-# -*- Mode: Text -*-
+Coro runs on FreeBSD and linux on i386 and amd64 architectures.
 
-Coro runs on FreeBSD 4/5 on either x86/x86_64 (aka amd64).
-It could probably be run on Linux or other x86 unix flavors if a
-version of kqueue_poller() was written for select/poll/etc...,
-depending on the platform.
+It requires cython to build (/usr/ports/lang/cython on FreeBSD or your
+package manager of choice on linux).
 
-Currently, coro requires a few small changes to both Python and
-Pyrex to support the 'long long' 64-bit data type.  The scheduler
-heavily uses 64-bit TSC (x86 timestamp counter) as its internal clock
-mechanism, so it's important that Pyrex be able to manipulate these
-efficiently.
+$ python setup.py build
+# python setup.py install
 
-python.patch is a patch against Python-2.4a3
-pyrex.patch is a patch against Pyrex-0.9.3
-
-Once the patches have been applied, you should be able to:
-
-$ python setup.py build install
+Once installed it requires aplib, also in the IronPort github area, as a runtime dependency.
