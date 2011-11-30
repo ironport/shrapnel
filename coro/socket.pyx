@@ -101,7 +101,7 @@ cdef extern from "sys/socket.h":
     struct in6_addr:
         ip__u6_addr __u6_addr
 
-    IF UNAME_SYSNAME == "FreeBSD":
+    IF UNAME_SYSNAME == "FreeBSD" or UNAME_SYSNAME == "Darwin":
         cdef struct sockaddr:
             unsigned char sa_len
             sa_family_t sa_family
