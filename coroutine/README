@@ -1,6 +1,9 @@
 # -*- Mode: text -*-
 # $Header$
 
+ [Note: this is the README for the 1999 eGroups coroutine library, from
+  which some of the files in this directory are derived]
+
 The main coroutine code in python. Also includes many coro-specific modules.
 The core coroutine code is located in python_modules/_coromodule.c and 
 python_modules/coro/*
