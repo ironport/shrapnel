@@ -53,10 +53,10 @@ int __swap (void * to_state, void * from_state);
 
 #ifdef __i386__
 __asm__ (
-"	.p2align 2,,3                                    \n"
 ".globl __swap                                           \n"
-"	.type __swap,@function                           \n"
+".globl ___swap                                          \n"
 "__swap:                                                 \n"
+"___swap:                                                \n"
 "	movl 8(%esp), %edx      # fs->%edx               \n"
 "	movl %esp, 0(%edx)      # save stack_pointer     \n"
 "	movl %ebp, 4(%edx)      # save frame_pointer     \n"
@@ -74,9 +74,10 @@ __asm__ (
 "       movl 8(%edx), %eax      # restore insn_pointer   \n"
 "       movl %eax, (%esp)                                \n"
 "	ret                                              \n"
-".Lswap:                                                 \n"
-"	.size	swap,.Lswap-__swap                       \n"
 );
+
+int SHRAP_STACK_PAD = 3 * sizeof (void *);
+
 #elif defined (__x86_64__)
 
 /*
@@ -100,10 +101,10 @@ __asm__ (
 int __swap (void * to_state, void * from_state);
 
 __asm__ (
-"	.p2align 4,,15                                   \n"
 ".globl __swap                                           \n"
-"	.type __swap, @function                          \n"
+".globl ___swap                                          \n"
 "__swap:                                                 \n"
+"___swap:                                                \n"
 "	movq %rsp, 0(%rsi)      # save stack_pointer     \n"
 "	movq %rbp, 8(%rsi)      # save frame_pointer     \n"
 "	movq (%rsp), %rax       # save insn_pointer      \n"
@@ -123,8 +124,10 @@ __asm__ (
 "	movq 16(%rdi), %rax     # restore insn_pointer   \n"
 "	movq %rax, (%rsp)                                \n"
 "	ret                                              \n"
-"	.size	__swap,.-__swap                          \n"
 );
+
+int SHRAP_STACK_PAD = 1 * sizeof (void *);
+
 #endif
 
 PyObject *
