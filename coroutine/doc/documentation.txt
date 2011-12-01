@@ -1,0 +1,244 @@
+-*- Mode: Text -*-
+
+Module: coroutine
+======================================================================
+functions:
+
+  new (entry_function, stacksize=(32*1024))
+    Create a new coroutine.
+    <entry_function>: any callable object.  this is the entry point for
+       the coroutine.  upon exit, the coroutine will be 'stale',
+       and no longer resumable.
+
+    <stacksize>: the size of the C stack allocated for the coroutine.
+       Note that the default is quite small.  If your coroutines will
+       execute deeply nested code, or use lots of stack space for any
+       reason, you will need to raise this value.  The stack is not
+       protected from overflow.  One example of a function to watch
+       out for: select.select()
+
+  resume (coroutine, value)
+    Resume <coroutine> with <value>.
+    Returns control to <coroutine>, along with <value>.
+
+    When resuming a coroutine for the first time (i.e, entering it),
+    <value> should contain a tuple of the arguments for the entry function.
+
+    Often it is necessary to pass a single value as a tuple of one element;
+    instead of
+       resume (c, 'hi')
+    use
+       resume (c, ('hi',))
+
+  main (value)
+    Resume the 'main' coroutine with <value>.
+    Re-enters the main thread of control.  <value> may be used
+      to pass a value from the current coroutine to main.
+
+    This function is just like 'resume' above, but with the main coroutine
+    implied as the target.
+
+  current (coroutine)
+    Return the currently active coroutine, or None if in the main coroutine.
+
+  kill (coroutine)
+    Terminate <coroutine>.  Works by causing the 'Unwind' exception to
+    be raised within it.
+
+  raise_exception (coroutine, exception_type, exception_value)
+    Raise an exception in <coroutine>.
+
+Notes:
+------
+The 'main' coroutine is actually just a placeholder for the
+original thread of control within Python.
+
+Any coroutine may resume any other coroutine.
+
+Examples:
+---------
+
+>>> import coroutine
+>>> def my_coro (n):
+...     coroutine.main (n+10)
+... 
+>>> c = coroutine.new (my_coro)
+>>> coroutine.resume (c, (34,))
+44
+>>> 
+
+>>> def counter():
+...     i = 0
+...     while 1:
+...         i = i + 1
+...         coroutine.main (i)
+... 
+>>> 
+>>> 
+>>> 
+>>> c = coroutine.new (counter)
+>>> coroutine.resume (c, ())
+1
+>>> coroutine.resume (c, ())
+2
+>>> coroutine.resume (c, ())
+3
+>>> coroutine.resume (c, ())
+4
+>>> 
+
+Module: coro
+======================================================================
+
+This module implements a socket I/O-oriented scheduling system around
+the low-level coroutine facility described above.  It adds a socket
+object wrapper that automatically yields or resumes the thread of
+control depending on whether a particular I/O call is expected to
+succeed or not.  At the heart is an event-driven select(2)/poll(2)
+loop, much like the one in Python/Lib/asyncore.py.
+
+The <Thread> class presents a familiar [inter]face, as close as
+possible to that of the standard library's threading.Thread class,
+with a few extra coroutine-related capabilities.
+
+At top level are coroutine-like replacements for the functions in the
+low-level coroutine module that are based on the Thread class,
+providing a less clumsy interface and some instrumentation.
+
+classes:
+
+  Thread
+  ------
+
+    See the documentation for the standard Thread class:
+      http://www.python.org/doc/current/lib/thread-objects.html
+
+    significant differences:
+      1) the join() method is not implemented.
+      2) the 'resume()' method returns control to the 'thread',
+         optionally passing a value in.
+
+  coroutine_socket
+  ----------------
+    This is a wrapper for the standard socket object.  Upon creation,
+    the socket is put into non-blocking mode.  Most low-level socket
+    methods are available.
+
+    Two important additional methods are provided:
+
+    wait_for_read (self, timeout=None)
+    wait_for_write (self, timeout=None)
+
+    Calling these methods will cause the running coroutine to yield()
+    until the socket becomes ready for read or write.  The optional
+    argument may be used to cause a TimeoutError to be thrown if the
+    desired state is not reached within <timeout> seconds.
+
+    Currently, any I/O operation on a socket will automatically yield
+    the coroutine, forcing the coroutine to go through the main event
+    loop (and thus select() or poll()) at least once.  This should be
+    viewed as experimental behavior, subject to change.  The original
+    code would attempt the operation first, and yield() only if the
+    EWOULDBLOCK error was thrown.  The change was made because a very
+    fast local connection could hog all I/O by always succeeding.
+
+    Note: Because the scheduling system is designed to run within the
+    'main' coroutine, I/O operations on coroutine_sockets cannot be
+    performed from within the 'main' coroutine.  All such I/O should
+    take place within a 'real' coroutine.  This can be a frustrating
+    restriction!  The two best ways around it are:
+
+    1) spawn a 'backdoor' interpreter, and do your testing from there.
+       (simply run 'backdoor.py' and telnet into it)
+
+    2) parameterize your code so that it will call either 'socket.socket()'
+       or 'coro.make_socket()' depending on a debug flag/variable.
+
+  coroutine_cond
+  --------------
+    A condition variable for coroutine Threads.  See
+
+        http://www.python.org/doc/current/lib/condition-objects.html
+
+  event_list
+  ----------
+    This class handles the scheduling of events by time.  See the
+    <sleep_absolute> and <sleep_relative> functions below.
+
+functions:
+
+  event_loop (max_timeout=30.0)
+  ----------------------------
+    A call to this function should be (nearly) the last thing in your
+    driver module.  This fires off the scheduler and event loop.  You
+    may exit the loop by setting the module-level variable 'exit' to
+    a non-false value.
+
+    The loop runs scheduled events, executes either select() or
+    poll(), and then schedules coroutines for resumption based on
+    socket I/O events.
+
+  run_pending ()
+  -------------
+    Run any pending coroutines ('threads')
+
+  insert_thread (thread)
+  ---------------------
+    Schedule <thread> for execution
+
+  current_thread ()
+  ----------------
+    Return the currently executing Thread object, or None if in 'main'.
+
+  thread_list ()
+  -------------
+    Return a list of all active threads.
+
+  yield ()
+  -------
+    Suspend this thread, resume 'main'
+
+  schedule (coroutine, args)
+  -------------------------
+    Arrange for <coroutine> to be resumed with <args>
+  
+  spawn (function, *args)
+  ----------------------
+    Create a new thread to call <function> with <args> and start it.
+  
+  new (function, *args, **kwargs)
+  -------------------------------
+    same as:
+      Thread (target=function, args=args, kwargs=kwargs)
+
+  make_socket (family, type)
+  -------------------------
+    A version of socket.socket() that returns a <coroutine_socket>.
+    Useful when parameterizing code to work with or without coroutines.
+
+  sleep_absolute (t)
+  -----------------
+    Cause the running coroutine to suspend until time <t> is reached. [see time.time()]
+
+  sleep_relative (t)
+  -----------------
+    Cause the running coroutine to suspend for <t> seconds.
+
+data structures:
+---------------
+  read_set: a dictionary of {<int>:<Thread>} entries awaiting a read
+    event on the socket with file descriptor <int>
+
+  write_set: ditto, waiting for a write event.
+
+  the_event_list: the global event_list object
+
+  pending: a dictionary of {<Thread>:<args>} entries.  The next time
+    through the scheduler loop, <Thread> will be resumed with <args>.
+
+exceptions:
+----------
+  CoroutineSocketError
+  CoroutineCondError
+  CoroutineThreadError
+  TimeoutError

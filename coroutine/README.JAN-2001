@@ -1,0 +1,45 @@
+# -*- Mode: Text -*-
+
+Lots of stuff going on here, trying to support lots of different
+configurations.
+
+The Variables Are:
+
+  1) OS event model
+     coro_orig.py:
+       This is the version of coro.py
+       distributed with the original 'eGroups coroutine' package.
+       it supports select() and poll().
+
+       Note: the support for poll() is now outdated; Python-2.0
+       supports poll() in the *select* module.  The function poll_with_poll()
+       needs to be reworked.  Check out the version of asyncore.py from
+       python cvs (i.e., it should be in 2.1) for an example of how to translate
+       it
+
+     coro_kqueue.py:
+       Somewhat simplified version of coro_orig.py, plus support for
+       kqueue via the kqsyscall module.  [see kqsyscallmodule.c]
+
+     coro_poll.py:
+       This version implements most of the data structure twiddling and
+       dispatch/scheduling in C (using poll(2)), it should be faster.
+
+     coro_rtsig_scheduler.py:
+       Yet another version.  I think this was an attempt to work with
+       Linux's real-time signal stuff.  Don't know if it ever worked.
+
+     At this point it's fairly obvious that we need to separate out
+     event dispatch/scheduling into a separate module.  I will probably
+     turn 'coro.py' into 'coro_thread.py', 'coro_socket.py', and 'coro_event.py',
+     or something like that.
+
+  2) coroutine implementation
+
+     coroutinemodule.c:
+       This interfaces to the x86 'libcoro'.
+
+     coroutine.py:
+       An emulation of the above for Stackless Python.
+
+-Sam

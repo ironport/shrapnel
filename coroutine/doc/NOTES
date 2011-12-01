@@ -1,0 +1,21 @@
+# -*- Mode: Text -*-
+
+20010225:
+  stackless + kqueue working well, we want to squeeze c-like
+  performance out of it.  normally, we would just start rewriting
+  things in C.  But the context switches make things difficult...
+  since they're exposed only at the Python level.  For example, if
+  we write the socket wrapper in C, how do we do this:?
+  
+    def send (self, data):
+        self.wait_for_write()
+        return self.socket.send (data)
+    
+  since wait_for_write will do a yield(), this means calling a
+  continuation function in Python.  In C, this means returning
+  immediately to the VM with the magical 42.  In other words, it
+  can't be done, at least not in this straightforward way...
+
+  Hmmm... it almost seems that in order to do *anything* with
+  stackless at the C level, the three-valued VM protocol must be
+  obeyed everywhere.

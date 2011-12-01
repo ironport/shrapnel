@@ -1,0 +1,234 @@
+# -*- Mode: Outline -*-
+
+* Examples
+
+** Hello, World!
+
+Here's a 'coro' version of hello-world.  It spawns a single thread to
+print the standard Enthusiastic False Promise of Artificial Intelligence.
+
+--------------------------------------------------------------------------------
+import coro
+
+def hello():
+  print 'Hello, World!'
+
+if __name__ == '__main__':
+  coro.spawn (hello)
+  coro.event_loop()
+--------------------------------------------------------------------------------
+
+Note how we use the standard Python module/script idiom.  The test at
+the end is boilerplate, and would allow another module to import
+functions or data from this one without starting another copy of the
+script.  In some cases the 'script nature' of a module is so strong
+that the test is left out, but this is rare.
+
+The call to hello() takes no arguments, so the call to 'spawn' is
+very simple.  Had hello taken a single integer argument, the call to
+spawn might have looked more like 'coro.spawn (hello, 42)'.
+
+To run this script, simply:
+
+ $ python hello_world.py
+
+[This assumes you have your coro environment/path set up correctly, as
+well as an alias pointing at the correct version of Python] [[Should I
+explain all that here??]]
+
+** Sleep Loop
+
+This is a pretty common idiom, the thread that does some amount of
+work, then goes to sleep for a fixed period of time.
+
+--------------------------------------------------------------------------------
+import coro
+
+def sleepy_thread (message):
+  while 1:
+    print message
+    coro.sleep_relative (300)
+
+if __name__ == '__main__':
+  import sys
+  coro.spawn (sleepy_thread, sys.argv[1])
+  coro.event_loop()
+--------------------------------------------------------------------------------
+
+ $ python sleepy.py "hi there"
+
+This introduces us to the 'sleep_relative()' function, which puts the
+thread to sleep for <n> seconds.  In this case, the thread will print
+a message (given as an argument on the command line) every 5 minutes.
+If you use 'top' to monitor this process, you'll see that it spends
+all its time in the 'kqread' state.  That's a good state to be in, it
+means the process is consuming no CPU.
+
+** Simple Client Socket
+
+Here's a simple client socket connection.  This connects to an SMTP
+server, fetches the greeting and then sends a 'QUIT' command.
+
+--------------------------------------------------------------------------------
+import coro
+
+def smtp_client (ip, port=25):
+  s = coro.tcp_sock()
+  s.connect ((ip, port))
+  greeting = s.recv (1024)
+  print greeting
+  s.send ('QUIT\r\n')
+  farewell = s.recv (1024)
+  print farewell
+  coro.set_exit (True)
+
+if __name__ == '__main__':
+  import sys
+  coro.spawn (smtp_client, sys.argv[1])
+  coro.event_loop()
+--------------------------------------------------------------------------------
+
+$ python smtp_client.py 10.1.1.39
+
+The smtp_client function runs as our only thread.
+
+*** Exiting the Coro Event Loop
+
+The standard way to tell the event loop to exit is to call
+'coro.set_exit (True)'.  This sets an internal 'exit condition'
+variable.
+
+** Simple Server
+--------------------------------------------------------------------------------
+import coro
+
+def client (s):
+  while 1:
+    data = s.recv (1024)
+    if not data:
+      break
+    else:
+      s.send (data)
+
+def server (port=9000):
+  s = coro.tcp_sock()
+  s.bind (('', port))
+  s.listen (10)
+  while 1:
+    conn, addr = s.accept()
+    coro.spawn (client, conn)
+
+if __name__ == '__main__':
+  coro.spawn (server)
+  coro.event_loop()
+
+--------------------------------------------------------------------------------
+This time we've made a simple server that binds to a port.  It listens
+for new connections, and whenever it gets one it hands off the socket
+to a new thread that will manage the connection.  This is a very
+common idiom.  The client thread simply echoes back whatever is sent
+to it.
+
+It's a simple matter to extend this 'echo server' to support commands.
+
+--------------------------------------------------------------------------------
+def client (s):
+  while 1:
+    data = s.recv (1024)
+    if not data:
+      break
+    elif data == 'quit\r\n':
+      s.close()
+      break
+    elif data == 'shutdown\r\n':
+      coro.set_exit (True)
+    else:
+      s.send (data)
+--------------------------------------------------------------------------------
+[For a slightly extended version of this script, see
+ godspeed/coroutine/echo_server.py, which is very similar.  It adds a
+ few commands to support benchmarking with getrusage()]
+
+[Note: You shouldn't actually be writing servers and clients like this
+yourself - in almost any case you'll want to derive from the 'daemon'
+class [see godlib/daemon.py] [[has this moved?  I can't find it in
+ap?]], or use the RPC facility.
+
+** Using a Semaphore
+
+Let's continue to expand on that last example.  Let's imagine that we
+wanted to limit the total number of clients that are connected to our
+server at one time.  This is easy to do using 'coro.semaphore'.
+
+--------------------------------------------------------------------------------
+import coro
+
+connections = coro.semaphore (10)
+
+def client (s):
+  try:
+    while 1:
+      data = s.recv (1024)
+      if not data:
+        break
+      elif data == 'quit\r\n':
+        s.close()
+        break
+      elif data == 'shutdown\r\n':
+        coro.set_exit (True)
+      else:
+        s.send (data)
+  finally:
+    connections.release (1)
+
+def server (port=9000):
+  s = coro.tcp_sock()
+  s.bind (('', port))
+  s.listen (10)
+  while 1:
+    conn, addr = s.accept()
+    connections.acquire(1)
+    coro.spawn (client, conn)
+
+if __name__ == '__main__':
+  coro.spawn (server)
+  coro.event_loop()
+--------------------------------------------------------------------------------
+
+** Using a Timeout
+
+--------------------------------------------------------------------------------
+import coro
+
+def client (s):
+  while 1:
+    data = s.recv (1024)
+    if not data:
+      break
+    else:
+      s.send (data)
+
+def server (port=9000):
+  s = coro.tcp_sock()
+  s.bind (('', port))
+  s.listen (10)
+  while 1:
+    try:
+      conn, addr = coro.with_timeout (300, s.accept)
+      coro.spawn (client, conn)
+    except coro.TimeoutError:
+      coro.set_exit (True)
+      break
+
+if __name__ == '__main__':
+  coro.spawn (server)
+  coro.event_loop()
+--------------------------------------------------------------------------------
+
+This example shows how to use 'coro.with_timeout()'.  If the server
+doesn't receive a new connection within 5 minutes, it will shut itself
+down.  Note how 's.accept()' didn't take any arguments.  If we imagine
+it took a single argument, we might have called it like this:
+
+   conn, addr = coro.with_timeout (300, s.accept, 'my arg')
+

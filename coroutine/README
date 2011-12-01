@@ -1,0 +1,149 @@
+# -*- Mode: text -*-
+# $Header$
+
+The main coroutine code in python. Also includes many coro-specific modules.
+The core coroutine code is located in python_modules/_coromodule.c and 
+python_modules/coro/*
+
+Excerpt from The Art of Computer Programming by D. E. Knuth:
+
+  "Subroutines are special cases of more general program
+   components, called coroutines.  In contrast to the unsymmetric
+   relationship between a main routine and a subroutine, there is
+   complete symmetry between coroutines, which call on each other."
+
+Coroutines can be used to implement 'cooperative multitasking' (as
+opposed to 'preemptive multitasking').  Coroutines are very
+lightweight (on Win32, they are called 'fibers'), and when combined
+with an I/O-based scheduling system, they can be used to build highly
+scalable network servers.
+
+Coroutines give you the best of both worlds: the efficiency of
+asynchronous state-machine programming, with the simplicity of
+threaded programming; straight-line, readable code.  And they don't
+have the overhead of preemptive threads - nearly everything happens in
+user-space.  Also, complexity is lower because you don't have to worry
+about locking access to shared state.
+
+At eGroups, we have been using coroutines to build several
+infrastructure components; including database, http, rpc proxies and
+servers; most of these servers are designed to be able to handle
+thousands of concurrent tcp connections efficiently.  [our bsd3
+machines are configured with kern.maxfilesperproc=16384]
+
+We are currently using a coroutine library for x86-unix written by
+Edgar Toernig:
+
+   http://lecker.essen.de/~froese/
+
+[Note: this library is under the LGPL]
+
+We have tested it on Linux, FreeBSD2, and FreeBSD3.  Since Win32
+provides a native coroutine system, it should be possible to port the
+C module without too much trouble.
+
+Using a coroutine library written in assembly is inherently
+non-portable, and so there is no chance that it will ever become a
+part of standard Python.  Another difficulty with this coroutine
+implementation is that each coroutine requires its own stack (just
+like any multi-threaded system), which can be very wasteful and limits
+scalability.  For example, if each coroutine is given a 64KB stack
+(small by C standards), then 10,000 coroutines will require 625MB of
+memory, just for the stacks.  And with such a small stack, overflow is
+always a danger.
+
+A better solution is to implement coroutines in the VM, by separating
+the VM stack and the C stacks... such a VM would add no wasted
+overhead for coroutines because all frames would be heap-allocated.
+Christian Tismer has already tackled this problem with 'stackless
+Python':
+
+  http://www.stackless.com/
+
+Our hope is that this code will encourage others to experiment with
+coroutines, and help create a demand for them in a possible future
+Python implementation.
+
+The main advantage to this low-level implementation is that it can be
+used with an unmodified Python; we build the extension module as a dll
+on our systems.  Try before you buy!
+
+-------------------------------------------------------------------
+
+Files Overview:
+--------------
+
+coroutinemodule.c
+  Python interface to the 'coro' library.
+
+coro.py
+  Scheduler, socket wrapper, utilities.
+  Implements the socket I/O scheduling system, a Thread class that
+  should be compatible with the one in the standard library, and a
+  few utility functions.  Hides the ugly details of the low-level
+  coroutine module as much as possible.
+    
+fringe.py
+  Very simple demonstration of the low-level coroutine module, this
+  is a solution to the 'same-fringe' problem: how to compare two
+  differently-structured trees efficiently, leaf-by-leaf.
+
+corodns.py
+  An interface to the Python/Demo/dns library that puts a synchronous
+  face on an asynchronous resolver using coroutines.
+
+backdoor.py
+  A simple Python interpreter accessible via 'telnet'.  This can be
+  used to examine, control, and debug long-running servers.
+
+corourl.py
+  Fetch an http url with a coroutine.
+
+coromysql.py
+  implementation of the MySQL protocol.  some emulation of the
+  canonical MySQL module.
+
+coro_ehttpd.py
+  medusa-ish web server
+
+crawler.py
+  A coroutine-based web crawler.  A good way to increase the
+  peak-bandwidth bill from your ISP.
+
+  Features:
+  1) uses a pool of 'worker threads'.
+  2) async dns
+  3) filter function to decide what links to follow
+     [I used it to crawl a huge interconnected set of web
+      sites by comparing SOA records]
+  Bug:
+  1) knows nothing about the 'robots' system.
+
+Coming Attractions
+------------------
+We're hoping to release our RPC system, and a C implementation
+of the select/poll guts of coro.py that eliminates lots of busy-work
+from the main event loop.
+
+Mailing List
+------------
+[you saw this one coming, didn't you]
+Join the eGroup.  Get in on the Ground Floor!
+
+    http://www.egroups.com/group/python-coro/
+
+Shameless HeadHunting
+---------------------
+Want to work at an exciting young company on the bleeding edge of
+hosted applications and communication?  How fast can you get to San
+Francisco?
+
+    http://www.egroups.com/info/jobs.html
+
+-------------------------------------------------------------------
+Authors: Sam Rushing, Libor Michalek, and Brandon Long.
+Conditions: Pythonish. See Copyrights in files.
+Status: In Flux.  Subject to Change, Rearrangement, Reimplementation, etc..
+Documentation: None.  The man pages for the coro library are good, though.
+
+-Sam
