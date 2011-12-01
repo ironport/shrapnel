@@ -1,9 +1,13 @@
-Coro runs on FreeBSD and linux on i386 and amd64 architectures.
+Coro runs on FreeBSD, Linux and MacOS X on i386 and amd64 architectures.
 
-It requires cython to build (/usr/ports/lang/cython on FreeBSD or your
-package manager of choice on linux).
+In order to build, it requires:
+- cython (/usr/ports/lang/cython on FreeBSD or your package manager of choice on linux).
+- aplib from the IronPort github area at the same base directory as shrapnel
+
+Since aplib is both a build and runtime requirement, make sure that is
+installed first.
+
+Then build and install shrapnel:
 
 $ python setup.py build
 # python setup.py install
-
-Once installed it requires aplib, also in the IronPort github area, as a runtime dependency.
