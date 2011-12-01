@@ -44,12 +44,12 @@ stack, and allows the scheduler to run in main and never be
 evacuated.  [We may eventually generalize this and use several coro
 stacks rather than just one].
 
- [The original version of coro used the unix ucontext API, which on
-  FreeBSD 4.X was implemented using very similar assembly.  However,
-  FreeBSD 5.X+ moved the ucontext API into the kernel, making it much
-  more expensive.  Currently, the 'swap' implementation is about 15
-  lines of x86 (or x86_64) assembly.  It saves and restores the stack,
-  frame, and insn pointers in/out of the coro structure.]
+ The original version of coro used the unix ucontext API, which on
+ FreeBSD 4.X was implemented using very similar assembly.  However,
+ FreeBSD 5.X+ moved the ucontext API into the kernel, making it much
+ more expensive.  Currently, the 'swap' implementation is about 15
+ lines of x86 (or x86_64) assembly.  It saves and restores the stack,
+ frame, and insn pointers in/out of the coro structure.
 
 Scheduler
 =========
