@@ -170,7 +170,13 @@ _wrap0 (void)
   void * co;
   // x86_64 passes args in registers.  but coro.__create() puts
   // the coroutine on the stack.  fetch it from there.
+  // llvm does the prologue differently...
+#ifdef __llvm__
+  __asm__ ("movq 16(%%rbp), %[co]" : [co] "=r" (co));
+#else
   __asm__ ("movq 8(%%rbp), %[co]" : [co] "=r" (co));
+#endif
+
   _wrap1 (co);
   __yield();
 }
