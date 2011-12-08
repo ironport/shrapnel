@@ -44,8 +44,10 @@ setup (
     name='coro',
     version='1.0.0-000',
     description='IronPort Coroutine/Threading Library',
-    author='Sam Rushing',
-    author_email='srushing-coro@ironport.com',
+    author='Sam Rushing, Eric Huss, IronPort Engineering',
+    author_email='sam-coro@rushing.nightmare.com',
+    license = "MIT",
+    url = "http://github.com/ironport/shrapnel",
     ext_modules = [
         Extension (
             'coro._coro',
