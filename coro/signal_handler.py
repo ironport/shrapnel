@@ -45,7 +45,7 @@ def register (signum, handler, once_only=False):
           this signal.
     """
 
-    if UNAME == 'FreeBSD':
+    if UNAME in ('FreeBSD', 'Darwin'):
         # first, turn *off* normal signal handling...
         signal.signal (signum, signal.SIG_IGN)
         # register with kqueue
