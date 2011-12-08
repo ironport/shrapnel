@@ -31,6 +31,14 @@ technique.  Written completely in Pyrex.  Should remove all
 restrictions on coroutine switching, and easily allow for complex
 extensions written in C or Pyrex.
 
+  Calling Shrapnel a 'coroutine' package is somewhat misleading.  Shrapnel
+  does not provide a 'coroutine' feature.  Rather, it *uses* coroutines
+  to implement a cooperative threading system.  You can use it to solve
+  similar problems, but at a higher level; e.g. use a fifo to pass values
+  from one thread to another.  The package has historically been called
+  'coro' at IronPort, and you will see the terms 'coro' and 'thread' used
+  interchangeably in the documentation and source.
+
 Design
 ======
 Shrapnel's overall design is very similar to the previous coro
