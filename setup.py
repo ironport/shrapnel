@@ -77,5 +77,6 @@ setup (
     packages=['coro'],
     package_dir = {'': 'coroutine', 'coro': 'coro'},
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
+    install_requires = ['cython>=0.12.1', 'pyrex>=0.9.8.6'],
     cmdclass={'build_ext': build_ext},
 )
