@@ -11,10 +11,7 @@ from Cython.Distutils.extension import Extension
 import glob
 import os
 
-if os.getenv('IPROOT'):
-    include_dir = os.path.join( os.getenv('IPROOT'), 'ap', 'aplib')
-else:
-    include_dir = os.path.join( os.getcwd(), '..', 'aplib')
+include_dir = os.getcwd()
 
 def newer(x, y):
     x_mtime = os.path.getmtime(x)
@@ -65,12 +62,31 @@ setup (
                       os.path.join(include_dir, 'pyrex', 'libc.pxd'),
                      ]
                     ),
-            pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
+            pyrex_include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'pyrex'),
+                ],
             #include_dirs=[os.path.join(include_dir, 'pyrex')],
-            include_dirs=[os.path.join(include_dir, 'include')],
+            include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'include'),
+                ],
             #pyrex_compile_time_env={'COMPILE_LIO': check_lio(),
             #                        'CORO_DEBUG': True,
             #                       },
+            ),
+        Extension(
+            'coro.oserrors',
+            ['coro/oserrors.pyx', ],
+            ),
+        Extension(
+            'coro.clocks.tsc_time',
+            ['coro/clocks/tsc_time.pyx', ],
+            pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
+            include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'include'),
+                ],
             ),
         ],
     #packages=find_packages(),

@@ -6,7 +6,7 @@ import coro
 import coro_unittest
 import os
 import unittest
-from aplib import oserrors
+from coro import oserrors
 
 class ForceSend(coro.Interrupted):
     pass

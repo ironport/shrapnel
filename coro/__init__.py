@@ -90,13 +90,13 @@ is allowed to do this. The default is 4.  The default may be changed
 
 Time
 ====
-Shrapnel uses the `aplib.tsc_time` module for handling time.  It uses the TSC
+Shrapnel uses the `tsc_time` module for handling time.  It uses the TSC
 value for a stable and high-resolution unit of time.  See that module's
 documentation for more detail.
 
 A thread is always created when you start the event loop that will
 resynchronize the TSC relationship to accomodate any clock drift (see
-`tick_updater` and `aplib.tsc_time.update_time_relation`).
+`tick_updater` and `tsc_time.update_time_relation`).
 
 Exception Notifier
 ==================
@@ -132,7 +132,7 @@ from coro._coro import *
 from coro._coro import _yield
 from coro import signal_handler
 from coro import optional
-from aplib import tb
+from coro import tb
 
 import signal
 import sys
@@ -248,7 +248,7 @@ def tick_updater():
     global tick_update_interval
     while 1:
         sleep_relative(tick_update_interval)
-        aplib.tsc_time.update_time_relation()
+        tsc_time.update_time_relation()
 
 # ============================================================================
 #                               waitpid
@@ -382,32 +382,32 @@ def new (fun, *args, **kwargs):
 # ============================================================================
 #                      time backwards compatibility
 # ============================================================================
-import aplib.tsc_time
+import coro.clocks.tsc_time as tsc_time
 
-ticks_per_sec = aplib.tsc_time.ticks_per_sec
-ticks_per_usec = aplib.tsc_time.ticks_per_usec
+ticks_per_sec = tsc_time.ticks_per_sec
+ticks_per_usec = tsc_time.ticks_per_usec
 microseconds      = 1000000
 
-absolute_time_to_ticks = aplib.tsc_time.usec_to_ticks
-ticks_to_absolute_time = aplib.tsc_time.ticks_to_usec
-absolute_time_to_ticks_safe = aplib.tsc_time.usec_to_ticks_safe
-ticks_to_absolute_time_safe = aplib.tsc_time.ticks_to_usec_safe
-absolute_secs_to_ticks = aplib.tsc_time.sec_to_ticks
-ticks_to_absolute_secs = aplib.tsc_time.ticks_to_sec
-get_now = aplib.tsc_time.rdtsc
-update_time_relation = aplib.tsc_time.update_time_relation
+absolute_time_to_ticks = tsc_time.usec_to_ticks
+ticks_to_absolute_time = tsc_time.ticks_to_usec
+absolute_time_to_ticks_safe = tsc_time.usec_to_ticks_safe
+ticks_to_absolute_time_safe = tsc_time.ticks_to_usec_safe
+absolute_secs_to_ticks = tsc_time.sec_to_ticks
+ticks_to_absolute_secs = tsc_time.ticks_to_sec
+get_now = tsc_time.rdtsc
+update_time_relation = tsc_time.update_time_relation
 
 def get_usec():
     """This is for backwards compatibility and should not be used."""
-    return aplib.tsc_time.ticks_to_usec(get_now())
+    return tsc_time.ticks_to_usec(get_now())
 
 def ctime_ticks(t):
     """This is for backwards compatibility and should not be used."""
-    return aplib.tsc_time.TSC_from_ticks(t).ctime()
+    return tsc_time.TSC_from_ticks(t).ctime()
 
 def ctime_usec(u):
     """This is for backwards compatibility and should not be used."""
-    return aplib.tsc_time.TSC_from_posix_usec(u).ctime()
+    return tsc_time.TSC_from_posix_usec(u).ctime()
 
 now = get_now()
 now_usec = get_usec()
@@ -474,7 +474,7 @@ def event_loop (timeout=30):
     """
     global event_loop_is_running, with_timeout, sleep_relative
     # replace time.time with our tsc-based version
-    time.time, time.original_time = aplib.tsc_time.now_raw_posix_fsec, time.time
+    time.time, time.original_time = tsc_time.now_raw_posix_fsec, time.time
     with_timeout = _original_with_timeout
     sleep_relative = _original_sleep_relative
     if install_signal_handlers:

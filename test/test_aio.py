@@ -4,7 +4,7 @@
 
 """
 
-from aplib import oserrors
+from coro import oserrors
 import coro
 import coro_unittest
 import os
