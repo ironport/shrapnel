@@ -89,9 +89,12 @@ setup (
                 ],
             ),
         ],
-    #packages=find_packages(),
-    packages=['coro'],
-    package_dir = {'': 'coroutine', 'coro': 'coro'},
+    packages=['coro', 'coro.clocks'],
+    package_dir = {
+        '': 'coroutine',
+        'coro': 'coro',
+        'coro.clocks': 'coro/clocks'
+    },
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
     install_requires = ['cython>=0.12.1', 'pyrex>=0.9.8.6'],
     cmdclass={'build_ext': build_ext},
