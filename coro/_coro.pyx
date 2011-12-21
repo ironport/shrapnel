@@ -34,6 +34,7 @@ __coro_version__ = "$Id: //prod/main/ap/shrapnel/coro/_coro.pyx#114 $"
 DEF CORO_DEBUG = 0
 DEF COMPILE_LIO = 0
 DEF COMPILE_NETDEV = 0
+DEF COMPILE_LZO = 0
 
 import coro as coro_package
 import warnings
@@ -56,7 +57,6 @@ from libc cimport intptr_t,\
 # XXX: blame jj behrens for this.
 # XXX: instead of a two-stack solution, think about an n-stack solution.
 #      [the main drawback is that each coro is then tied to a particular stack]
-# XXX: compress big stacks that have been idle a long time.
 
 # ================================================================================
 #                        external declarations
@@ -237,6 +237,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     cdef call_stack * top
     cdef int saved_recursion_depth
     cdef int selfish_acts, max_selfish_acts
+    cdef bint compress, compressed
     cdef object waiting_joiners
     # Used for thread-local-storage.
     cdef object _tdict
@@ -639,6 +640,12 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         else:
             return void_as_object (self.frame)
 
+    property compress:
+        def __get__ (self):
+            return self.compress
+        def __set__ (self, bint val):
+            self.compress = val
+
     def setName (self, name):
         warnings.warn('setName is deprecated, use set_name instead.', DeprecationWarning)
         return self.set_name(name)
@@ -897,6 +904,12 @@ class Shutdown (Interrupted):
 class WakeUp (Exception):
     """A convenience exception used to wake up a sleeping thread."""
 
+# choose a library for stack compression
+IF COMPILE_LZO:
+    include "zstack_lzo.pyx"
+ELSE:
+    include "zstack_zlib.pyx"
+
 # ================================================================================
 #                              scheduler
 # ================================================================================
@@ -911,6 +924,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
     cdef readonly event_queue events
     cdef int profiling
     cdef uint64_t latency_threshold
+    cdef zstack squish
 
     def __init__ (self, stack_size=4*1024*1024):
         self.stack_size = stack_size
@@ -932,6 +946,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
         self.events = event_queue()
         self.profiling = 0
         self.latency_threshold = _ticks_per_sec / 5
+        self.squish = zstack (stack_size)
 
     def current (self):
         return self._current
@@ -954,11 +969,20 @@ cdef public class sched [ object sched_object, type sched_type ]:
     cdef _preserve_last (self):
         cdef void * stack_top
         cdef size_t size
+        cdef void * base
         if self._last is not None:
             # ok, we want to squirrel away the slice of stack it was using...
             # 1) identify the slice
             stack_top = self.stack_base + self.stack_size
             size = stack_top - self._last.state.stack_pointer
+            base = self._last.state.stack_pointer
+            # 1.5) maybe compress it
+            if self._last.compress:
+                size = self.squish.deflate (base, size)
+                base = self.squish.buffer
+                self._last.compressed = True
+            else:
+                self._last.compressed = False
             # 2) get some storage
             if self._last.stack_size != size:
                 # XXX: more heuristics to avoid malloc
@@ -972,20 +996,17 @@ cdef public class sched [ object sched_object, type sched_type ]:
                     raise MemoryError
                 self._last.stack_size = size
             # 3) copy the stack
-            #W ('preserving %x-%x (%d bytes)\n' % (
-            #    <int>self._last.stack_copy, <int>self._last.state.stack_pointer, size
-            #    ))
-            memcpy (self._last.stack_copy, self._last.state.stack_pointer, size)
+            memcpy (self._last.stack_copy, base, size)
             self._last = None
 
     cdef _restore (self, coro co):
         if co is None:
             raise ValueError
         if co.stack_copy:
-            #W ('restoring %x-%x (%d bytes)\n' % (
-            #    <int>co.state.stack_pointer, <int>co.stack_copy, co.stack_size)
-            #   )
-            memcpy (co.state.stack_pointer, co.stack_copy, co.stack_size)
+            if co.compressed:
+                self.squish.inflate (co.state.stack_pointer, self.stack_size, co.stack_copy, co.stack_size)
+            else:
+                memcpy (co.state.stack_pointer, co.stack_copy, co.stack_size)
 
     cdef _schedule (self, coro co, object value):
         if co.dead:
@@ -1023,6 +1044,23 @@ cdef public class sched [ object sched_object, type sched_type ]:
                     return True
             else:
                 return False
+
+    def compress (self, coro co):
+        cdef size_t size, csize
+        size = co.stack_size
+        if not co.compressed:
+            csize = self.squish.deflate (co.stack_copy, co.stack_size)
+            PyMem_Free (co.stack_copy)
+            co.stack_copy = PyMem_Malloc (csize)
+            if not co.stack_copy:
+                raise MemoryError
+            memcpy (co.stack_copy, self.squish.buffer, csize)
+            co.stack_size = csize
+            co.compressed = True
+            return size, csize
+        else:
+            # idempotent
+            return size, size
 
     cdef print_latency_warning (self, coro co, uint64_t delta):
         write_stderr (
