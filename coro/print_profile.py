@@ -1,23 +1,3 @@
-# Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 # $Header: /cvsroot/ap/shrapnel/coro/print_profile.py,v 1.1 2006/11/30 21:58:41 ehuss Exp $
 
 """Display profile data as HTML.
@@ -232,6 +212,28 @@ function addEvent(elm, evType, fn, useCapture)
 }
 """
 
+def _mapfuns(d1, d2):
+    """
+    Given two dicts, d1 (k1 -> v1) and d2 (k2 -> v2), returns a dict which has
+    the mapping (k1 -> k2) such that _name(k1) == _name(k2).
+    """
+    def _name(fn):
+        """
+        Strips the line number at the end if any.
+        Eg. 'foo.py:23' -> 'foo.py', 'foo:bar.py' -> 'foo:bar.py' etc.
+        """
+        parts = fn.rsplit(':', 1)
+        try:
+            int(parts[1])
+            return parts[0]
+        except Exception:
+            return fn
+
+    m1 = [(_name(f), f) for f in d1]
+    m2 = dict([(_name(f), f) for f in d2])
+    return dict([(v, m2[k]) for k,v in m1 if k in m2])
+
+
 class profile_data:
 
     """
@@ -257,15 +259,15 @@ class profile_data:
         self.profile_data = cPickle.load(f)
         self.call_data = cPickle.load(f)
 
-    def process(self):
+    def process(self, other_profile):
         self._print_header()
-        self._print_timings(False)
+        self._print_timings(False, other_profile)
         print '<hr>'
-        self._print_timings(True)
+        self._print_timings(True, other_profile)
         self._print_call_graph()
         self._print_footer()
 
-    def _print_timings(self, aggregate):
+    def _print_timings(self, aggregate, other_profile):
         if aggregate:
             print '<h2>Aggregate Timings</h2>'
         else:
@@ -275,6 +277,7 @@ class profile_data:
         has_nonzero = {}
         # Also determine the sum for the column.
         column_sums = [0]*len(self.headings)
+        empty_cols = [0]*len(self.headings)
 
         for heading in self.headings:
             has_nonzero[heading] = False
@@ -304,15 +307,20 @@ class profile_data:
         print '    <th>Function</th>'
         print '  </tr>'
 
+        m = _mapfuns(self.profile_data, other_profile)
         for function_string, (calls, data_tuple, aggregate_data_tuple) in self.profile_data.iteritems():
+            try:
+                calls2, data_tuple2, aggregate_data_tuple2 = other_profile[m[function_string]]
+            except KeyError:
+                calls2, data_tuple2, aggregate_data_tuple2 = 0,empty_cols, empty_cols
             print '  <tr align=right>'
-            print '    <td>%s</td>' % (calls,)
+            print '    <td>%s</td>' % (calls-calls2,)
             for i, heading in enumerate(self.headings):
                 if heading not in skip_headings:
                     if aggregate:
-                        data_item = aggregate_data_tuple[i]
+                        data_item = aggregate_data_tuple[i]-aggregate_data_tuple2[i]
                     else:
-                        data_item = data_tuple[i]
+                        data_item = data_tuple[i]-data_tuple2[i]
                     if isinstance(data_item, float):
                         value = '%.6f' % (data_item,)
                     else:
@@ -388,7 +396,7 @@ class profile_data:
             callees2 = []
             callees = self.call_data.get(function_string, ())
             for callee_string, call_count in callees:
-                callee_calls = self.profile_data[callee_string][0]
+                callee_calls = self.profile_data.get(callee_string, [1])[0]
                 callees2.append((callee_string, call_count, callee_calls))
             callees2.sort(lambda a,b: cmp(a[1], b[1]))
             for callee_string, call_count, callee_calls in callees2:
@@ -425,12 +433,6 @@ class profile_data:
         print sortable_js
         print '// -->'
         print '</script>'
-        print '''<style><!--
-                table.sortable tbody tr:nth-child(even) td {
-                    background-color: #CCFFCC;
-                }
-        // -->
-        </style>'''
         print '<h1>Shrapnel Profile Results</h1>'
         print '<hr>'
 
@@ -445,19 +447,30 @@ def err(msg):
     sys.exit(1)
 
 def usage():
-    print 'Usage: print_profile.py profile_filename'
+    print 'Usage: print_profile.py profile_filename [other_profile]'
     print
-    print 'HTML output is sent to stdout'
+    print ' print_profile.py filename             -> Convert Profile data to HTML'
+    print ' print_profile.py filename1, filename2 -> Compare timings between profile results in file1 and file2'
+    print
+    print 'Output HTML is sent to stdout'
 
-def main(filename):
-    data = profile_data(filename)
-    data.process()
+def main(baseline, otherfile=None):
+    data = profile_data(baseline)
+    other_profile = {}
+    if otherfile:
+        data2 = profile_data(otherfile)
+        if data.bench_type != data2.bench_type:
+            print 'Cannot Compare. Bench types are different.'
+            return
+        other_profile = data2.profile_data
+    data.process(other_profile)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3):
         usage()
         sys.exit(1)
 
-    filename = sys.argv[1]
-    main(filename)
+    baseline = sys.argv[1]
+    otherfile = sys.argv[2] if len(sys.argv) == 3 else None
+    main(baseline, otherfile)
 
