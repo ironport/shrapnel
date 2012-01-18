@@ -1,0 +1,9 @@
+# Build directory
+build/
+
+# Generated and compiled files
+coro/_coro.[ch]
+coro/oserrors.[ch]
+coro/clocks/tsc_time.c
+*.pyc
+*.so

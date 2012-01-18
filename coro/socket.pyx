@@ -31,7 +31,6 @@ __socket_version__ = "$Id: //prod/main/ap/shrapnel/coro/socket.pyx#57 $"
 
 import socket as __socketmodule
 
-from aplib.net.ip import is_ipv6, is_ipv4
 IF UNAME_SYSNAME == "Linux":
     cdef extern from "stdint.h":
         ctypedef unsigned char uint8_t
@@ -1541,28 +1540,6 @@ def make_socket (int domain, int stype):
         - `OSError`: OS-level error.
     """
     return sock (domain, stype)
-
-def make_socket_for_ip(ip, stype=SOCK_STREAM):
-    """Create a socket object with the correct address family for ip.
-
-    :Parameters:
-        - `ip`: An IP address as a string
-        - `stype`: The socket type (see `SOCK`).
-
-    :Return:
-        Returns a socket object.
-
-    :Exceptions:
-        - `OSError`: OS-level error.
-        - `ValueError`: Invalid IP address.
-    """
-
-    if is_ipv4(ip):
-        return make_socket(AF_INET, stype)
-    elif is_ipv6(ip):
-        return make_socket(AF_INET6, stype)
-    else:
-        raise ValueError('Invalid IP address')
 
 def has_ipv6():
     """Whether or not this system can create an IPv6 socket.

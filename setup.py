@@ -11,10 +11,7 @@ from Cython.Distutils.extension import Extension
 import glob
 import os
 
-if os.getenv('IPROOT'):
-    include_dir = os.path.join( os.getenv('IPROOT'), 'ap', 'aplib')
-else:
-    include_dir = os.path.join( os.getcwd(), '..', 'aplib')
+include_dir = os.getcwd()
 
 def newer(x, y):
     x_mtime = os.path.getmtime(x)
@@ -65,17 +62,39 @@ setup (
                       os.path.join(include_dir, 'pyrex', 'libc.pxd'),
                      ]
                     ),
-            pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
+            pyrex_include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'pyrex'),
+                ],
             #include_dirs=[os.path.join(include_dir, 'pyrex')],
-            include_dirs=[os.path.join(include_dir, 'include')],
+            include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'include'),
+                ],
             #pyrex_compile_time_env={'COMPILE_LIO': check_lio(),
             #                        'CORO_DEBUG': True,
             #                       },
             ),
+        Extension(
+            'coro.oserrors',
+            ['coro/oserrors.pyx', ],
+            ),
+        Extension(
+            'coro.clocks.tsc_time',
+            ['coro/clocks/tsc_time.pyx', ],
+            pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
+            include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'include'),
+                ],
+            ),
         ],
-    #packages=find_packages(),
-    packages=['coro'],
-    package_dir = {'': 'coroutine', 'coro': 'coro'},
+    packages=['coro', 'coro.clocks'],
+    package_dir = {
+        '': 'coroutine',
+        'coro': 'coro',
+        'coro.clocks': 'coro/clocks'
+    },
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
     install_requires = ['cython>=0.12.1', 'pyrex>=0.9.8.6'],
     cmdclass={'build_ext': build_ext},

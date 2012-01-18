@@ -66,9 +66,8 @@ include "python.pxi"
 # Note that this cimports libc.
 include "pyrex_helpers.pyx"
 include "tsc_time_include.pyx"
-# Ugh, Pyrex doesn't do "import aplib.tsc_time as tsc_time_module" the same as
-# Python does.  It sets tsc_time_module to `aplib`.
-from aplib import tsc_time as tsc_time_module
+
+from coro.clocks import tsc_time as tsc_time_module
 
 cdef extern from "stdlib.h":
     IF UNAME_SYSNAME == "Linux":
@@ -778,7 +777,7 @@ def set_exception_notifier (new_func):
 # every time through __resume/__yield().
 cdef extern void _wrap0 (void *)
 
-from aplib import tb
+from coro import tb
 
 cdef public void _wrap1 "_wrap1" (coro co):
     try:

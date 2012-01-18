@@ -47,7 +47,7 @@ __version__ = '$Revision: #1 $'
 import coro
 import signal
 import sys
-from aplib import tb
+from coro import tb
 import unittest
 
 exc_str_list = []
