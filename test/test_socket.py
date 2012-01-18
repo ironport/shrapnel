@@ -18,8 +18,8 @@ class TestServer:
 
     accepted_from = None
 
-    def serve(self, address):
-        self.s = coro.make_socket_for_ip(address, socket.SOCK_STREAM)
+    def serve(self, address, family):
+        self.s = coro.make_socket(family, socket.SOCK_STREAM)
         self.s.bind((address, 0))
         self.bound_ip, self.port = self.s.getsockname()
         self.s.set_reuse_addr()
@@ -60,14 +60,14 @@ class Test(unittest.TestCase):
         reply = connected_sock.recv(len(self.test_string) + 1)
         self.assertEqual(reply, self.test_string)
 
-    def _test(self, address):
+    def _test(self, address, family):
         server = TestServer()
-        server_thread = coro.spawn(server.serve, address)
+        server_thread = coro.spawn(server.serve, address, family)
         # Give the server a chance to start.
         coro.yield_slice()
         self.assertEqual(server.bound_ip, address)
 
-        sock = coro.make_socket_for_ip(address, socket.SOCK_STREAM)
+        sock = coro.make_socket(family, socket.SOCK_STREAM)
         sock.connect((address, server.port))
 
         coro.yield_slice()
@@ -80,29 +80,13 @@ class Test(unittest.TestCase):
         self.do_work(sock)
 
     def test_v4(self):
-        self._test('127.0.0.1')
+        self._test('127.0.0.1', socket.AF_INET)
 
     def test_v6(self):
         if coro.has_ipv6():
-            self._test('::1')
+            self._test('::1', socket.AF_INET6)
         else:
             sys.stderr.write('Warning: No IPv6 support; skipping tests\n')
-
-    def test_make_socket_for_ip(self):
-        if coro.has_ipv6():
-            sock = coro.make_socket_for_ip('2001::1', socket.SOCK_STREAM)
-            self.assertEquals(sock.domain, socket.AF_INET6)
-            sock = coro.make_socket_for_ip('::', socket.SOCK_STREAM)
-            self.assertEquals(sock.domain, socket.AF_INET6)
-        else:
-            sys.stderr.write('Warning: No IPv6 support; skipping tests\n')
-
-        sock = coro.make_socket_for_ip('1.2.3.4', socket.SOCK_STREAM)
-        self.assertEquals(sock.domain, socket.AF_INET)
-        sock = coro.make_socket_for_ip('0.0.0.0', socket.SOCK_STREAM)
-        self.assertEquals(sock.domain, socket.AF_INET)
-
-        self.assertRaises(ValueError, coro.make_socket_for_ip, '123', 0)
 
     def test_invalid_ip(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
