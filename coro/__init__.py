@@ -54,7 +54,7 @@ when you create it.
 Timeouts
 ========
 The shrapnel timeout facility allows you to execute a function which will be
-interrupted if it does finish within a specified period of time.  The
+interrupted if it does not finish within a specified period of time.  The
 `coro.TimeoutError` exception will be raised if the timeout expires.  See the
 `with_timeout` docstring for more detail.
 
@@ -65,7 +65,7 @@ you may use `with_timeout` in code that needs to run in non-coro processes
 
 Thread Local Storage
 ====================
-There is a tread-local storage interface available for storing global data this
+There is a thread-local storage interface available for storing global data that
 is thread-specific.  You instantiate a `ThreadLocal` instance and you can
 assign attributes to it that will be specific to that thread.  See the
 `ThreadLocal` docs for more detail.
