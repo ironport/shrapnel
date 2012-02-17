@@ -77,6 +77,7 @@ setup (
             # to enable LZO for stack compression, set COMPILE_LZO in coro/_coro.pyx
             #   and uncomment the following:
             #libraries=['lzo2']
+            libraries=['z']
             ),
         Extension(
             'coro.oserrors',
