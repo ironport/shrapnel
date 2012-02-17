@@ -1,7 +1,22 @@
-# $Header: //prod/main/ap/shrapnel/test/test_socket.py#2 $
-# Copyright (c) 2006 IronPort Systems, Inc.
-# All rights reserved.
-# Unauthorized redistribution prohibited.
+# Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 """Basic unittests for sockets including IPv6."""
 
@@ -18,8 +33,8 @@ class TestServer:
 
     accepted_from = None
 
-    def serve(self, address):
-        self.s = coro.make_socket_for_ip(address, socket.SOCK_STREAM)
+    def serve(self, address, family):
+        self.s = coro.make_socket(family, socket.SOCK_STREAM)
         self.s.bind((address, 0))
         self.bound_ip, self.port = self.s.getsockname()
         self.s.set_reuse_addr()
@@ -60,14 +75,14 @@ class Test(unittest.TestCase):
         reply = connected_sock.recv(len(self.test_string) + 1)
         self.assertEqual(reply, self.test_string)
 
-    def _test(self, address):
+    def _test(self, address, family):
         server = TestServer()
-        server_thread = coro.spawn(server.serve, address)
+        server_thread = coro.spawn(server.serve, address, family)
         # Give the server a chance to start.
         coro.yield_slice()
         self.assertEqual(server.bound_ip, address)
 
-        sock = coro.make_socket_for_ip(address, socket.SOCK_STREAM)
+        sock = coro.make_socket(family, socket.SOCK_STREAM)
         sock.connect((address, server.port))
 
         coro.yield_slice()
@@ -80,29 +95,13 @@ class Test(unittest.TestCase):
         self.do_work(sock)
 
     def test_v4(self):
-        self._test('127.0.0.1')
+        self._test('127.0.0.1', socket.AF_INET)
 
     def test_v6(self):
         if coro.has_ipv6():
-            self._test('::1')
+            self._test('::1', socket.AF_INET6)
         else:
             sys.stderr.write('Warning: No IPv6 support; skipping tests\n')
-
-    def test_make_socket_for_ip(self):
-        if coro.has_ipv6():
-            sock = coro.make_socket_for_ip('2001::1', socket.SOCK_STREAM)
-            self.assertEquals(sock.domain, socket.AF_INET6)
-            sock = coro.make_socket_for_ip('::', socket.SOCK_STREAM)
-            self.assertEquals(sock.domain, socket.AF_INET6)
-        else:
-            sys.stderr.write('Warning: No IPv6 support; skipping tests\n')
-
-        sock = coro.make_socket_for_ip('1.2.3.4', socket.SOCK_STREAM)
-        self.assertEquals(sock.domain, socket.AF_INET)
-        sock = coro.make_socket_for_ip('0.0.0.0', socket.SOCK_STREAM)
-        self.assertEquals(sock.domain, socket.AF_INET)
-
-        self.assertRaises(ValueError, coro.make_socket_for_ip, '123', 0)
 
     def test_invalid_ip(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
