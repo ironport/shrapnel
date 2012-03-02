@@ -1,2 +1,0 @@
-# -*- Mode: Python -*-
-
