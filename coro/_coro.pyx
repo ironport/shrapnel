@@ -797,7 +797,7 @@ cdef public void _wrap1 "_wrap1" (coro co):
 #                             event queue
 # ================================================================================
 
-include "event_queue.pyx"
+from event_queue import event_queue, __event_queue_version__
 
 cdef class event:
     cdef public uint64_t t
@@ -907,9 +907,9 @@ cdef public class sched [ object sched_object, type sched_type ]:
     cdef int stack_size
     cdef public object _current, pending, staging
     cdef coro _last
-    cdef readonly event_queue events
     cdef int profiling
     cdef uint64_t latency_threshold
+    cdef object events
 
     def __init__ (self, stack_size=4*1024*1024):
         self.stack_size = stack_size
@@ -1108,7 +1108,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
 
         tb = timebomb (self._current, delta)
         e = event (tb.when, tb)
-        self.events.c_insert (e.t, e)
+        self.events.insert (e.t, e)
         try:
             try:
                 return PyObject_Call (function, args, kwargs)
@@ -1121,7 +1121,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
                     raise
         finally:
             if not e.expired:
-                self.events.c_delete (e.t, e)
+                self.events.remove (e.t, e)
             e.expire()
 
     cdef sleep (self, uint64_t when):
@@ -1134,12 +1134,12 @@ cdef public class sched [ object sched_object, type sched_type ]:
         IF CORO_DEBUG:
             assert self._current is not None
         e = event (when, self._current)
-        self.events.c_insert (when, e)
+        self.events.insert (when, e)
         try:
             (<coro>self._current).__yield ()
         finally:
             if not e.expired:
-                self.events.c_delete (e.t, e)
+                self.events.remove (e.t, e)
             e.expire()
 
     def sleep_relative (self, delta):
@@ -1170,10 +1170,10 @@ cdef public class sched [ object sched_object, type sched_type ]:
         cdef coro c
 
         retry = _fifo()
-        while self.events.len():
-            e = self.events.c_top(NULL)
+        while len(self.events):
+            e = self.events.top()
             if e.t <= now:
-                self.events.c_pop(NULL)
+                self.events.pop()
                 # two kinds of event values:
                 # 1) a coro (for sleep_{relative,absolute}())
                 # 2) a timebomb (for with_timeout())
@@ -1198,19 +1198,19 @@ cdef public class sched [ object sched_object, type sched_type ]:
         # retry all the timebombs that failed due to ScheduleError
         while retry.size:
             e = retry._pop()
-            self.events.c_insert (e.t, e)
+            self.events.insert (e.t, e)
 
     cdef get_timeout_to_next_event (self, int default_timeout):
         cdef uint64_t delta, now
         cdef event e
         # default_timeout is in seconds
         now = c_rdtsc()
-        if self.events.len():
+        if len(self.events):
             # 1) get time to next event
             while 1:
-                e = self.events.c_top(NULL)
+                e = self.events.top()
                 if e.expired:
-                    self.events.c_pop(NULL)
+                    self.events.pop()
                 else:
                     break
             if e.t < now:

@@ -46,9 +46,18 @@ setup (
     license = "MIT",
     url = "http://github.com/ironport/shrapnel",
     ext_modules = [
+        Extension(
+            'coro.event_queue',
+            ['coro/event_queue.pyx'],
+            language='c++',
+            depends=[os.path.join(include_dir, 'pyrex', 'python.pxi'),],
+            pyrex_include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'pyrex'),
+                ],),
         Extension (
             'coro._coro',
-            ['coro/_coro.pyx', 'coro/swap.c', 'coro/event_queue.cc'],
+            ['coro/_coro.pyx', 'coro/swap.c'],
             extra_compile_args = ['-Wno-unused-function'],
             depends=(glob.glob('coro/*.pyx') +
                      glob.glob('coro/*.pxi') +
