@@ -180,7 +180,7 @@ class http_request:
         self.request_number = http_request.request_count
         self.request = request
         self.request_headers = headers
-        #W ('headers=%r\n' % (headers,))
+        #W ('headers=%s\n' % (headers,))
         self.client = client
         self.server = client.server
         self.tstart = time.time()
@@ -444,14 +444,22 @@ class buffered_output:
         if self.chunk_index >= 0:
             self.chunk_len += len (data)
         if self.len >= self.size:
-            self.sent += self.conn.writev (self.get_data())
+            try:
+                self.sent += self.conn.writev (self.get_data())
+            except AttributeError:
+                # underlying socket may not support writev (e.g., tlslite)
+                self.sent += self.conn.send (''.join (data))
 
     def flush (self):
         "Flush the data from this buffer."
         data = self.get_data()
         if self.chunk_index >= 0:
             data.append ('0\r\n\r\n')
-        self.sent += self.conn.writev (data)
+        try:
+            self.sent += self.conn.writev (data)
+        except AttributeError:
+            # underlying socket may not support writev (e.g., tlslite)
+            self.sent += self.conn.send (''.join (data))
 
 class http_file:
 
@@ -524,6 +532,7 @@ class server:
         self.shutdown_flag = 0
         self.thread_id = None
         self.addr = ()
+        self.sock = None
 
     def log (self, line):
         sys.stderr.write ('http %s:%d: %s\n' % (self.addr[0], self.addr[1], line))
@@ -537,15 +546,15 @@ class server:
         Try up to <retries> time to bind to that address.
         Raises an exception if the bind fails."""
 
-        server_s = coro.tcp_sock()
-        server_s.set_reuse_addr()
+        self.sock = coro.tcp_sock()
+        self.sock.set_reuse_addr()
         done = 0
         save_errno = 0
         self.addr = addr
         while not done:
             for x in xrange (retries):
                 try:
-                    server_s.bind (addr)
+                    self.sock.bind (addr)
                 except OSError, why:
                     if why.errno not in (errno.EADDRNOTAVAIL, errno.EADDRINUSE):
                         raise
@@ -561,15 +570,15 @@ class server:
                 self.log ('cannot bind to %s:%d after 5 attempts, errno = %d' % (addr[0], addr[1], save_errno))
                 coro.sleep_relative (15)
 
-        server_s.listen (1024)
-        c = coro.spawn (self.run, server_s)
+        self.sock.listen (1024)
+        c = coro.spawn (self.run)
         c.set_name ('http_server (%s:%d)' % addr)
 
-    def run (self, server_s):
+    def run (self):
         self.thread_id = coro.current().thread_id()
         while not self.shutdown_flag:
             try:
-               conn, addr = server_s.accept()
+               conn, addr = self.accept()
                client = connection (self)
                c = coro.spawn (client.run, conn, addr)
                c.set_name ('http connection on %r' % (addr,))
@@ -579,7 +588,10 @@ class server:
                 self.log ('error: %r\n' % (coro.compact_traceback(),))
                 coro.sleep_relative (0.25)
                 continue
-        server_s.close()
+        self.sock.close()
+
+    def accept (self):
+        return self.sock.accept()
 
     def shutdown (self):
         self.shutdown_flag = 1
@@ -589,3 +601,42 @@ class server:
             thread.shutdown()
         except KeyError:
             return # already exited
+
+class tlslite_server (server):
+
+    "https server using the tlslite package"
+
+    def __init__ (self, cert_path, key_path):
+        server.__init__ (self)
+        self.cert_path = cert_path
+        self.key_path = key_path
+        self.read_chain()
+        self.read_private()
+
+    def accept (self):
+        import tlslite
+        conn0, addr = server.accept (self)
+        conn = tlslite.TLSConnection (conn0)
+        conn.handshakeServer (certChain=self.chain, privateKey=self.private)
+        return conn, addr
+
+    def read_chain (self):
+        "cert chain is all in one file, in LEAF -> ROOT order"
+        import tlslite
+        delim = '-----END CERTIFICATE-----\n'
+        data = open (self.cert_path).read()
+        certs = data.split (delim)
+        chain = []
+        for cert in certs:
+            if cert:
+                x = tlslite.X509()
+                x.parse (cert + delim)
+                chain.append (x)
+        self.chain = tlslite.X509CertChain (chain)
+
+    def read_private (self):
+        import tlslite
+        self.private = tlslite.parsePEMKey (
+            open (self.key_path).read(),
+            private=True
+            )
