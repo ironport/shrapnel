@@ -340,11 +340,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
         return self.fd
 
     cdef _set_reuse_addr (self):
-        cdef int old
+        cdef int old = 0
         cdef socklen_t optlen
-        optlen = sizeof (old);
+        optlen = sizeof (old)
         getsockopt (self.fd, SOL_SOCKET, SO_REUSEADDR, <void*> &old, &optlen)
-        old = old | 1;
+        old = old | 1
         setsockopt (self.fd, SOL_SOCKET, SO_REUSEADDR, <void*> &old, optlen)
 
     def set_reuse_addr (self):
