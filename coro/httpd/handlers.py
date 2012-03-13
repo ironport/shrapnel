@@ -11,6 +11,8 @@ from coro.httpd.http_date import build_http_date
 
 W = sys.stderr.write
 
+# these two aren't real handlers, they're more like templates
+#  to give you an idea how to write one.
 class post_handler:
 
     def match (self, request):
@@ -51,6 +53,7 @@ class coro_status_handler:
 
     def handle_request (self, request):
         request['Content-Type'] = 'text/html'
+        request.set_deflate()
         request.push ('<p>Listening on\r\n')
         request.push (repr (request.server.addr))
         request.push ('</p>\r\n')
