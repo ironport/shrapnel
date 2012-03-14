@@ -52,25 +52,32 @@ class coro_status_handler:
         return s
 
     def handle_request (self, request):
-        request['Content-Type'] = 'text/html'
+        request['content-type'] = 'text/html; charset=utf-8'
         request.set_deflate()
+        request.push (
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
+            '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">'
+            '<html xmlns="http://www.w3.org/1999/xhtml">\r\n'
+            )
+        request.push ('<head><title>status</title></head><body>\r\n')
         request.push ('<p>Listening on\r\n')
         request.push (repr (request.server.addr))
         request.push ('</p>\r\n')
-        request.push ('<ul>\r\n')
+        request.push ('<table border="1">\r\n')
         all_threads = ( (x, coro.where(x)) for x in coro.all_threads.values() )
         for thread, traceback in all_threads:
-            request.push ('<li>%s\r\n' % self.clean (repr(thread)))
+            request.push ('<tr><td>%s\r\n' % self.clean (repr(thread)))
             request.push ('<pre>\r\n')
             # traceback format seems to have changed
             for level in traceback[1:-1].split ('] ['):
                 [file, fun] = level.split (' ')
                 fun, line = fun.split ('|')
-                request.push ('<b>%20s</b>:%3d %s\r\n' % (fun, int(line), file))
-            request.push ('</pre>')
-        request.push ('</ul>\r\n')
-        request.push ('<a href="status">Update</a>')
-        request.done()
+                request.push ('<b>%20s</b>:%3d %s\r\n' % (self.clean (fun), int(line), self.clean (file)))
+            request.push ('</pre></td></tr>')
+        request.push ('</table>\r\n')
+        request.push ('<p><a href="status">Update</a></p>')
+        request.push ('</body></html>')
+        request.done()                                        
 
 class file_handler:
 
