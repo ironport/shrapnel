@@ -220,9 +220,10 @@ class http_request:
 
     def can_deflate (self):
         acc_enc = self.request_headers.get_one ('accept-encoding')
-        for kind in acc_enc.split (','):
-            if kind.strip().lower() == 'deflate':
-                return True
+        if acc_enc:
+            for kind in acc_enc.split (','):
+                if kind.strip().lower() == 'deflate':
+                    return True
         return False
 
     def set_deflate (self):
@@ -230,6 +231,9 @@ class http_request:
         if self.can_deflate():
             self.deflate = zlib.compressobj()
             self['content-encoding'] = 'deflate'
+            # http://zoompf.com/blog/2012/02/lose-the-wait-http-compression
+            # Note: chrome,firefox,safari,opera all handle the header.  Not MSIE, sigh.  Discard it.
+            assert (self.deflate.compress ('') == '\x78\x9c')
             return self.deflate
 
     def push (self, data, flush=False):
