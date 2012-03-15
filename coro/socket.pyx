@@ -1017,7 +1017,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                             (the_resolver.resolve_ipv4 (ip), port), sa, addr_len, False
                             )
                     else:
-                        raise ValueError, "not a valid IPv4 address"
+                        raise ValueError ("not a valid IPv4 address")
             elif self.domain == AF_INET6:
                 sin6.sin6_family = AF_INET6
                 IF UNAME_SYSNAME == "FreeBSD":
@@ -1025,12 +1025,13 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 addr_len[0] = sizeof(sockaddr_in6)
                 sin6.sin6_port = htons(port)
                 r = inet_pton(AF_INET6, PyString_AsString(ip), &sin6.sin6_addr)
-                if resolve:
-                    return self.parse_address (
-                        (the_resolver.resolve_ipv6 (ip), port), sa, addr_len, False
-                        )
-                else:
-                    raise ValueError, "not a valid IPv6 address"
+                if r != 1:
+                    if resolve:
+                        return self.parse_address (
+                            (the_resolver.resolve_ipv6 (ip), port), sa, addr_len, False
+                            )
+                    else:
+                        raise ValueError ("not a valid IPv6 address")
             else:
                 raise ValueError, "Unsupported address family: %d" % self.domain
         elif PyString_Check (address) and address[0] == '/':
