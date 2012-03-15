@@ -536,7 +536,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 return r
 
-#            - `flags`: recv flags to use (defaults to 0) (see recv(2) manpage).
+    # - `flags`: recv flags to use (defaults to 0) (see recv(2) manpage).
     def recv (self, int buffer_size):
         """Receive data.
 
@@ -969,7 +969,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 address = self.unparse_address(&sa, addr_len)
                 return r, address
 
-    cdef parse_address (self, object address, sockaddr_storage * sa, socklen_t * addr_len):
+    cdef parse_address (self, object address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve=False):
         """Parse a Python socket address and set the C structure values.
 
         :Parameters:
@@ -996,7 +996,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             ip = PySequence_GetItem(address, 0)
             port = PySequence_GetItem(address, 1)
             if not PyString_Check (ip):
-                raise ValueError, "IP address be a string"
+                raise ValueError, "IP address must be a string"
             if PyString_Size (ip) == 0:
                 if self.domain == AF_INET:
                     ip = "0.0.0.0"
@@ -1012,7 +1012,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 sin.sin_port = htons(port)
                 r = inet_pton(AF_INET, PyString_AsString(ip), &sin.sin_addr)
                 if r != 1:
-                    raise ValueError, "not a valid IPv4 address"
+                    if resolve:
+                        return self.parse_address (
+                            (the_resolver.resolve_ipv4 (ip), port), sa, addr_len, False
+                            )
+                    else:
+                        raise ValueError, "not a valid IPv4 address"
             elif self.domain == AF_INET6:
                 sin6.sin6_family = AF_INET6
                 IF UNAME_SYSNAME == "FreeBSD":
@@ -1020,11 +1025,15 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 addr_len[0] = sizeof(sockaddr_in6)
                 sin6.sin6_port = htons(port)
                 r = inet_pton(AF_INET6, PyString_AsString(ip), &sin6.sin6_addr)
-                if r != 1:
+                if resolve:
+                    return self.parse_address (
+                        (the_resolver.resolve_ipv6 (ip), port), sa, addr_len, False
+                        )
+                else:
                     raise ValueError, "not a valid IPv6 address"
             else:
                 raise ValueError, "Unsupported address family: %d" % self.domain
-        elif PyString_Check (address):
+        elif PyString_Check (address) and address[0] == '/':
             # AF_UNIX
             # +1 to grab the NUL char
             l = PyString_Size (address) + 1
@@ -1106,7 +1115,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cdef _wait_for_write (self):
         return the_poller._wait_for_write (self.fd)
 
-    def connect (self, address):
+    cpdef connect_addr (self, address, bint resolve=False):
         """Connect the socket.
 
         :Parameters:
@@ -1124,7 +1133,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef coro me
         me = <coro>the_scheduler._current
         memset (&sa, 0, sizeof (sockaddr_storage))
-        self.parse_address (address, &sa, &addr_len)
+        self.parse_address (address, &sa, &addr_len, resolve)
         while 1:
             r = connect (self.fd, <sockaddr*>&sa, addr_len)
             if r == -1:
@@ -1135,6 +1144,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     raise_oserror()
             else:
                 return None
+
+    cpdef connect (self, address):
+        return self.connect_addr (address, True)
 
     def bind (self, address):
         """Bind the socket.
@@ -1365,6 +1377,33 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         return sock(self.domain, self.stype, 0, new_fd)
 
+
+class NameError (Exception):
+    pass
+
+cdef class dummy_resolver:
+    "blocking name resolver uses socket.getaddrinfo()"
+    def resolve_ipv4 (self, bytes address):
+        addrs = __socketmodule.getaddrinfo (address, None, __socketmodule.AF_INET)
+        if not addrs:
+            raise NameError ("unable to resolve host: %r" % address)
+        else:
+            return addrs[0][4][0]
+    def resolve_ipv6 (self, bytes address):
+        addrs = __socketmodule.getaddrinfo (address, None, __socketmodule.AF_INET6)
+        if not addrs:
+            raise NameError ("unable to resolve host: %r" % address)
+        else:
+            return addrs[0][4][0]
+
+the_resolver = dummy_resolver()
+
+def set_resolver (resolver):
+    "replace the default resolver - return previous value"
+    global the_resolver
+    old_value = the_resolver
+    the_resolver = resolver
+    return old_value
 
 def get_live_sockets():
     """Get the number of live socket objects.  This includes socket objects
