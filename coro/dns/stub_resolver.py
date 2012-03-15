@@ -14,12 +14,17 @@ class stub_resolver:
     def __init__ (self, nameservers, inflight=200):
         self.nameservers = nameservers
         self.inflight = coro.semaphore (inflight)
+        self.inflight_ids = set()
 
     def lookup (self, qname, qtype, timeout=10, retries=3):
         m = packet.Packer()
         h = packet.Header()
-        # XXX need to avoid collisions
-        h.id = random.randrange (65536)
+        while 1:
+            qid = random.randrange (65536)
+            # avoid collisions
+            if qid not in self.inflight_ids:
+                break
+        h.id = qid
         h.opcode = packet.OPCODE.QUERY
         h.rd = 1
         h.qdcount = 1
@@ -29,6 +34,7 @@ class stub_resolver:
         for addr in self.nameservers:
             for i in range (retries):
                 self.inflight.acquire (1)
+                self.inflight_ids.add (qid)
                 try:
                     s = coro.udp_sock()
                     s.connect ((addr, 53))
@@ -36,11 +42,18 @@ class stub_resolver:
                     try:
                         reply = coro.with_timeout (timeout, s.recv, 1000)
                         u = packet.Unpacker (reply)
-                        return u.unpack()
+                        result = u.unpack()
+                        rh = result[0]
+                        if rh.id != qid:
+                            raise QueryFailed ("bad id in reply")
+                        else:
+                            return result
                     except coro.TimeoutError:
                         pass
                 finally:
                     self.inflight.release (1)
+                    self.inflight_ids.remove (qid)
+
         raise QueryFailed ("no reply from nameservers")
 
     def gethostbyname (self, name, qtype):
