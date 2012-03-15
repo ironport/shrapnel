@@ -79,7 +79,8 @@ setup (
             'coro.oserrors',
             ['coro/oserrors.pyx', ],
             ),
-        Extension(
+        Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
+        Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
             pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
@@ -89,11 +90,12 @@ setup (
                 ],
             ),
         ],
-    packages=['coro', 'coro.clocks', 'coro.httpd'],
+    packages=['coro', 'coro.clocks', 'coro.dns'],
     package_dir = {
         '': 'coroutine',
         'coro': 'coro',
-        'coro.clocks': 'coro/clocks'
+        'coro.clocks': 'coro/clocks',
+        'coro.dns': 'coro/dns',
     },
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
     install_requires = ['cython>=0.12.1', 'pyrex>=0.9.8.6'],
