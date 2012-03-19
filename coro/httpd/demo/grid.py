@@ -66,7 +66,7 @@ class grid_handler:
             '<input type="submit" name="dir" value="up" />'
             '<input type="submit" name="dir" value="down" />'
             '</form>'
-            '<a href="grid/source">source for this handler</a>'
+            '<a href="/grid/source">source for this handler</a>'
             )
         request.done()
 
