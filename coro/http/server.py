@@ -9,7 +9,7 @@ import http_date
 import mimetypes
 import os
 import re
-import read_stream
+from coro import read_stream
 import socket
 import stat
 import sys
