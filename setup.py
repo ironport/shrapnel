@@ -89,7 +89,7 @@ setup (
                 ],
             ),
         ],
-    packages=['coro', 'coro.clocks', 'coro.httpd'],
+    packages=['coro', 'coro.clocks', 'coro.http'],
     package_dir = {
         '': 'coroutine',
         'coro': 'coro',
