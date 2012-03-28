@@ -399,17 +399,16 @@ class buffered_output:
         if self.chunk_index >= 0:
             self.chunk_len += len (data)
         if self.len >= self.size:
-            try:
-                self.sent += self.conn.writev (self.get_data())
-            except AttributeError:
-                # underlying socket may not support writev (e.g., tlslite)
-                self.sent += self.conn.send (''.join (data))
+            self.send (self.get_data())
 
     def flush (self):
         "Flush the data from this buffer."
         data = self.get_data()
         if self.chunk_index >= 0:
             data.append ('0\r\n\r\n')
+        self.send (data)
+
+    def send (self, data):
         try:
             self.sent += self.conn.writev (data)
         except AttributeError:
@@ -499,11 +498,10 @@ class tlslite_server (server):
 
     "https server using the tlslite package"
 
-    def __init__ (self, cert_path, key_path, next_protocol=None):
+    def __init__ (self, cert_path, key_path):
 	server.__init__ (self)
         self.cert_path = cert_path
 	self.key_path = key_path
-	self.next_protocol = next_protocol
         self.read_chain()
 	self.read_private()
 
@@ -511,7 +509,7 @@ class tlslite_server (server):
 	import tlslite
 	conn0, addr = server.accept (self)
         conn = tlslite.TLSConnection (conn0)
-        conn.handshakeServer (certChain=self.chain, privateKey=self.private, nextProtos=self.next_protocol)
+        conn.handshakeServer (certChain=self.chain, privateKey=self.private)
 	return conn, addr
 
     def read_chain (self):
