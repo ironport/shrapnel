@@ -511,7 +511,7 @@ class tlslite_server (server):
 	import tlslite
 	conn0, addr = server.accept (self)
         conn = tlslite.TLSConnection (conn0)
-        conn.handshakeServer (certChain=self.chain, privateKey=self.private, nextProtos=self.next_protocol)
+        conn.handshakeServer (certChain=self.chain, privateKey=self.private)
 	return conn, addr
 
     def read_chain (self):
