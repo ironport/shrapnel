@@ -24,7 +24,7 @@ class request:
 
     def __init__ (self, force=True):
         self.latch = latch()
-        self.force = True
+        self.force = force
         self.content = None
         self.response = None
         self.rheader = None
