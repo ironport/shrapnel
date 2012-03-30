@@ -13,12 +13,12 @@ Shrapnel/Coro
 Shrapnel/Coro is a cooperative thread facility built on top of Python.
 
 .. note::
- Note: this document was originally written for internal use at
- IronPort.  It refers to several facilities that unfortunately have not
- (yet) been open-sourced, (e.g., the dns resolver and sntp client).
- It also references and describes things that are specific to the
- IronPort mail appliance.  Much of the advice in here is good, though,
- and I hope to revisit it soon.
+   This document was originally written for internal use at
+   IronPort.  It refers to several facilities that unfortunately have not
+   (yet) been open-sourced, (e.g., the dns resolver and sntp client).
+   It also references and describes things that are specific to the
+   IronPort mail appliance.  Much of the advice in here is good, though,
+   and I hope to revisit it soon.
 
 Threads
 =======
