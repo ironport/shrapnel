@@ -167,7 +167,20 @@ class http_request:
             self.done_cv.wait()
 
     def has_body (self):
-        return self['content-length'] or self['transfer-encoding']
+        probe = self.request_headers.get_one ('content-length')
+        if probe:
+            try:
+                size = int (probe)
+                if size == 0:
+                    return False
+                elif size > 0:
+                    return True
+                else:
+                    return False
+            except ValueError:
+                return False
+        else:
+            return self.request_headers.has_key ('transfer-encoding')
 
     def can_deflate (self):
         acc_enc = self.request_headers.get_one ('accept-encoding')
