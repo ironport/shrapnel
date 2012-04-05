@@ -75,6 +75,7 @@ cdef struct fake_epoll_event:
     int err
 
 cdef int SECS_TO_MILLISECS = 1000
+cdef double NSECS_TO_MILLISECS = 1000000.0
 
 class EV:
 
@@ -442,7 +443,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 #print 'epoll_ctl event >>>>>> %s for %s' % (org_e.events, org_e.data.fd)
                 if r == -1 and (libc.errno != libc.EEXIST):
                     raise_oserror()
-        r = epoll_wait (self.ep_fd, events, nevents, timeout[0] * SECS_TO_MILLISECS)
+        r = epoll_wait (self.ep_fd, events, nevents, timeout[0] * SECS_TO_MILLISECS + (timeout[1] / NSECS_TO_MILLISECS))
 
         if the_scheduler.profiling:
             the_profiler.charge_wait()
