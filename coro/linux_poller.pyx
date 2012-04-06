@@ -173,7 +173,7 @@ cdef class event_key:
     cdef int fd
     cdef int op
 
-    def __cinit__ (self, int events, int fd, int op=EPOLL_CTL_MOD):
+    def __cinit__ (self, int events, int fd, int op=EPOLL_CTL_ADD):
         self.events = events
         self.fd = fd
         self.op = op
@@ -240,7 +240,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 self.event_map[ek] = target
                 e = &(self.change_list[self.change_list_index])
                 e.data.fd = ek.fd
-                e.op = EPOLL_CTL_MOD
+                e.op = EPOLL_CTL_ADD
                 e.events = ek.events 
                 e.flags = EPOLLONESHOT
                 self.change_list_index = self.change_list_index + 1
@@ -326,7 +326,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         #if r < 0:
         #    raise_oserror()
 
-    def set_handler (self, object event, object handler, int flags=EPOLLONESHOT, int op=EPOLL_CTL_MOD):
+    def set_handler (self, object event, object handler, int flags=EPOLLONESHOT, int op=EPOLL_CTL_ADD):
         """Add a event handler.
 
         This is a low-level interface to register a event handler.
@@ -424,8 +424,9 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
 
         for i from 0 <= i < self.change_list_index:
             e = &(self.change_list[i])
-            org_e.events = e.events | e.flags
+            org_e.events = e.events | EPOLLET
             org_e.data.fd = e.data.fd
+            # try to add fd to epoll
             if e.events != 0:
                 r = epoll_ctl (
                     self.ep_fd,
@@ -433,10 +434,12 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                     org_e.data.fd,
                     &org_e
                 )
-                if r == -1 and (libc.errno == libc.ENOENT):
+                # if fd already exist, then modify to to register intrest in read/write
+                if r == -1 and (libc.errno == libc.EEXIST):
+                    org_e.events = e.events | EPOLLOUT | EPOLLIN | EPOLLET
                     r = epoll_ctl (
                         self.ep_fd,
-                        EPOLL_CTL_ADD,
+                        EPOLL_CTL_MOD,
                         org_e.data.fd,
                         &org_e
                     )
@@ -474,36 +477,48 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 new_e.events = events[i].events
                 new_e.err = 0
                 #print 'epoll_wait event >>>>>> %s for %s' % (new_e.events, new_e.data.fd)
-                if new_e.events & EPOLLERR or new_e.events & EPOLLHUP:
-                    #print 'epoll_wait event >>>>>> %s for %s' % (new_e.events, new_e.data.fd)
-                    new_e.events = new_e.events & ~(EPOLLHUP)
-                    new_e.events = new_e.events & ~(EPOLLERR)
-                    new_e.err = 104
-                    # epoll doesn't specify the last event we had registered so make a guess
-                    if new_e.events == 0:
-                        new_e.events = EPOLLIN
-                        try:
-                            et = self.event_map[event_key(EPOLLIN, new_e.data.fd)]
-                        except KeyError:
-                            new_e.events = EPOLLOUT
-
-                _py_event = py_event()
-                _py_event.__fast_init__(&new_e)
-                ek = event_key (new_e.events, new_e.data.fd)
-                try:
-                    et = self.event_map[ek]
-                except KeyError:
-                    W ('un-handled event: fd=%s events=%s\n' % (new_e.data.fd, new_e.events))
+                tmp = (EPOLLIN, EPOLLOUT)
+                if events[i].events & tmp[0] and events[i].events & tmp[1]:
+                    pass
                 else:
-                    assert et.status != EVENT_STATUS_ABORTED
+                    tmp = [0]
+                for j from 0 <= j < len(tmp):
+                    if len(tmp) == 2:
+                        if events[i].events & tmp[j]:
+                            new_e.events = events[i].events & ~(tmp[j])
+ 
+                    if new_e.events & EPOLLERR or new_e.events & EPOLLHUP:
+                        #print 'epoll_wait event >>>>>> %s for %s' % (new_e.events, new_e.data.fd)
+                        new_e.events = new_e.events & ~(EPOLLHUP)
+                        new_e.events = new_e.events & ~(EPOLLERR)
+                        new_e.err = 104
+                        # epoll doesn't specify the last event we had registered so make a guess
+                        if new_e.events == 0:
+                            new_e.events = EPOLLIN
+                            try:
+                                et = self.event_map[event_key(EPOLLIN, new_e.data.fd)]
+                            except KeyError:
+                                new_e.events = EPOLLOUT
+
+                    _py_event = py_event()
+                    _py_event.__fast_init__(&new_e)
+                    ek = event_key (new_e.events, new_e.data.fd)
+                    if not PyDict_Contains (self.event_map, ek):
+                        continue
                     try:
-                        et.status = EVENT_STATUS_FIRED
-                        if isinstance (et.target, coro):
-                            co = et.target
-                            co._schedule (_py_event)
-                        else:
-                            # assumes kt.target is a callable object
-                            _spawn(et.target, (_py_event,), {})
-                    finally:
-                        if et.flags & TARGET_FLAG_ONESHOT:
-                            del self.event_map[ek]
+                        et = self.event_map[ek]
+                    except KeyError:
+                        W ('un-handled event: fd=%s events=%s\n' % (new_e.data.fd, new_e.events))
+                    else:
+                        assert et.status != EVENT_STATUS_ABORTED
+                        try:
+                            et.status = EVENT_STATUS_FIRED
+                            if isinstance (et.target, coro):
+                                co = et.target
+                                co._schedule (_py_event)
+                            else:
+                                # assumes kt.target is a callable object
+                                _spawn(et.target, (_py_event,), {})
+                        finally:
+                            if et.flags & TARGET_FLAG_ONESHOT:
+                                del self.event_map[ek]
