@@ -1,15 +1,22 @@
 # $Header: //prod/main/ap/shrapnel/setup.py#17 $
 #!/usr/bin/env python
 
+import sys
+import os
+import glob
+
+join = os.path.join
+
+try:
+    import Cython
+    # avoid setuptools monkey-patching problems
+    sys.path.insert (0, join (os.path.dirname(__file__), "fake_pyrex"))
+except:
+    pass
+
 from distutils.core import setup
 from Cython.Distutils import build_ext
 from Cython.Distutils.extension import Extension
-
-#from Cython.Distutils import build_ext
-#from Cython.Distutils.extension import Extension
-
-import glob
-import os
 
 include_dir = os.getcwd()
 
@@ -46,15 +53,6 @@ setup (
     license = "MIT",
     url = "http://github.com/ironport/shrapnel",
     ext_modules = [
-        Extension(
-            'coro.event_queue',
-            ['coro/event_queue.pyx'],
-            language='c++',
-            depends=[os.path.join(include_dir, 'pyrex', 'python.pxi'),],
-            pyrex_include_dirs=[
-                os.path.join(include_dir, '.'),
-                os.path.join(include_dir, 'pyrex'),
-                ],),
         Extension (
             'coro._coro',
             ['coro/_coro.pyx', 'coro/swap.c'],
@@ -62,23 +60,23 @@ setup (
             depends=(glob.glob('coro/*.pyx') +
                      glob.glob('coro/*.pxi') +
                      glob.glob('coro/*.pxd') +
-                     [os.path.join(include_dir, 'pyrex', 'python.pxi'),
-                      os.path.join(include_dir, 'pyrex', 'pyrex_helpers.pyx'),
-                      os.path.join(include_dir, 'include', 'pyrex_helpers.h'),
-                      os.path.join(include_dir, 'pyrex',
+                     [join(include_dir, 'pyrex', 'python.pxi'),
+                      join(include_dir, 'pyrex', 'pyrex_helpers.pyx'),
+                      join(include_dir, 'include', 'pyrex_helpers.h'),
+                      join(include_dir, 'pyrex',
                                    'tsc_time_include.pyx'),
-                      os.path.join(include_dir, 'include', 'tsc_time.h'),
-                      os.path.join(include_dir, 'pyrex', 'libc.pxd'),
+                      join(include_dir, 'include', 'tsc_time.h'),
+                      join(include_dir, 'pyrex', 'libc.pxd'),
                      ]
                     ),
             pyrex_include_dirs=[
-                os.path.join(include_dir, '.'),
-                os.path.join(include_dir, 'pyrex'),
+                join(include_dir, '.'),
+                join(include_dir, 'pyrex'),
                 ],
-            #include_dirs=[os.path.join(include_dir, 'pyrex')],
+            #include_dirs=[join(include_dir, 'pyrex')],
             include_dirs=[
-                os.path.join(include_dir, '.'),
-                os.path.join(include_dir, 'include'),
+                join(include_dir, '.'),
+                join(include_dir, 'include'),
                 ],
             #pyrex_compile_time_env={'COMPILE_LIO': check_lio(),
             #                        'CORO_DEBUG': True,
@@ -91,12 +89,21 @@ setup (
         Extension(
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
-            pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
+            pyrex_include_dirs=[join(include_dir, 'pyrex')],
             include_dirs=[
-                os.path.join(include_dir, '.'),
-                os.path.join(include_dir, 'include'),
+                join(include_dir, '.'),
+                join(include_dir, 'include'),
                 ],
             ),
+        Extension(
+            'coro.event_queue',
+            ['coro/event_queue.pyx'],
+            language='c++',
+            depends=[join(include_dir, 'pyrex', 'python.pxi'),],
+            pyrex_include_dirs=[
+                join(include_dir, '.'),
+                join(include_dir, 'pyrex'),
+                ],),
         ],
     packages=['coro', 'coro.clocks'],
     package_dir = {
@@ -105,6 +112,8 @@ setup (
         'coro.clocks': 'coro/clocks'
     },
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
-    install_requires = ['cython>=0.12.1', 'pyrex>=0.9.8.6'],
+    install_requires = ['cython>=0.12.1'],
+    # XXX get tagged versions going...
+    download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0',
     cmdclass={'build_ext': build_ext},
 )
