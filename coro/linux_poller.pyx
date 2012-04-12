@@ -210,7 +210,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
             me = the_scheduler._current
             target = me
             self.event_map[ek] = target
-            self.register_event(ek, flags)
+            self._register_event(ek, flags)
 
             return target
 
@@ -220,7 +220,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
     cdef notify_of_close (self, int fd):
         return
 
-    cdef register_event(self, event_key ek, unsigned int flags): 
+    cdef _register_event(self, event_key ek, unsigned int flags): 
         cdef int r
         cdef epoll_event org_e
         org_e.data.fd = ek.fd
@@ -257,12 +257,6 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         return self._wait_for_with_eof(fd, EPOLLIN)
 
     cdef _wait_for_write (self, int fd):
-        return self._wait_for_with_eof(fd, EPOLLOUT)
-
-    def wait_for_read (self, int fd):
-        return self._wait_for_with_eof(fd, EPOLLIN)
-
-    def wait_for_write (self, int fd):
         return self._wait_for_with_eof(fd, EPOLLOUT)
 
     cdef py_event _wait_for (self, int fd, int events):
