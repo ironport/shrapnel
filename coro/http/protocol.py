@@ -8,6 +8,8 @@ W = coro.write_stderr
 # candidate for sync.pyx?
 class latch:
 
+    "Like a CV, except without the race - if the event has already fired then wait() will return immediately."
+
     def __init__ (self):
         self.cv = coro.condition_variable()
         self.done = False
@@ -25,12 +27,13 @@ class latch:
 
 class http_file:
 
+    "HTTP message content, as a file-like object."
+
     buffer_size = 8000
 
     def __init__ (self, headers, stream):
         self.streami = stream
         self.done_cv = latch()
-        # XXX idiotic 'params' might be present
         if headers.get_one ('transfer-encoding') == 'chunked':
             self.streamo = read_stream.buffered_stream (self._gen_read_chunked().next)
         else:
@@ -42,9 +45,9 @@ class http_file:
                 raise HTTP_Protocol_Error ("no way to determine length of HTTP data")
             
     def _gen_read_chunked (self):
+        "generator: decodes chunked transfer-encoding."
         s = self.streami
         while 1:
-            # XXX more idiotic params here
             chunk_size = int (s.read_line()[:-2], 16)
             if chunk_size == 0:
                 self.done_cv.wake_all()
@@ -59,6 +62,7 @@ class http_file:
                     yield block
 
     def _gen_read_fixed (self):
+        "generate fixed-size blocks of content."
         s = self.streami
         remain = self.content_length
         while remain:
@@ -71,6 +75,7 @@ class http_file:
 
     # XXX implement <size> argument
     def read (self, join=True):
+        "read the entire contents.  join=False returns a generator, join=True returns a string."
         r = (x for x in self.streamo.read_all())
         if join:
             return ''.join (r)
@@ -78,12 +83,14 @@ class http_file:
             return r
         
     def readline (self):
+        "read a newline-delimited line."
         if self.done_cv.done:
             return ''
         else:
             return self.streamo.read_until ('\n')
 
     def wait (self):
+        "wait until all the content has been read."
         self.done_cv.wait()
 
 class header_set:
@@ -94,6 +101,7 @@ class header_set:
             self.crack (h)
 
     def from_keywords (self, kwds):
+        "Populate this header set from a dictionary of keyword arguments (e.g., 'content_length' becomes 'content-length')"
         r = []
         for k, v in kwds.items():
             k = k.replace ('_', '-')
@@ -101,17 +109,18 @@ class header_set:
         return self
 
     def crack (self, h):
+        "Crack one header line."
+        # deliberately ignoring 822 crap like continuation lines.
         try:
             i = h.index (': ')
             name, value = h[:i], h[i+2:]
             self[name] = value
         except ValueError:
             coro.write_stderr ('dropping bogus header %r\n' % (h,))
-            # bogus header, drop it
-            # XXX can't remember, does HTTP allow continuation lines in headers?
             pass
 
     def get_one (self, key):
+        "Get the value of a header expected to have at most one value. If not present, return None.  If more than one, raise ValueError."
         r = self.headers.get (key, None)
         if r is None:
             return r
@@ -121,12 +130,15 @@ class header_set:
             return r[0]
 
     def has_key (self, key):
+        "Is this header present?"
         return self.headers.has_key (key.lower())
 
     def __getitem__ (self, key):
+        "Returns the list of values for this header, or None."
         return self.headers.get (key, None)
 
     def __setitem__ (self, name, value):
+        "Add a value to the header <name>."
         name = name.lower()
         probe = self.headers.get (name)
         if probe is None:
@@ -135,6 +147,7 @@ class header_set:
             probe.append (value)
 
     def __str__ (self):
+        "Render the set of headers."
         r = []
         for k, vl in self.headers.iteritems():
             for v in vl:
