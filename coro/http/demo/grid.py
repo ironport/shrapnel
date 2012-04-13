@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
 import coro
-import coro.httpd
+import coro.http
 import backdoor
 
 # toy: move an X through a grid.
@@ -66,14 +66,14 @@ class grid_handler:
             '<input type="submit" name="dir" value="up" />'
             '<input type="submit" name="dir" value="down" />'
             '</form>'
-            '<a href="grid/source">source for this handler</a>'
+            '<a href="/grid/source">source for this handler</a>'
             )
         request.done()
 
-server = coro.httpd.server()
+server = coro.http.server()
 server.push_handler (grid_handler (50, 30))
-server.push_handler (coro.httpd.handlers.coro_status_handler())
-server.push_handler (coro.httpd.handlers.favicon_handler())
+server.push_handler (coro.http.handlers.coro_status_handler())
+server.push_handler (coro.http.handlers.favicon_handler())
 coro.spawn (server.start, ('0.0.0.0', 9001))
 coro.spawn (backdoor.serve, unix_path='/tmp/httpd.bd')
 coro.event_loop (30.0)

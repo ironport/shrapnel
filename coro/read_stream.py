@@ -1,8 +1,5 @@
 # -*- Mode: Python -*-
 
-import sys
-W = sys.stderr.write
-
 class socket_producer:
     def __init__ (self, conn, buffer_size=8000):
         self.conn = conn

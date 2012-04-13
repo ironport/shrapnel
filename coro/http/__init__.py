@@ -2,6 +2,7 @@
 
 from server import server, tlslite_server
 import handlers
-import read_stream
+import coro
+from coro import read_stream
 import http_date
 import session_handler

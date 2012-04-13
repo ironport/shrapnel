@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
 import coro
-import coro.httpd
+import coro.http
 import backdoor
 
 # demonstrate the session handler
@@ -36,10 +36,10 @@ def session (sid, fifo):
                 request.done()
             i += 1
 
-server = coro.httpd.server()
-server.push_handler (coro.httpd.handlers.coro_status_handler())
-server.push_handler (coro.httpd.session_handler.session_handler ('session', session))
-server.push_handler (coro.httpd.handlers.favicon_handler())
+server = coro.http.server()
+server.push_handler (coro.http.handlers.coro_status_handler())
+server.push_handler (coro.http.session_handler.session_handler ('session', session))
+server.push_handler (coro.http.handlers.favicon_handler())
 coro.spawn (server.start, ('0.0.0.0', 9001))
 coro.spawn (backdoor.serve, unix_path='/tmp/httpd.bd')
 coro.event_loop (30.0)

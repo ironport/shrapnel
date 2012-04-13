@@ -7,7 +7,7 @@ import sys
 import time
 import zlib
 
-from coro.httpd.http_date import build_http_date
+from coro.http.http_date import build_http_date
 
 W = sys.stderr.write
 

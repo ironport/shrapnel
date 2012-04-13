@@ -9,12 +9,14 @@ import http_date
 import mimetypes
 import os
 import re
-import read_stream
+from coro import read_stream
 import socket
 import stat
 import sys
 import time
 import zlib
+
+from protocol import latch, http_file, header_set
 
 W = sys.stderr.write
 
@@ -36,6 +38,7 @@ class request_stream:
             lines = []
             while 1:
                 line = self.stream.read_line()
+                # XXX handle continuation lines
                 if line == '':
                     raise StopIteration
                 elif line == '\r\n':
@@ -56,20 +59,6 @@ class request_stream:
                 # can't read another request until we finish reading this one
                 # [it might have a body]
                 request.wait_until_read()
-
-class latch:
-
-    def __init__ (self):
-        self.cv = coro.condition_variable()
-        self.done = False
-
-    def wake_all (self):
-        self.done = True
-        self.cv.wake_all()
-
-    def wait (self):
-        if not self.done:
-            self.cv.wait()
 
 class connection:
 
@@ -119,44 +108,6 @@ class connection:
     def close (self):
         self.conn.close()
 
-class header_set:
-
-    def __init__ (self, headers=()):
-        self.headers = {}
-        for h in headers:
-            self.crack (h)
-
-    def crack (self, h):
-        i = h.index (': ')
-        name, value = h[:i], h[i+2:]
-        self[name] = value
-
-    def get_one (self, key):
-        r = self.headers.get (key, None)
-        if r is None:
-            return r
-        elif isinstance (r, list) and len (r) > 1:
-            raise ValueError ("expected only one %s header, got %r" % (key, r))
-        else:
-            return r[0]
-
-    def __getitem__ (self, key):
-        return self.headers.get (key, None)
-
-    def __setitem__ (self, name, value):
-        name = name.lower()
-        probe = self.headers.get (name)
-        if probe is None:
-            self.headers[name] = [value]
-        else:
-            probe.append (value)
-
-    def __str__ (self):
-        r = []
-        for k, vl in self.headers.iteritems():
-            for v in vl:
-                r.append ('%s: %s\r\n' % (k, v))
-        return ''.join (r)
 
 class http_request:
     request_count = 0
@@ -203,7 +154,7 @@ class http_request:
             self.version = "1.0"
             self.bad = True
         if self.has_body():
-            self.file = http_file (self)
+            self.file = http_file (headers, client.stream)
 
     def wait_until_read (self):
         "wait until this entire request body has been read"
@@ -216,7 +167,22 @@ class http_request:
             self.done_cv.wait()
 
     def has_body (self):
-        return self['content-length'] or self['transfer-encoding']
+        if self.request_headers.has_key ('transfer-encoding'):
+            # 4.4 ignore any content-length
+            return True
+        else:
+            probe = self.request_headers.get_one ('content-length')
+            if probe:
+                try:
+                    size = int (probe)
+                    if size == 0:
+                        return False
+                    elif size > 0:
+                        return True
+                    else:
+                        return False
+                except ValueError:
+                    return False
 
     def can_deflate (self):
         acc_enc = self.request_headers.get_one ('accept-encoding')
@@ -448,84 +414,21 @@ class buffered_output:
         if self.chunk_index >= 0:
             self.chunk_len += len (data)
         if self.len >= self.size:
-            try:
-                self.sent += self.conn.writev (self.get_data())
-            except AttributeError:
-                # underlying socket may not support writev (e.g., tlslite)
-                self.sent += self.conn.send (''.join (data))
+            self.send (self.get_data())
 
     def flush (self):
         "Flush the data from this buffer."
         data = self.get_data()
         if self.chunk_index >= 0:
             data.append ('0\r\n\r\n')
+        self.send (data)
+
+    def send (self, data):
         try:
             self.sent += self.conn.writev (data)
         except AttributeError:
             # underlying socket may not support writev (e.g., tlslite)
             self.sent += self.conn.send (''.join (data))
-
-class http_file:
-
-    buffer_size = 8000
-
-    def __init__ (self, request):
-        self.request = request
-        self.streami = request.client.stream
-        self.done_cv = latch()
-        if self.request['transfer-encoding'] == 'chunked':
-            self.streamo = read_stream.buffered_stream (self._read_chunked().next)
-        else:
-            content_length = self.request['content-length']
-            if content_length:
-                self.content_length = int (content_length)
-                self.streamo = read_stream.buffered_stream (self._read_fixed().next)
-            else:
-                raise HTTP_Protocol_Error ("no way to determine length of request data")
-            
-    def _read_chunked (self):
-        s = self.streami
-        while 1:
-            chunk_size = int (s.read_line()[:-2], 16)
-            if chunk_size == 0:
-                W ('chunked wake\n')
-                self.done_cv.wake_all()
-                return
-            else:
-                remain = chunk_size
-                while remain:
-                    ask = min (remain, self.buffer_size)
-                    block = s.read_exact (ask)
-                    assert (s.read_exact (2) == '\r\n')
-                    remain -= ask
-                    yield block
-
-    def _read_fixed (self):
-        s = self.streami
-        remain = self.content_length
-        while remain:
-            ask = min (remain, self.buffer_size)
-            block = s.read_exact (ask)
-            remain -= ask
-            yield block
-        self.done_cv.wake_all()
-        return
-
-    # XXX implement <size> argument
-    def read (self, join=True):
-        r = []
-        for x in self.streamo.read_all():
-            r.append (x)
-        if join:
-            return ''.join (r)
-        else:
-            return r
-        
-    def readline (self):
-        if self.request.body_done:
-            return ''
-        else:
-            return self.streamo.read_until ('\n')
 
 class server:
 
@@ -611,36 +514,36 @@ class tlslite_server (server):
     "https server using the tlslite package"
 
     def __init__ (self, cert_path, key_path):
-        server.__init__ (self)
+	server.__init__ (self)
         self.cert_path = cert_path
-        self.key_path = key_path
+	self.key_path = key_path
         self.read_chain()
-        self.read_private()
+	self.read_private()
 
     def accept (self):
-        import tlslite
-        conn0, addr = server.accept (self)
+	import tlslite
+	conn0, addr = server.accept (self)
         conn = tlslite.TLSConnection (conn0)
         conn.handshakeServer (certChain=self.chain, privateKey=self.private)
-        return conn, addr
+	return conn, addr
 
     def read_chain (self):
-        "cert chain is all in one file, in LEAF -> ROOT order"
-        import tlslite
-        delim = '-----END CERTIFICATE-----\n'
-        data = open (self.cert_path).read()
+	"cert chain is all in one file, in LEAF -> ROOT order"
+	import tlslite
+	delim = '-----END CERTIFICATE-----\n'
+	data = open (self.cert_path).read()
         certs = data.split (delim)
-        chain = []
+	chain = []
         for cert in certs:
-            if cert:
-                x = tlslite.X509()
-                x.parse (cert + delim)
+	    if cert:
+	        x = tlslite.X509()
+		x.parse (cert + delim)
                 chain.append (x)
-        self.chain = tlslite.X509CertChain (chain)
+	self.chain = tlslite.X509CertChain (chain)
 
     def read_private (self):
         import tlslite
-        self.private = tlslite.parsePEMKey (
+	self.private = tlslite.parsePEMKey (
             open (self.key_path).read(),
             private=True
             )
