@@ -49,7 +49,7 @@ def check_lio():
 
 setup (
     name='coro',
-    version='1.0.0-000',
+    version='1.0.2-000',
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
@@ -115,7 +115,7 @@ setup (
         'coro.clocks': 'coro/clocks'
     },
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
-    download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.1',
+    download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
     install_requires = ['Cython>=0.12.1', 'distribute>=0.6.16'],
     cmdclass={'build_ext': build_ext},
 )
