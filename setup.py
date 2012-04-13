@@ -1,15 +1,25 @@
 # $Header: //prod/main/ap/shrapnel/setup.py#17 $
 #!/usr/bin/env python
 
-from distutils.core import setup
-from Cython.Distutils import build_ext
-from Cython.Distutils.extension import Extension
-
-#from Cython.Distutils import build_ext
-#from Cython.Distutils.extension import Extension
-
+import sys
 import glob
 import os
+
+from distribute_setup import use_setuptools
+use_setuptools()
+from setuptools import setup
+
+try:
+    from Cython.Distutils import build_ext
+    from Cython.Distutils.extension import Extension
+except ImportError:
+    sys.stderr.write (
+        '\nThe Cython compiler is required to build Shrapnel.\n'
+        '  Try "pip install cython"\n'
+        '  *or* "easy_install cython"\n'
+        )
+    sys.exit (-1)
+
 
 include_dir = os.getcwd()
 
@@ -106,6 +116,6 @@ setup (
     },
     py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
     download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.1',
-    install_requires = ['cython>=0.12.1', 'distribute>=0.6.16'],
+    install_requires = ['Cython>=0.12.1', 'distribute>=0.6.16'],
     cmdclass={'build_ext': build_ext},
 )
