@@ -399,8 +399,6 @@ cdef class Unpacker:
                 return domain.lower()
             else:
                 return (domain + '.' + remains).lower()
-    # header
-    # XXX consider making a cdef class for this
     def getHeader (self):
         cdef uint16_t flags
         h = Header()
