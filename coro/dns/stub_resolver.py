@@ -70,3 +70,9 @@ class stub_resolver:
 
     def resolve_ipv6 (self, name):
         return self.gethostbyname (name, packet.TYPE.AAAA)
+
+def install (nameserver_ips):
+    "install a stub resolver into the coro socket layer"
+    coro.set_resolver (
+        stub_resolver (nameserver_ips)
+        )
