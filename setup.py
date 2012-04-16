@@ -111,7 +111,7 @@ setup (
         ],
     packages=['coro', 'coro.clocks', 'coro.http', 'coro.dns'],
     package_dir = {
-        '': 'coroutine',
+#        '': 'coroutine',
         'coro': 'coro',
         'coro.clocks': 'coro/clocks',
         'coro.dns': 'coro/dns',

@@ -20,113 +20,7 @@
 
 # $Header: //prod/main/ap/shrapnel/coro/__init__.py#31 $
 
-"""Coroutine threading library.
-
-Introduction
-============
-Shrapnel is a cooperative threading library.
-
-Getting Started
-===============
-When your process starts up, you must spawn a thread to do some work, and then
-start the event loop.  The event loop runs forever processing events until the
-process exits.  An example::
-
-    import coro
-
-    def main():
-        print 'Hello world!'
-        # This will cause the process to exit.
-        coro.set_exit(0)
-
-    coro.spawn(main)
-    coro.event_loop()
-
-Coroutines
-==========
-Every coroutine thread is created with either the `new` function (which does
-NOT automatically start the thread) or the `spawn` function (which DOES
-automatically start it).
-
-Every thread has a unique numeric ID.  You may also set the name of the thread
-when you create it.
-
-Timeouts
-========
-The shrapnel timeout facility allows you to execute a function which will be
-interrupted if it does not finish within a specified period of time.  The
-`coro.TimeoutError` exception will be raised if the timeout expires.  See the
-`with_timeout` docstring for more detail.
-
-If the event loop is not running (such as in a non-coro process), a custom
-version of `with_timeout` is installed that will operate using SIGALRM so that
-you may use `with_timeout` in code that needs to run in non-coro processes
-(though this is not recommended and should be avoided if possible).
-
-Thread Local Storage
-====================
-There is a thread-local storage interface available for storing global data that
-is thread-specific.  You instantiate a `ThreadLocal` instance and you can
-assign attributes to it that will be specific to that thread.  See the
-`ThreadLocal` docs for more detail.
-
-Signal Handlers
-===============
-By default when you start the event loop, two signal handlers are installed
-(for SIGTERM and SIGINT). The default signal handler will exit the event loop.
-You can change this behavior by setting `install_signal_handlers` to False
-before starting the event loop.
-
-See `coro.signal_handler` for more detail on setting coro signal handlers.
-
-Selfishness
-===========
-Certain socket operations are allowed to try to execute without blocking if
-they are able to (such as send/receiving data on a local socket or on a
-high-speed network). However, there is a limit to the number of times a thread
-is allowed to do this. The default is 4.  The default may be changed
-(`set_selfishness`) and the value on a per-thread may be changed
-(`coro.coro.set_max_selfish_acts`).
-
-Time
-====
-Shrapnel uses the `tsc_time` module for handling time.  It uses the TSC
-value for a stable and high-resolution unit of time.  See that module's
-documentation for more detail.
-
-A thread is always created when you start the event loop that will
-resynchronize the TSC relationship to accomodate any clock drift (see
-`tick_updater` and `tsc_time.update_time_relation`).
-
-Exception Notifier
-==================
-When a thread exits due to an exception, by default a stack trace is printed to
-stderr.  You may install your own callback to handle this situation.  See the
-`set_exception_notifier` function for more detail.
-
-Debug Output
-============
-The shrapnel library provides a mechanism for printing debug information to
-stderr.  The `print_stderr` function will print a string with a timestamp
-and the thread number.  The `write_stderr` function writes the string verbatim.
-
-Shrapnel keeps a reference to the "real" stderr (in `saved_stderr`) and the
-`print_stderr` and `write_stderr` functions always use the real stderr value. A
-particular reason for doing this is the backdoor module replaces sys.stderr and
-sys.stdout, but we do not want debug output to go to the interactive session.
-
-Profiling
-=========
-Shrapnel has its own profiler that is coro-aware.  See `coro.profiler` for
-details on how to run the profiler.
-
-:Variables:
-    - `all_threads`: A dictionary of all live coroutine objects.  The key is
-      the coroutine ID, and the value is the coroutine object.
-    - `saved_stderr`: The actual stderr object for the process.  This normally
-      should not be used.  An example of why this exists is because the
-      backdoor replaces sys.stderr while executing user code.
-"""
+"""Coroutine threading library."""
 
 from coro._coro import *
 from coro._coro import _yield
@@ -166,13 +60,12 @@ set_exception_notifier (default_exception_notifier)
 
 class InParallelError (Exception):
 
-    """An error occurred in the `in_parallel` function.
+    """An error occurred in the :func:`in_parallel` function.
 
-    :IVariables:
-        - `result_list`: A list of ``(status, result)`` tuples. ``status`` is
-          either `SUCCESS` or `FAILURE`.  For success, the result is the return
+    :ivar result_list: A list of ``(status, result)`` tuples. ``status`` is
+          either :data:`SUCCESS` or :data:`FAILURE`.  For success, the result is the return
           value of the function.  For failure, it is the output from
-          `sys.exc_info`.
+          ``sys.exc_info``.
     """
 
     def __init__(self, result_list):
@@ -195,17 +88,14 @@ def in_parallel (fun_arg_list):
 
     This will block until all functions have returned or raised an exception.
 
-    If one or more functions raises an exception, then the `InParallelError`
+    If one or more functions raises an exception, then the :exc:`InParallelError`
     exception will be raised.
 
-    :Parameters:
-        - `fun_arg_list`: A list of ``(fun, args)`` tuples.
+    :param fun_arg_list: A list of ``(fun, args)`` tuples.
 
-    :Return:
-        Returns a list of return values from the functions.
+    :returns: A list of return values from the functions.
 
-    :Exceptions:
-        - `InParallelError`: One or more of the functions raised an exception.
+    :raises InParallelError: One or more of the functions raised an exception.
     """
 #         InParallelError, [(SUCCESS, result0), (FAILURE, exc_info1), ...]
 
@@ -257,14 +147,11 @@ def tick_updater():
 def waitpid (pid):
     """Wait for a process to exit.
 
-    :Parameters:
-        - `pid`: The process ID to wait for.
+    :param pid: The process ID to wait for.
 
-    :Return:
-        Returns a tuple ``(pid, status)`` of the process.
+    :returns: A tuple ``(pid, status)`` of the process.
 
-    :Exceptions:
-        - `SimultaneousError`: Something is already waiting for this process
+    :raises SimultaneousError: Something is already waiting for this process
           ID.
     """
     if UNAME == "Linux":
@@ -290,14 +177,11 @@ def waitpid (pid):
 def get_thread_by_id (thread_id):
     """Get a coro thread by ID.
 
-    :Parameters:
-        - `thread_id`: The thread ID.
+    :param thread_id: The thread ID.
 
-    :Return:
-        Returns the coroutine object.
+    :returns: The coroutine object.
 
-    :Exceptions:
-        - `KeyError`: The coroutine does not exist.
+    :raises KeyError: The coroutine does not exist.
     """
     return all_threads[thread_id]
 
@@ -305,11 +189,9 @@ def where (co):
     """Return a string indicating where the given coroutine thread is currently
     running.
 
-    :Parameters:
-        - `co`: The coroutine object.
+    :param co: The coroutine object.
 
-    :Return:
-        Returns a string displaying where the coro thread is currently
+    :returns: A string displaying where the coro thread is currently
         executing.
     """
     f = co.get_frame()
@@ -318,8 +200,7 @@ def where (co):
 def where_all():
     """Get a dictionary of where all coroutines are currently executing.
 
-    :Return:
-        Returns a dictionary mapping the coroutine ID to a tuple of ``(name,
+    :returns: A dictionary mapping the coroutine ID to a tuple of ``(name,
         coro, where)`` where ``where`` is a string representing where the
         coroutine is currently running.
     """
@@ -339,13 +220,11 @@ def spawn (fun, *args, **kwargs):
 
     Additional arguments and keyword arguments will be passed to the given function.
 
-    :Parameters:
-        - `fun`: The function to call when the coroutine starts.
-        - `thread_name`: The name of the thread.  Defaults to the name of the
+    :param fun: The function to call when the coroutine starts.
+    :param thread_name: The name of the thread.  Defaults to the name of the
           function.
 
-    :Return:
-        Returns the new coroutine object.
+    :returns: The new coroutine object.
     """
     if kwargs.has_key('thread_name'):
         thread_name = kwargs['thread_name']
@@ -364,13 +243,11 @@ def new (fun, *args, **kwargs):
     This will not start the coroutine.  Call the ``start`` method on the
     coroutine to schedule it to run.
 
-    :Parameters:
-        - `fun`: The function to call when the coroutine starts.
-        - `thread_name`: The name of the thread.  Defaults to the name of the
+    :param fun: The function to call when the coroutine starts.
+    :param thread_name: The name of the thread.  Defaults to the name of the
           function.
 
-    :Return:
-        Returns the new coroutine object.
+    :returns: The new coroutine object.
     """
     if kwargs.has_key('thread_name'):
         thread_name = kwargs['thread_name']
@@ -457,8 +334,7 @@ event_loop_is_running = False
 def coro_is_running():
     """Determine if the coro event loop is running.
 
-    :Return:
-        Returns True if the event loop is running, otherwise False.
+    :returns: True if the event loop is running, otherwise False.
     """
     return event_loop_is_running
 
@@ -468,8 +344,7 @@ def sigterm_handler (*_unused_args):
 def event_loop (timeout=30):
     """Start the event loop.
 
-    :Parameters:
-        - `timeout`: The amount of time to wait for kevent to return
+    :param timeout: The amount of time to wait for kevent to return
           events. You should probably *not* set this value.
     """
     global event_loop_is_running, with_timeout, sleep_relative

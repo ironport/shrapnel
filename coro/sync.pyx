@@ -49,22 +49,19 @@ class LockError (Exception):
 #                              Semaphore
 # ===========================================================================
 
-"""A semaphore is a locking primitive that corresponds with a set of
-resources.  A semphore is essentially a counter.  Whenever a resource is
-aquired, the count is lowered.  If the count goes below 0, then it blocks
-until it goes above zero.  Once you are done with a resource, you raise
-the counter."""
-
 cdef class semaphore:
 
-    """Semaphore lock object.
+    """
+    A semaphore is a locking primitive that corresponds with a set of
+    resources.  A semphore is essentially a counter.  Whenever a resource is
+    aquired, the count is lowered.  If the count goes below 0, then it blocks
+    until it goes above zero.  Once you are done with a resource, you raise
+    the counter.
 
-    The constructor takes one parameter, the value to start the semaphore with.
+    :param value: The value to start the semaphore with (an integer).
 
-    :IVariables:
-        - `avail`: The current value of the semaphore.  Also available via
-          __int__.
-        - `_waiting`: A fifo of ``(value, co)`` tuples of coroutines waiting
+    :ivar avail: The current value of the semaphore.  Also available via __int__.
+    :ivar _waiting: A fifo of ``(value, co)`` tuples of coroutines waiting
           for the semaphore. ``value`` is the value being requested, and ``co``
           is the coroutine object. (C only.)
     """
@@ -87,8 +84,7 @@ cdef class semaphore:
         if the requested number of resource elements are not available (if the
         value would go negative).
 
-        :Parameters:
-            - `value`: The number of resource elements.
+        :param value: The number of resource elements.
         """
         cdef coro me
         me = the_scheduler._current
@@ -116,8 +112,7 @@ cdef class semaphore:
     def release(self, int value):
         """Release a number of resource elements.
 
-        :Parameters:
-            - `value`: The number of resource elements to release (add to the
+        :param value: The number of resource elements to release (add to the
               sempahore).
         """
         cdef coro ci
@@ -174,21 +169,18 @@ cdef class semaphore:
 
 cdef class inverted_semaphore:
 
-    """Inverted semaphore.
-
+    """
     An inverted semaphore works very much like a regular semaphore, except
     threads block _until_ the value reaches zero. For example, if you want a
     thread to wait for 1 or more events to finish, you can have each event
     raise the value (always nonblocking) and have your waiter thread call
     block_till_zero.
 
-    The constructor takes one optional parameter, the value to start the
-    semaphore with.  It defaults to 0.
+    :param value: The value to start the semaphore with.  It defaults to 0.
 
-    :IVariables:
-        - `value`: The value of the inverted semaphore. Also available via
+    :ivar value: The value of the inverted semaphore. Also available via
           __int__.
-        - `_waiting`: A fifo of coroutine objects waiting for the semaphore to
+    :ivar _waiting: A fifo of coroutine objects waiting for the semaphore to
           reach zero. (C only).
     """
 
@@ -207,8 +199,7 @@ cdef class inverted_semaphore:
 
         This never blocks.
 
-        :Parameters:
-            - `value`: The number of resource elements to acquire (add to the
+        :param value: The number of resource elements to acquire (add to the
               semaphore).  Defaults to 1.
         """
         self.value = self.value + value
@@ -218,8 +209,7 @@ cdef class inverted_semaphore:
 
         This never blocks.  This may wake up waiting threads.
 
-        :Parameters:
-            - `value`: The number of resource elements to release (subtract
+        :param value: The number of resource elements to release (subtract
               from the semaphore).  Defaults to 1.
         """
         cdef coro co
@@ -258,16 +248,16 @@ cdef class inverted_semaphore:
 
 cdef class mutex:
 
-    """Mutual Exclusion lock object.
+    """
+    Mutual Exclusion lock object.
 
     A single thread may acquire the mutex multiple times, but it must release
     the lock an equal number of times.
 
-    :IVariables:
-        - `_locked`: Count of how many locks on the mutex are currently held.
-        - `_owner`: The coroutine object that owns the lock (None if no owner).
+    :ivar _locked: Count of how many locks on the mutex are currently held.
+    :ivar _owner: The coroutine object that owns the lock (None if no owner).
           (C only.)
-        - `_waiting`: A fifo of coroutine objects waiting for the lock.
+    :ivar _waiting: A fifo of coroutine objects waiting for the lock.
     """
 
     cdef public int _locked
@@ -290,8 +280,7 @@ cdef class mutex:
         A coro thread may lock the mutex multiple times.  It must call unlock
         the same number of times to release it.
 
-        :Return:
-            Returns True if it blocked, False if the mutex was acquired
+        :returns: True if it blocked, False if the mutex was acquired
             immediately.
         """
         cdef coro me
@@ -317,8 +306,7 @@ cdef class mutex:
     def trylock(self):
         """Try to lock the mutex.
 
-        :Return:
-            Returns True if it is already locked by another coroutine thread.
+        :returns: True if it is already locked by another coroutine thread.
             Returns False if the lock was successfully acquired.
         """
         cdef coro me
@@ -333,20 +321,17 @@ cdef class mutex:
     def locked (self):
         """Determine if the mutex is currently locked.
 
-        :Return:
-            Returns True if the mutex is locked, otherwise False.
+        :returns: True if the mutex is locked, otherwise False.
         """
         return (self._locked > 0)
 
     def has_lock (self, thread=None):
         """Determine if a particular coroutine has the lock.
 
-        :Parameters:
-            - `thread`: The coroutine object to check if it owns the lock. If
+        :param thread: The coroutine object to check if it owns the lock. If
               not specified, defaults to the current thread.
 
-        :Return:
-            Returns True if the specified thread has the lock, otherwise
+        :returns: True if the specified thread has the lock, otherwise
             returns False.
         """
         if thread is None:
@@ -358,8 +343,7 @@ cdef class mutex:
 
         The thread unlocking must be the thread that initially locked it.
 
-        :Return:
-            Returns True if another thread was waiting for the lock, otherwise
+        :returns: True if another thread was waiting for the lock, otherwise
             it returns False.
         """
         cdef coro me, co
@@ -397,7 +381,8 @@ cdef class mutex:
 
 cdef class rw_lock:
 
-    """A many-reader single-writer lock.
+    """
+    A many-reader single-writer lock.
 
     This lock allows multiple "readers" to own the lock simultaneously. A
     "writer" can only acquire a lock if there are no other "readers" or
@@ -411,14 +396,13 @@ cdef class rw_lock:
     way around (holding a read lock and trying to acquire a write lock will
     cause a deadlock).
 
-    :IVariables:
-        - `_writer`: Count of the number of write locks. (C only.)
-        - `_writer_id`: Thread ID of the current write lock owner (0 if there
+    :ivar _writer: Count of the number of write locks. (C only.)
+    :ivar _writer_id: Thread ID of the current write lock owner (0 if there
           is no owner). (C only.)
-        - `_reader`: Count of the number of read locks. (C only.)
-        - `_waiting_writers`: A fifo of coroutine objects waiting for a write
+    :ivar _reader: Count of the number of read locks. (C only.)
+    :ivar _waiting_writers: A fifo of coroutine objects waiting for a write
           lock. (C only.)
-        - `_waiting_readers`: A fifo of coroutine objects waiting for a read
+    :ivar _waiting_readers: A fifo of coroutine objects waiting for a read
           lock. (C only.)
     """
 
@@ -443,7 +427,7 @@ cdef class rw_lock:
         thread.
 
         A coro thread may acquire multiple read locks, but it must call
-        `read_unlock` an equal number of times.
+        :meth:`read_unlock` an equal number of times.
         """
         cdef coro me
         me = the_scheduler._current
@@ -463,12 +447,11 @@ cdef class rw_lock:
     def try_read_lock(self):
         """Attempt to acquire a read lock.
 
-        This is the same as `read_lock` except it does not block if it cannot
+        This is the same as :meth:`read_lock` except it does not block if it cannot
         acquire the lock.
 
-        :Return:
-            Returns True if it cannot acquire the lock.
-            Returns False if it successfully acquired the lock.
+        :returns: True if it cannot acquire the lock.
+            False if it successfully acquired the lock.
         """
         cdef coro me
         me = the_scheduler._current
@@ -484,7 +467,7 @@ cdef class rw_lock:
         This blocks if there are any other readers or writers holding the lock.
 
         A coro thread may acquire multiple write locks, but it must call
-        `write_unlock` an equal number of times.
+        :meth:`write_unlock` an equal number of times.
 
         Attempting to acquire a read lock while holding a write lock will cause
         a deadlock.
@@ -518,12 +501,11 @@ cdef class rw_lock:
     def try_write_lock(self):
         """Attempt to acquire a write lock.
 
-        This is the same as `write_lock` except it does not block if it cannot
+        This is the same as :meth:`write_lock` except it does not block if it cannot
         acquire the lock.
 
-        :Return:
-            Returns True if it cannot acquire the lock.
-            Returns False if it successfully acquired the lock.
+        :returns: True if it cannot acquire the lock.
+            False if it successfully acquired the lock.
         """
         cdef coro me
         me = the_scheduler._current
@@ -602,13 +584,11 @@ cdef class rw_lock:
 
 cdef class condition_variable:
 
-    """Condition variable.
-
+    """
     This locking primitive provides a method to "trigger" an event for other
     threads.
 
-    :IVariables:
-        - `_waiting`: A fifo of coroutine objects waiting for the lock. (C only.)
+    :ivar _waiting: A fifo of coroutine objects waiting for the lock. (C only.)
     """
 
     cdef readonly _fifo _waiting
@@ -634,8 +614,7 @@ cdef class condition_variable:
     def wait (self):
         """Wait for the condition variable to be triggered.
 
-        :Return:
-            Returns the arguments given to the wake call (defaults to the empty
+        :returns: The arguments given to the wake call (defaults to the empty
             tuple).
         """
         return self._wait()
@@ -663,20 +642,17 @@ cdef class condition_variable:
 
         If there are no threads waiting, this does nothing.
 
-        :Parameters:
-            - `args`: The arguments to wake the thread with.  Defaults to the
+        :param args: The arguments to wake the thread with.  Defaults to the
               empty tuple.
 
-        :Return:
-            Returns True if a thread was awoken, False if not.
+        :returns: True if a thread was awoken, False if not.
         """
         return self._wake_one (args)
 
     def wake_all (self, args=()):
         """Wake all waiting threads.
 
-        :Parameters:
-            - `args`: The arguments to wake the thread with.  Defaults to the
+        :param args: The arguments to wake the thread with.  Defaults to the
               empty tuple.
         """
         cdef coro co
@@ -690,13 +666,11 @@ cdef class condition_variable:
     def wake_n (self, int count, args=()):
         """Wake a specific number of threads.
 
-        :Parameters:
-            - `count`: The number of threads to wake up.
-            - `args`: The arguments to wake the thread with.  Defaults to the
+        :param count: The number of threads to wake up.
+        :param args: The arguments to wake the thread with.  Defaults to the
               empty tuple.
 
-        :Return:
-            Returns the total number of threads actually awoken.
+        :returns: The total number of threads actually awoken.
         """
         cdef coro co
         cdef int total
@@ -715,8 +689,7 @@ cdef class condition_variable:
     def raise_all (self, the_exception):
         """Raise an exception on all waiting threads.
 
-        :Parameters:
-            - `the_exception`: The exception to raise on all waiting threads.
+        :param the_exception: The exception to raise on all waiting threads.
         """
         cdef coro co
         while self._waiting.size:
@@ -732,13 +705,13 @@ cdef class condition_variable:
 
 cdef class fifo:
 
-    """First-in First-Out container.
+    """
+    First-in First-Out container.
 
     This uses a linked list.
 
-    :IVariables:
-        - `fifo`: The fifo object. (C only.)
-        - `cv`: A condition variable. (C only.)
+    :ivar fifo: The fifo object. (C only.)
+    :ivar cv: A condition variable. (C only.)
     """
 
     cdef _fifo fifo
@@ -754,8 +727,7 @@ cdef class fifo:
     def push (self, thing):
         """Push an object to the end of the FIFO.
 
-        :Parameters:
-            - `thing`: The thing to add to the FIFO.
+        :param thing: The thing to add to the FIFO.
         """
         self.fifo._push (thing)
         self.cv.wake_one()
@@ -765,8 +737,7 @@ cdef class fifo:
 
         This blocks if the FIFO is empty.
 
-        :Return:
-            Returns the next object from the FIFO.
+        :returns: The next object from the FIFO.
         """
         while self.fifo.size == 0:
             self.cv._wait()
@@ -778,8 +749,7 @@ cdef class fifo:
         This will block if the fifo is empty and wait until there is an element
         to pop.
 
-        :Return:
-            Returns a list of objects.  Returns an empty list if the FIFO is
+        :returns: A list of objects.  Returns an empty list if the FIFO is
             empty.
         """
         cdef int i
