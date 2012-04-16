@@ -8,11 +8,9 @@ Welcome to Shrapnel's documentation!
 
 Contents:
 
-.. toctree::
-   :maxdepth: 1
-
-   tutorial
-
+* :doc:`Installation <installation>`
+* :doc:`Tutorial <tutorial>`
+* :doc:`Reference Manual <ref/index>`
 
 
 Indices and tables
