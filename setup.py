@@ -74,9 +74,10 @@ setup (
             #pyrex_compile_time_env={'COMPILE_LIO': check_lio(),
             #                        'CORO_DEBUG': True,
             #                       },
-            # to enable LZO for stack compression, set COMPILE_LZO in coro/_coro.pyx
-            #   and uncomment the following:
+            # to enable LZO|LZ4 for stack compression, set COMPILE_LZO|COMPILE_LZ4 in coro/_coro.pyx
+            #   and uncomment one of the following:
             #libraries=['lzo2']
+            #libraries=['lz4']
             libraries=['z']
             ),
         Extension(
