@@ -35,6 +35,7 @@ DEF CORO_DEBUG = 0
 DEF COMPILE_LIO = 0
 DEF COMPILE_NETDEV = 0
 DEF COMPILE_LZO = 0
+DEF COMPILE_LZ4 = 0
 
 import coro as coro_package
 import warnings
@@ -904,7 +905,9 @@ class WakeUp (Exception):
     """A convenience exception used to wake up a sleeping thread."""
 
 # choose a library for stack compression
-IF COMPILE_LZO:
+IF COMPILE_LZ4:
+    include "zstack_lz4.pyx"
+ELIF COMPILE_LZO:
     include "zstack_lzo.pyx"
 ELSE:
     include "zstack_zlib.pyx"
