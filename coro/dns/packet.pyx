@@ -168,6 +168,14 @@ cdef class buffer:
         self.offset += 1
     def get (self):
         return self.data[:self.offset]
+    # used to retroactively set the size of an RR
+    def set16 (self, uint32_t offset, uint16_t val):
+        cdef char * buf = self.data
+        if offset > 0 and offset <= self.offset - 2:
+            buf[offset+0] = (val >> 8) & 0xff
+            buf[offset+1] =    val     & 0xff
+        else:
+            raise IndexError (offset)
 
 cdef class Header:
     cdef public uint16_t id, qdcount, ancount, nscount, arcount
@@ -207,7 +215,7 @@ cdef class Packer:
     def getbuf (self):
         return self.buf.get()
     cpdef addbyte (self, unsigned char c):
-        self.add_byte (c)
+        self.buf.add_byte (c)
     cpdef addbytes (self, bytes b):
         self.add (b)
     cpdef add16bit (self, uint16_t n):
@@ -218,7 +226,7 @@ cdef class Packer:
         n = addr2bin (addr)
         self.add (pack32bit (n))
     cpdef addstring (self, bytes s):
-        self.addbyte (chr (len(s)))
+        self.addbyte (len(s))
         self.addbytes (s)
     cpdef compressed_addname (self, bytes name):
         # Domain name packing (section 4.1.4)
@@ -281,11 +289,11 @@ cdef class Packer:
         self.add16bit(type)
         self.add16bit(klass)
         self.add32bit(ttl)
-        self.rdstart = self.offset
         self.add16bit(0)
+        self.rdstart = self.buf.offset
     cpdef endRR (self):
-        cdef int rdlength = self.offset - self.rdstart
-        self.data[self.rdstart:self.rdstart+2] = pack16bit (rdlength)
+        cdef int rdlength = self.buf.offset - self.rdstart
+        self.buf.set16 (self.rdstart-2, rdlength)
     # Standard RRs (section 3.3)
     cpdef addCNAME (self, name, klass, ttl, cname):
         self.addRRheader (name, TYPE.CNAME, klass, ttl)
@@ -374,7 +382,7 @@ cdef class Unpacker:
     cpdef getaddr (self):
         return bin2addr (self.get32bit())
     cpdef getstring (self):
-        return self.getbytes (ord (self.getbyte()))
+        return self.getbytes (self.getbyte())
     cpdef getname (self):
         # Domain name unpacking (section 4.1.4)
         cdef uint32_t i = self.getbyte()
@@ -428,6 +436,11 @@ cdef class Unpacker:
         return (rname, rtype, rclass, ttl, rdlength)
     cpdef getCNAMEdata(self):
         return self.getname()
+    cpdef getHINFOdata(self):
+        return (
+            self.getstring(),
+            self.getstring()
+            )
     cpdef getMXdata(self):
         return self.get16bit(), self.getname()
     cpdef getNSdata(self):
@@ -476,6 +489,8 @@ cdef class Unpacker:
             data = self.getAdata()
         elif rtype == TYPE.AAAA:
             data = self.getAAAAdata()
+        elif rtype == TYPE.HINFO:
+            data = self.getHINFOdata()
         else:
             data = self.getbytes (rdlength)
         if self.offset != self.rdend:
@@ -496,6 +511,6 @@ cdef class Unpacker:
         for i in range (h.nscount):
             nsl.append (self.getRR())
         arl = []
-        for i in range (h.nscount):
+        for i in range (h.arcount):
             arl.append (self.getRR())
         return h, qdl, anl, nsl, arl
