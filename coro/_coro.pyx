@@ -1,15 +1,15 @@
-# Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
-# 
+ # Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,14 +19,13 @@
 # SOFTWARE.
 
 # -*- Mode: Pyrex -*-
+#cython: embedsignature=True
 
 """Pyrex module for coroutine implementation.
 
 Module variables defined below are available only from Pyrex. Python-accessible
 variables are documented in the top level of the coro package ``__init__.py``.
 
-:Variables:
-    - `_ticks_per_sec`: Number of CPU ticks per second (uint64_t).
 """
 
 __coro_version__ = "$Id: //prod/main/ap/shrapnel/coro/_coro.pyx#114 $"
@@ -82,6 +81,7 @@ cdef extern from "Python.h":
 # ================================================================================
 #                             global variables
 # ================================================================================
+# Number of CPU ticks per second (uint64_t).
 cdef uint64_t _ticks_per_sec
 cdef object ticks_per_sec
 _ticks_per_sec = tsc_time_module.ticks_per_sec
@@ -155,10 +155,6 @@ cdef enum:
 
 import sys
 
-class Exit (Exception):
-    "exception used to exit the event loop"
-    pass
-
 class ScheduleError (Exception):
     "attempt to schedule an already-scheduled coroutine"
     pass
@@ -206,6 +202,12 @@ cdef int default_selfishness
 default_selfishness = 4
 
 def set_selfishness(n):
+    """Set the global default selfishness limit.
+
+    This sets the default for every new coroutine.
+
+    :param n: The new limit.
+    """
     global default_selfishness
     default_selfishness = n
 
@@ -214,11 +216,10 @@ live_coros = 0
 
 cdef public class coro [ object _coro_object, type _coro_type ]:
 
-    """XXX
+    """The coroutine object.
 
-    :IVariables:
-        - `top`: A `call_stack` object used by the profiler.  NULL if the
-          profiler is not enabled or if this is the first call of the coroutine.
+    Do not create this object directly.  Use either :func:`new` or
+    :func:`spawn` to create one.
     """
 
     cdef machine_state state
@@ -232,7 +233,8 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     cdef size_t stack_size
     cdef PyFrameObject * frame
     cdef void * saved_exception_data[6]
-    # used only by the profiler
+    # used only by the profiler, a call_stack object. NULL if the profiler is
+    # not enabled or if this is the first call of the coroutine.
     cdef call_stack * top
     cdef int saved_recursion_depth
     cdef int selfish_acts, max_selfish_acts
@@ -488,45 +490,39 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     cdef _schedule (self, value):
         """Schedule this coroutine to run.
 
-        :Parameters:
-            - `value`: The value to resume the coroutine with.  Note that
-              "interrupting" the coroutine resumes it with a special
-              `exception` value which is checked when this coro is resumed.
+        :param value: The value to resume the coroutine with.  Note that
+            "interrupting" the coroutine resumes it with a special
+            ``exception`` value which is checked when this coro is resumed.
 
-        :Exceptions:
-            - `DeadCoroutine`: The coroutine is dead (it has already exited).
-            - `ScheduleError`: The coroutine is already scheduled to run.
-            - `ScheduleError`: Attempted to schedule the currently running coro.
+        :raises DeadCoroutine: The coroutine is dead (it has already exited).
+        :raises ScheduleError: The coroutine is already scheduled to run.
+        :raises ScheduleError: Attempted to schedule the currently running coro.
         """
         the_scheduler._schedule (self, value)
 
     cdef _unschedule (self):
         """Unschedule this coroutine.
 
-        :Return:
-            Returns True if it was successfully unscheduled, False if not.
+        :returns: True if it was successfully unscheduled, False if not.
         """
         return the_scheduler._unschedule (self)
 
     def schedule (self, value=None):
         """Schedule this coroutine to run.
 
-        :Parameters:
-            - `value`: The value to resume the coroutine with.  Defaults to
-              None.
+        :param value: The value to resume the coroutine with.  Defaults to
+            None.
 
-        :Exceptions:
-            - `DeadCoroutine`: The coroutine is dead (it has already exited).
-            - `ScheduleError`: The coroutine is already scheduled to run.
-            - `ScheduleError`: Attempted to schedule the currently running coro.
+        :raises DeadCoroutine: The coroutine is dead (it has already exited).
+        :raises ScheduleError: The coroutine is already scheduled to run.
+        :raises ScheduleError: Attempted to schedule the currently running coro.
         """
         return self._schedule (value)
 
     def start (self):
         """Start the coroutine for the first time.
 
-        :Exceptions:
-            - `ScheduleError`: The coro is already started.
+        :raises ScheduleError: The coro is already started.
         """
         if self.started:
             raise ScheduleError(self)
@@ -549,20 +545,18 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     cdef __interrupt (self, the_exception):
         """Schedule the coro to resume with an exception.
 
-        :Parameters:
-            - `the_exception`: The exception to raise (may be class or instance).
+        :param the_exception: The exception to raise (may be class or instance).
 
-        :Exceptions:
-            - `DeadCoroutine`: The coroutine is dead (it has already exited).
-            - `ScheduleError`: The coroutine is already scheduled to run.
-            - `ScheduleError`: Attempted to interrupt the currently running coro.
+        :raises DeadCoroutine: The coroutine is dead (it has already exited).
+        :raises ScheduleError: The coroutine is already scheduled to run.
+        :raises ScheduleError: Attempted to interrupt the currently running coro.
         """
         self._schedule (exception (the_exception))
 
     def shutdown (self):
         """Shut down this coroutine.
 
-        This will raise the `Shutdown` exception on this thread.
+        This will raise the :exc:`Shutdown` exception on this thread.
 
         This method will not fail.  If the thread is already dead, then it is
         ignored.  If the thread hasn't started, then it is canceled.
@@ -573,22 +567,19 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     def raise_exception (self, the_exception, force=True, cancel_start=False):
         """Schedule this coroutine to resume with an exception.
 
-        :Parameters:
-            - `the_exception`: The exception to raise.  May be an Exception
-              class or instance.
-            - `force`: If True, will force the exception to be raised, even if
+        :param the_exception: The exception to raise.  May be an Exception class or instance.
+        :param force: If True, will force the exception to be raised, even if
               the coroutine is already scheduled.  Defaults to True.
-            - `cancel_start`: If True, will cancel the coroutine if it has not
+        :param cancel_start: If True, will cancel the coroutine if it has not
               started, yet.  If False, and the couroutine has not started, then
-              it will rise `NotStartedError`.  Defaults to False.
+              it will rise :exc:`NotStartedError`.  Defaults to False.
 
-        :Exceptions:
-            - `DeadCoroutine`: The coroutine is dead (it has already exited).
-            - `ScheduleError`: The coroutine is already scheduled to run (and
-              `force` was set to False).
-            - `ScheduleError`: Attempted to raise an exception on the currently
+        :raises DeadCoroutine: The coroutine is dead (it has already exited).
+        :raises ScheduleError: The coroutine is already scheduled to run (and
+              ``force`` was set to False).
+        :raises ScheduleError: Attempted to raise an exception on the currently
               running coro.
-            - `NotStartedError`: The coroutine has not started, yet.
+        :raises NotStartedError: The coroutine has not started, yet.
         """
         IF CORO_DEBUG:
             # Minstack coro used to take an "exception value" as the second
@@ -645,8 +636,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     def set_name (self, name):
         """Set the name of this coroutine thread.
 
-        :Parameters:
-            - `name`: The name of the thread.
+        :param name: The name of the thread.
         """
         self.name = name
         return self
@@ -660,8 +650,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
 
         If no name has been specified, then a name is generated.
 
-        :Return:
-            Returns the coroutine name.
+        :returns: The coroutine name.
         """
         return self.name
 
@@ -679,8 +668,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
 
         When a coroutine is created, it defaults to 4.
 
-        :Parameters:
-            - `maximum`: The maximum number of selfish acts.
+        :param maximum: The maximum number of selfish acts.
         """
         if maximum > 32768:
             raise ValueError('Value too large.')
@@ -719,8 +707,7 @@ def get_live_coros():
     Note that this includes coroutines that have not started or have exited,
     but not deallocated, yet.
 
-    :Return:
-        Returns the number of live coroutine objects.
+    :returns: The number of live coroutine objects.
     """
     global live_coros
     return live_coros
@@ -757,11 +744,9 @@ def set_exception_notifier (new_func):
     due to an exception.  The default exception notifier simply prints the name
     of the coroutine and a traceback of where the exception was raised.
 
-    :Parameters:
-        - `new_func`: The exception notifier to call.  It takes no arguments.
+    :param new_func: The exception notifier to call.  It takes no arguments.
 
-    :Return:
-        Returns the old exception notifier.
+    :returns: The old exception notifier.
     """
     global exception_notifier
     old_func = exception_notifier
@@ -867,12 +852,11 @@ class SimultaneousError (Exception):
     """Two threads attempted a conflicting blocking operation (e.g., read() on
     the same descriptor).
 
-    :IVariables:
-        - `co`: The coroutine that is trying to block on an event.
-        - `other`: The coroutine or function that is already waiting on the
+    :ivar co: The coroutine that is trying to block on an event.
+    :ivar other: The coroutine or function that is already waiting on the
           event.
-        - `event`: The event that it is trying to block on.  For kqueue, this
-          is normally a `kevent_key` object.
+    :ivar event: The event that it is trying to block on.  For kqueue, this
+          is normally a ``kevent_key`` object.
     """
 
     def __init__(self, co, other, object event):
@@ -1000,11 +984,9 @@ cdef public class sched [ object sched_object, type sched_type ]:
     cdef _unschedule (self, coro co):
         """Unschedule this coroutine.
 
-        :Parameters:
-            - `co`: The coroutine to unschedule.
+        :param co: The coroutine to unschedule.
 
-        :Return:
-            Returns True if it was successfully unscheduled, False if not.
+        :returns: True if it was successfully unscheduled, False if not.
         """
         cdef int i
         for i from 0 <= i < len(self.pending):
@@ -1038,15 +1020,12 @@ cdef public class sched [ object sched_object, type sched_type ]:
         The default latency warning threshold is 0.2 seconds.  This will allow
         you to change the threshold by multiplying the 0.2 value.
 
-        :Parameters:
-            - `factor`: The latency threshold multiplier.  May be a number from
+        :param factor: The latency threshold multiplier.  May be a number from
               0 to 300.  A value of 0 disables latency warnings.
 
-        :Return:
-            Returns the old multipler factor.
+        :returns: The old multipler factor.
 
-        :Exceptions:
-            - `ValueError`: The factor is too small or too large.
+        :raises ValueError: The factor is too small or too large.
         """
         if factor < 0 or factor > 300:
             raise ValueError('Latency factor must be a number from 0 to 300.')
@@ -1075,25 +1054,22 @@ cdef public class sched [ object sched_object, type sched_type ]:
         Nested timeouts will be handled correctly. If an outer timeout fires
         first, then only the outer ``except TimeoutError`` exception handler
         will catch it.  An exception handlers on the inside will be skipped
-        becaue the actual exception is the `Interrupted` exception until it
+        becaue the actual exception is the :exc:`Interrupted` exception until it
         gets to the original ``with_timeout`` frame.
 
         Nested timeouts that are set to fire at the exact same time are not
         defined which one will fire first.
 
-        Care must be taken to *never* catch the `Interrupted` exception within
+        Care must be taken to *never* catch the :exc:`Interrupted` exception within
         code that is wrapped with a timeout.
 
-        :Parameters:
-            - `delta`: The number of seconds to wait before raising a timeout.
+        :param delta: The number of seconds to wait before raising a timeout.
                        Should be >= 0. Negative value will be treated as 0.
-            - `function`: The function to call.
+        :param function: The function to call.
 
-        :Return:
-            Returns the return value of the function.
+        :returns: The return value of the function.
 
-        :Exceptions:
-            - `TimeoutError`: The function did not return within the specified
+        :raises TimeoutError: The function did not return within the specified
               timeout.
         """
         cdef timebomb tb
@@ -1127,8 +1103,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
     cdef sleep (self, uint64_t when):
         """Sleep until a specific point in time.
 
-        :Parameters:
-            - `when`: The TSC value when you want the coroutine to wake up.
+        :param when: The TSC value when you want the coroutine to wake up.
         """
         cdef event e
         IF CORO_DEBUG:
@@ -1150,8 +1125,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
         Your thread may continue running (with the interrupt rescheduled to try
         again later), or it may be interrupted.
 
-        :Parameters:
-            - `delta`: The number of seconds to sleep.
+        :param delta: The number of seconds to sleep.
         """
         cdef uint64_t when
         # Two lines to avoid Pyrex Python conversion.
@@ -1160,7 +1134,10 @@ cdef public class sched [ object sched_object, type sched_type ]:
         self.sleep (when)
 
     def sleep_absolute (self, uint64_t when):
-        """This is an alias for the `sleep` method."""
+        """Sleep until a specific point in time.
+
+        :param when: The TSC value when you want the coroutine to wake up.
+        """
         self.sleep (when)
 
     cdef schedule_ready_events (self, uint64_t now):
@@ -1231,8 +1208,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
     def event_loop (self, timeout=30):
         """Start the event loop.
 
-        :Parameters:
-            - `timeout`: The amount of time to wait for kevent to return
+        :param timeout: The amount of time to wait for kevent to return
               events. You should probably *not* set this value.  Defaults to 30
               seconds.
         """
@@ -1301,11 +1277,10 @@ def yield_slice():
 def schedule (coro co, value=None):
     """Schedule a coroutine to run.
 
-    See `coro.schedule` for more detail.
+    See :meth:`coro.schedule` for more detail.
 
-    :Parameters:
-        - `co`: The coroutine to schedule.
-        - `value`: The value to resume the coroutine with.  Defaults to None.
+    :param co: The coroutine to schedule.
+    :param value: The value to resume the coroutine with.  Defaults to None.
     """
     return co._schedule (value)
 
@@ -1355,8 +1330,7 @@ def print_stderr (s):
     This will print the thread id, followed by a timestamp, followed by the
     string. If the string does not end with a newline, one will be added.
 
-    :Parameters:
-        - `s`: A string to print.
+    :param s: A string to print.
     """
     try:
         current_thread = current()
@@ -1394,11 +1368,9 @@ def spawn (fun, *args, **kwargs):
 
     Additional arguments and keyword arguments will be passed to the given function.
 
-    :Parameters:
-        - `fun`: The function to call when the coroutine starts.
+    :param fun: The function to call when the coroutine starts.
 
-    :Return:
-        Returns the new coroutine object.
+    :returns: The new coroutine object.
     """
     return _spawn (fun, args, kwargs)
 
@@ -1410,11 +1382,9 @@ def new (fun, *args, **kwargs):
     This will not start the coroutine.  Call the ``start`` method on the
     coroutine to schedule it to run.
 
-    :Parameters:
-        - `fun`: The function to call when the coroutine starts.
+    :param fun: The function to call when the coroutine starts.
 
-    :Return:
-        Returns the new coroutine object.
+    :returns: The new coroutine object.
     """
     id = get_coro_id()
     co = coro (fun, args, kwargs, id)
@@ -1427,8 +1397,7 @@ def set_exit(exit_code=0):
     Note that if any other coroutines are scheduled to run, they will be given
     a chance to run before exiting.
 
-    :Parameters:
-        - `exit_code`: The exit code of the process.  Defaults to 0.
+    :param exit_code: The exit code of the process.  Defaults to 0.
     """
     global _exit
     global _exit_code
@@ -1441,8 +1410,7 @@ def set_print_exit_string(val):
 
     By default, the string will be printed.
 
-    :Parameters:
-        - `val`: Whether or not "Exiting" should be printed when the event loop
+    :param val: Whether or not "Exiting" should be printed when the event loop
           exits.
     """
     global _print_exit_string

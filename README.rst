@@ -11,7 +11,7 @@ connections.
 API Documentation
 =================
 
-See http://ironport.github.com/api/shrapnel/frames.html
+See http://ironport.github.com/shrapnel/
 
 
 Short History Of Python Coroutine Implementations

@@ -5,5 +5,7 @@ build/
 coro/_coro.[ch]
 coro/oserrors.[ch]
 coro/clocks/tsc_time.c
+coro/dns/packet.c
+coro/event_queue.cpp
 *.pyc
 *.so

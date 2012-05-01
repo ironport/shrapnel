@@ -1,0 +1,5 @@
+Profiling
+=========
+
+.. automodule:: coro.profiler
+
