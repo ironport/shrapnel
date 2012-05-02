@@ -212,7 +212,7 @@ Servers and Clients
 Echo Server
 -----------
 
-Creating a server is easy (see `docs/tutorial/t1.py`_):
+Creating a server is easy (see :download:`docs/tutorial/t1.py <tutorial/t1.py>`):
 
 .. sourcecode:: python
 
@@ -239,8 +239,6 @@ Creating a server is easy (see `docs/tutorial/t1.py`_):
         coro.spawn (coro.backdoor.serve, unix_path='/tmp/xx.bd')
         coro.spawn (serve)
         coro.event_loop()
-
-.. _docs/tutorial/t1.py: tutorial/t1.py
 
 You can telnet into that server::
 
@@ -308,7 +306,7 @@ Echo Client
 -----------
 
 It's difficult to really beat on that server with your own fingers (and telnet).
-How about a client that'll exercise it a little (see `docs/tutorial/t2.py`_):
+How about a client that'll exercise it a little (see :download:`docs/tutorial/t2.py <tutorial/t2.py>`):
 
 .. sourcecode:: python
 
@@ -337,8 +335,6 @@ How about a client that'll exercise it a little (see `docs/tutorial/t2.py`_):
             coro.spawn (client)
         coro.event_loop()
     
-.. _docs/tutorial/t2.py: tutorial/t2.py
-
 Hit Ctrl-C to exit.
 
 You should just see a hundred dots in the main window.  You might get connection reset errors if the listen() parameter in the server wasn't high enough.  If so, you could put some calls to sleep_relative() in there to stagger the creation of the clients.
@@ -348,9 +344,7 @@ Proxy Server
 ------------
 
 This is a handy little server that lets you 'spy' on protocols.  It's
-very handy when implementing protocols. See `docs/tutorial/proxy.py`_.
-
-.. _docs/tutorial/proxy.py: tutorial/proxy.py
+very handy when implementing protocols. See :download:`docs/tutorial/proxy.py <tutorial/proxy.py>`.
 
 .. sourcecode:: python
 
@@ -473,7 +467,7 @@ Example of the full `profiler output`_.  Note: each graph may be [re]sorted by c
 The Killer Demo
 ===============
 
-See `docs/tutorial/worms.py`_ for a fun demo.  Run the script from
+See :download:`docs/tutorial/worms.py <tutorial/worms.py>` for a fun demo.  Run the script from
 one terminal, and telnet into it from another terminal with a nice
 large window (your terminal needs to support ANSI escape codes).  
 
@@ -515,8 +509,6 @@ separate worms (though things tend to get crowded)::
   |                                                                ffffff   |
   +=========================================================================+
    keys: [q]uit [r]edraw [n]ew [c]ull [l]engthen [h]offa
-
-.. _docs/tutorial/worms.py: tutorial/worms.py
 
 Here's the code controlling each worm's movement:
 
