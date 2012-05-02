@@ -22,117 +22,111 @@
 
 __event_queue_version__ = "$Id: event_queue.pyx,v 1.1 2007/01/03 00:19:50 ehuss Exp $"
 
-cdef extern from "event_queue.h":
+include "python.pxi"
+from cython.operator cimport dereference as deref, preincrement as inc
+from libcpp.utility cimport pair
+from libc cimport uint64_t
 
-    ctypedef void * cpp_event_queue "event_queue"
-
-    cpp_event_queue * event_queue_new()
-    void              event_queue_dealloc(cpp_event_queue * q)
-    object            event_queue_top(cpp_event_queue * q, uint64_t * time)
-    object            event_queue_pop(cpp_event_queue * q, uint64_t * time)
-    int               event_queue_insert(cpp_event_queue * q, uint64_t time, object) except -1
-    int               event_queue_delete(cpp_event_queue * q, uint64_t time, object) except -1
-    int               event_queue_len(cpp_event_queue * q)
-
-    ctypedef void * cpp_event_queue_iter "event_queue_iter"
-
-    cpp_event_queue_iter event_queue_new_iter(cpp_event_queue * q)
-    object               event_queue_iter_next(cpp_event_queue * q, cpp_event_queue_iter * iter, uint64_t * time)
-
-cdef class event_queue_iter
+cdef extern from "<map>" namespace "std":
+    cdef cppclass multimap[T, U]:
+        cppclass iterator:
+            pair[T,U]& operator*()
+            iterator operator++()
+            iterator operator--()
+            bint operator==(iterator)
+            bint operator!=(iterator)
+ 
+        map()
+        U& operator[](T&)
+        U& at(T&)
+        iterator begin()
+        size_t count(T&)
+        bint empty()
+        iterator end()
+        void erase(iterator)
+        void erase(iterator, iterator)
+        size_t erase(T&)
+        iterator find(T&)
+        pair[iterator, bint] insert(pair[T,U])
+        size_t size()
 
 cdef class event_queue:
-
-    cdef cpp_event_queue * q
+    cdef multimap[uint64_t, PyObject*] *q
 
     def __cinit__(self):
-        self.q = event_queue_new()
+        self.q = new multimap[uint64_t, PyObject*]()
 
     def __dealloc__(self):
-        event_queue_dealloc(self.q)
+        cdef multimap[uint64_t, PyObject*].iterator it = self.q.begin()
+        while it != self.q.end():
+            Py_DECREF(<object> deref(it).second)
+            inc(it)
+        del self.q
 
-    def __len__(self):
-        return event_queue_len(self.q)
-
-    cdef int len(self):
-        return event_queue_len(self.q)
-
-    cdef c_top(self, uint64_t * time):
-        return event_queue_top(self.q, time)
-
-    def top(self):
-        """Peek at the top value of the queue.
-
-        :Return:
-            Returns a ``(time, value)`` tuple from the top of the queue.
-
-        :Exceptions:
-            - `IndexError`: The queue is empty.
-        """
-        cdef uint64_t time
-
-        value = event_queue_top(self.q, &time)
-        return (time, value)
-
-    cdef c_pop(self, uint64_t * time):
-        return event_queue_pop(self.q, time)
-
-    def pop(self):
-        """Grab the top value of the queue and remove it.
-
-        :Return:
-            Returns a ``(time, value)`` tuple from the top of the queue.
-
-        :Exceptions:
-            - `IndexError`: The queue is empty.
-        """
-        cdef uint64_t time
-
-        value = event_queue_pop(self.q, &time)
-        return (time, value)
-
-    cdef c_insert(self, uint64_t time, value):
-        event_queue_insert(self.q, time, value)
-
-    def insert(self, uint64_t time, value):
+    cpdef insert(self, uint64_t time, value):
         """Insert a new value into the queue.
 
         :Parameters:
             - `time`: The uint64 time.
             - `value`: The value to insert.
         """
-        event_queue_insert(self.q, time, value)
+        cdef pair[uint64_t, PyObject*] p
+        p.first, p.second = time, <PyObject *> value
+        self.q.insert(p)
+        Py_INCREF(value)
 
-    cdef c_delete(self, uint64_t time, value):
-        event_queue_delete(self.q, time, value)
+    def __len__(self):
+        return self.q.size()
 
-    def delete(self, uint64_t time, value):
+    cpdef top(self):
+        """Peek at the top value of the queue.
+
+        :Return:
+            Returns value from the top of the queue.
+
+        :Exceptions:
+            - `IndexError`: The queue is empty.
+        """
+        if not self.q.size():
+            raise IndexError('Top of empty queue')
+        cdef multimap[uint64_t, PyObject*].iterator it = self.q.begin()
+        return <object> deref(it).second
+
+    cpdef pop(self):
+        """Grab the top value of the queue and remove it.
+
+        :Return:
+            Returns value from the top of the queue.
+
+        :Exceptions:
+            - `IndexError`: The queue is empty.
+        """
+        if not self.q.size():
+            raise IndexError('Top of empty queue')
+        cdef multimap[uint64_t, PyObject*].iterator it = self.q.begin()
+        value = <object> deref(it).second
+        self.q.erase(it)
+        Py_DECREF(value)
+        return value
+
+    cpdef remove(self, uint64_t time, value):
         """Delete a value from the queue.
 
         :Parameters:
             - `time`: The uint64 time.
             - `value`: The value to delete.
         """
-        event_queue_delete(self.q, time, value)
-
-    def __iter__(self):
-        cdef event_queue_iter i
-
-        i = event_queue_iter()
-        i.q = self.q
-        i.iter = event_queue_new_iter(self.q)
-        return i
-
-cdef class event_queue_iter:
-
-    cdef cpp_event_queue * q
-    cdef cpp_event_queue_iter iter
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        cdef uint64_t time
-
-        value = event_queue_iter_next(self.q, &self.iter, &time)
-        return (time, value)
+        cdef PyObject *val
+        cdef multimap[uint64_t, PyObject*].iterator it = self.q.find(time)
+        cdef PyObject *v = <PyObject *> value
+        while it != self.q.end():
+            if deref(it).first != time:
+                break
+            val = <PyObject *> deref(it).second
+            if v == val:
+                self.q.erase(it)
+                Py_DECREF(<object>val)
+                return 0
+            else:
+                inc(it)
+        raise IndexError('Event not found')

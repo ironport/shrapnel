@@ -24,6 +24,9 @@ cdef class zstack:
         if not self.buffer:
             raise MemoryError
         self.buffer_size = size
+    def __dealloc__ (self):
+        if self.buffer:
+            PyMem_Free (self.buffer)
     cdef size_t deflate (self, void * base, size_t size):
         return lz4.LZ4_compress (<char*>base, self.buffer, size)
     cdef size_t inflate (self, void * dst, size_t dsize, void * src, size_t ssize):

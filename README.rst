@@ -8,6 +8,12 @@ around FreeBSD's kqueue() system call.  It's designed for
 single-process servers that can handle 10,000+ simultaneous network
 connections.
 
+API Documentation
+=================
+
+See http://ironport.github.com/shrapnel/
+
+
 Short History Of Python Coroutine Implementations
 =================================================
 

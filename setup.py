@@ -1,15 +1,25 @@
 # $Header: //prod/main/ap/shrapnel/setup.py#17 $
 #!/usr/bin/env python
 
-from distutils.core import setup
-from Cython.Distutils import build_ext
-from Cython.Distutils.extension import Extension
-
-#from Cython.Distutils import build_ext
-#from Cython.Distutils.extension import Extension
-
+import sys
 import glob
 import os
+
+from distribute_setup import use_setuptools
+use_setuptools()
+from setuptools import setup
+
+try:
+    from Cython.Distutils import build_ext
+    from Cython.Distutils.extension import Extension
+except ImportError:
+    sys.stderr.write (
+        '\nThe Cython compiler is required to build Shrapnel.\n'
+        '  Try "pip install cython"\n'
+        '  *or* "easy_install cython"\n'
+        )
+    sys.exit (-1)
+
 
 include_dir = os.getcwd()
 
@@ -39,16 +49,25 @@ def check_lio():
 
 setup (
     name='coro',
-    version='1.0.0-000',
+    version='1.0.2-000',
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
     license = "MIT",
     url = "http://github.com/ironport/shrapnel",
     ext_modules = [
+        Extension(
+            'coro.event_queue',
+            ['coro/event_queue.pyx'],
+            language='c++',
+            depends=[os.path.join(include_dir, 'pyrex', 'python.pxi'),],
+            pyrex_include_dirs=[
+                os.path.join(include_dir, '.'),
+                os.path.join(include_dir, 'pyrex'),
+                ],),
         Extension (
             'coro._coro',
-            ['coro/_coro.pyx', 'coro/swap.c', 'coro/event_queue.cc'],
+            ['coro/_coro.pyx', 'coro/swap.c'],
             extra_compile_args = ['-Wno-unused-function'],
             depends=(glob.glob('coro/*.pyx') +
                      glob.glob('coro/*.pxi') +
@@ -76,15 +95,16 @@ setup (
             #                       },
             # to enable LZO|LZ4 for stack compression, set COMPILE_LZO|COMPILE_LZ4 in coro/_coro.pyx
             #   and uncomment one of the following:
-            #libraries=['lzo2']
-            #libraries=['lz4']
+            #libraries=['lzo2', 'z']
+            #libraries=['lz4', 'z'],
             libraries=['z']
             ),
         Extension(
             'coro.oserrors',
             ['coro/oserrors.pyx', ],
             ),
-        Extension(
+        Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
+        Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
             pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
@@ -94,13 +114,15 @@ setup (
                 ],
             ),
         ],
-    packages=['coro', 'coro.clocks'],
+    packages=['coro', 'coro.clocks', 'coro.http', 'coro.dns'],
     package_dir = {
-        '': 'coroutine',
+#        '': 'coroutine',
         'coro': 'coro',
-        'coro.clocks': 'coro/clocks'
+        'coro.clocks': 'coro/clocks',
+        'coro.dns': 'coro/dns',
     },
-    py_modules = ['backdoor', 'coro_process', 'coro_unittest'],
-    install_requires = ['cython>=0.12.1', 'pyrex>=0.9.8.6'],
+    py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest',],
+    download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
+    install_requires = ['Cython>=0.12.1', 'distribute>=0.6.16'],
     cmdclass={'build_ext': build_ext},
 )

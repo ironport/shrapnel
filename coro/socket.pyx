@@ -207,20 +207,19 @@ cdef _readv_compute(size_list, buffer_tuple, int n, int received, iovec * iov,
     into consideration what has been received so far will create an iovec array
     for the readv function.
 
-    :Parameters:
-        - `size_list`: A Python object that should be a sequence of integers
+    :param size_list: A Python object that should be a sequence of integers
           that indicate which blocks are being requested.
-        - `buffer_tuple`: A tuple of Python strings (should be already
+    :param buffer_tuple: A tuple of Python strings (should be already
           allocated and should be the same length as size_list).
-        - `n`: The length of size_list and buffer_tuple.
-        - `received`: The number of bytes received so far.
-        - `iov`: The ``iovec`` array.  This should have `n` elements.
-        - `left`: OUTPUT: The number of bytes left to read.
-        - `iov_pos`: OUTPUT: The number of elements added to ``iov``.
-        - `complete_index`: The index of the last element in the buffer tuple
+    :param n: The length of size_list and buffer_tuple.
+    :param received: The number of bytes received so far.
+    :param iov: The ``iovec`` array.  This should have ``n`` elements.
+    :param left: OUTPUT: The number of bytes left to read.
+    :param iov_pos: OUTPUT: The number of elements added to ``iov``.
+    :param complete_index: The index of the last element in the buffer tuple
           that has been *completely* received.  -1 if nothing has been
           completely received.
-        - `partial_index`: The index of the element in the buffer tuple that
+    :param partial_index: The index of the element in the buffer tuple that
           has partially received some data.  -1 if none of the elements have
           partial data.
     """
@@ -254,7 +253,8 @@ cdef _readv_compute(size_list, buffer_tuple, int n, int received, iovec * iov,
 
 cdef public class sock [ object sock_object, type sock_type ]:
 
-    """Coro socket object.
+    """
+    Coro socket object.
 
     This is typically used for network sockets, but can also be used for
     coro-safe IO on any file descriptor that supports kqueue non-blocking
@@ -262,20 +262,19 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
     The constructor takes the following parameters:
 
-        - `domain`: The socket domain family, defaults to AF_INET (see `AF`).
-        - `stype`: The socket type, defaults to SOCK_STREAM (see `SOCK`).
-        - `protocol`: The socket protocol (normally not used, defaults to 0).
-        - `fd`: The file descriptor to use.  Creates a new socket file
+    :param domain: The socket domain family, defaults to AF_INET (see :class:`AF`).
+    :param stype: The socket type, defaults to SOCK_STREAM (see :class:`SOCK`).
+    :param protocol: The socket protocol (normally not used, defaults to 0).
+    :param fd: The file descriptor to use.  Creates a new socket file
           descriptor if not specified.
 
-    :IVariables:
-        - `fd`: The file descriptor number.  Set to -1 when the socket is
+    :ivar fd: The file descriptor number.  Set to -1 when the socket is
           closed.
-        - `orig_fd`: The original file descriptor number.  This is left for
+    :ivar orig_fd: The original file descriptor number.  This is left for
           debugging purposes to determine which file descriptor was in use
           before the socket was closed.
-        - `domain`: The socket domain (AF_INET, AF_UNIX, AF_UNSPEC).
-        - `stype`: The socket type (SOCK_STREAM, SOCK_DGRAM)
+    :ivar domain: The socket domain (AF_INET, AF_UNIX, AF_UNSPEC).
+    :ivar stype: The socket type (SOCK_STREAM, SOCK_DGRAM)
     """
 
     cdef public int fd, orig_fd, domain, stype
@@ -323,8 +322,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def get_fileno (self):
         """Get the current file descriptor.
 
-        :Return:
-            Returns the current file descriptor number.  Returns -1 if the
+        :returns: The current file descriptor number.  Returns -1 if the
             socket is closed.
         """
         warnings.warn('socket.get_fileno() is deprecated, use fileno() instead.', DeprecationWarning)
@@ -333,18 +331,17 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def fileno (self):
         """Get the current file descriptor.
 
-        :Return:
-            Returns the current file descriptor number.  Returns -1 if the
+        :returns: The current file descriptor number.  Returns -1 if the
             socket is closed.
         """
         return self.fd
 
     cdef _set_reuse_addr (self):
-        cdef int old
+        cdef int old = 0
         cdef socklen_t optlen
-        optlen = sizeof (old);
+        optlen = sizeof (old)
         getsockopt (self.fd, SOL_SOCKET, SO_REUSEADDR, <void*> &old, &optlen)
-        old = old | 1;
+        old = old | 1
         setsockopt (self.fd, SOL_SOCKET, SO_REUSEADDR, <void*> &old, optlen)
 
     def set_reuse_addr (self):
@@ -362,19 +359,16 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def getsockopt (self, int level, int optname, socklen_t buflen=0):
         """Get a socket option.
 
-        :Parameters:
-            - `level`: The socket level to get (see `SOL`).
-            - `optname`: The socket option to get (see `SO`).
-            - `buflen`: The size of the buffer needed to retrieve the value. If
+        :param level: The socket level to get (see :class:`SOL`).
+        :param optname: The socket option to get (see :class:`SO`).
+        :param buflen: The size of the buffer needed to retrieve the value. If
               not specified, it assumes the result is an integer and will
               return an integer.  Otherwise, it will create a new string with
               the result, and you may use the struct module to decode it.
 
-        :Return:
-            Returns an integer if `buflen` is zero, otherwise returns a string.
+        :returns: An integer if ``buflen`` is zero, otherwise returns a string.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef int flag, r
         cdef socklen_t flagsize
@@ -397,13 +391,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def setsockopt (self, int level, int optname, value):
         """Set a socket option.
 
-        :Parameters:
-            - `level`: The socket level to set (see `SOL`).
-            - `optname`: The socket option to set (see `SO`).
-            - `value`: The value to set.  May be an integer, or a struct-packed string.
+        :param level: The socket level to set (see :class:`SOL`).
+        :param optname: The socket option to set (see :class:`SO`).
+        :param value: The value to set.  May be an integer, or a struct-packed string.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef int flag, r
         cdef socklen_t optlen
@@ -421,8 +413,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         It is safe to call this if the socket is already closed.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef int r
         if self.fd != -1:
@@ -442,15 +433,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
         This will repeatedly call write to ensure all data has been sent. This
         will raise OSError if it is unable to send all data.
 
-        :Parameters:
-            - `data`: The data to send.
+        :param data: The data to send.
 
-        :Return:
-            Returns the number of bytes sent, which should always be the length
-            of `data`.
+        :returns: The number of bytes sent, which should always be the length
+            of ``data``.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef char * buffer
         cdef int r, left, sent
@@ -482,35 +470,32 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def sendall(self, data):
         """Send all data.
 
-        This is an alias for the `send` method.
+        This is an alias for the :meth:`send` method.
         """
         return self.send(data)
 
     def write (self, data):
         """Write data.
 
-        This is an alias for the `send` method.
+        This is an alias for the :meth:`send` method.
         """
         return self.send(data)
 
     def sendto (self, data, address, int flags=0):
         """Send data to a specific address.
 
-        :Parameters:
-            - `data`: The data to send.
-            - `address`: The address to send to.  For unix-domain sockets, this
+        :param data: The data to send.
+        :param address: The address to send to.  For unix-domain sockets, this
               is a string.  For IP sockets, this is a tuple ``(IP, port)``
               where IP is a string.
               Port is always an integer.
-            - `flags`: sendto flags to use (defaults to 0) (see sendto(2)
+        :param flags: sendto flags to use (defaults to 0) (see sendto(2)
               manpage).
 
-        :Return:
-            Returns the number of bytes sent which may be less than the send
+        :returns: The number of bytes sent which may be less than the send
             requested.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef char * buffer
         cdef sockaddr_storage sa
@@ -536,23 +521,19 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 return r
 
-#            - `flags`: recv flags to use (defaults to 0) (see recv(2) manpage).
     def recv (self, int buffer_size):
         """Receive data.
 
         This may return less data than you request if the socket buffer is not
-        large enough.  Use `recv_exact` to ensure you receive exactly the
+        large enough.  Use :meth:`recv_exact` to ensure you receive exactly the
         amount requested.
 
-        :Parameters:
-            - `buffer_size`: The number of bytes to receive.
+        :param buffer_size: The number of bytes to receive.
 
-        :Return:
-            Returns a string of data.  Returns the empty string when the end of
+        :returns: A string of data.  Returns the empty string when the end of
             the stream is reached.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef buffer
         cdef int r, new_buffer_size
@@ -584,7 +565,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def read (self, buffer_size):
         """Read data.
 
-        This is an alias for the `recv` method.
+        This is an alias for the :meth:`recv` method.
         """
         return self.recv(buffer_size)
 
@@ -594,20 +575,17 @@ cdef public class sock [ object sock_object, type sock_type ]:
         This may return less data than you request if the socket buffer is not
         large enough.
 
-        :Parameters:
-            - `buffer_size`: The number of bytes to receive.
-            - `flags`: Socket flags to set (defaults to 0) (see recvfrom(2)
+        :param buffer_size: The number of bytes to receive.
+        :param flags: Socket flags to set (defaults to 0) (see recvfrom(2)
               manpage).
 
-        :Return:
-            Returns a tuple ``(data, address)`` where data is a string and
+        :returns: A tuple ``(data, address)`` where data is a string and
             address is the address of the remote side (string for unix-domain,
             tuple of ``(IP, port)`` for IP where IP is a string and port is an
             integer).  Data is the empty string when the end of the stream is
             reached.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef buffer
         cdef sockaddr_storage sa
@@ -654,15 +632,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         This will repeatedly call read until all data is received.
 
-        :Parameters:
-            - `bytes`: The number of bytes to receive.
+        :param bytes: The number of bytes to receive.
 
-        :Return:
-            Returns the data as a string.
+        :returns: The data as a string.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
-            - `EOFError`: Not all data could be read.  The first argument
+        :raises OSError: OS-level error.
+        :raises EOFError: Not all data could be read.  The first argument
               includes any partial data read as a string.
         """
         cdef char * p, * p0
@@ -696,16 +671,13 @@ cdef public class sock [ object sock_object, type sock_type ]:
         of the stream is reached before all data is received, then the result
         tuple will only contain the elements competely or partially received.
 
-        :Parameters:
-            - `size_list`: A sequence of integers that indicates the buffer
+        :param size_list: A sequence of integers that indicates the buffer
               sizes to read.
 
-        :Return:
-            Returns a tuple of strings corresponding to the sizes requested in
-            `size_list`.
+        :returns: A tuple of strings corresponding to the sizes requested in
+            ``size_list``.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef int n, i
         cdef int iov_pos
@@ -791,15 +763,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
         This will repeatedly call writev until all data is sent. If it is
         unable to send all data, it will raise an OSError exception.
 
-        :Parameters:
-            - `data`: A sequence of strings to write.
+        :param data: A sequence of strings to write.
 
-        :Return:
-            Returns the number of bytes sent which should always be the sum of
+        :returns: The number of bytes sent which should always be the sum of
             the lengths of all the strings in the data sequence.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef char * buffer
         cdef int r, left, size, sent
@@ -867,20 +836,17 @@ cdef public class sock [ object sock_object, type sock_type ]:
         This is for the Python buffer interface.  If you don't know what that
         is, move along.  This method is for Python socket compatibility.
 
-        :Parameters:
-            - `buffer`: A writeable Python buffer object.  Must be a contiguous
+        :param buffer: A writeable Python buffer object.  Must be a contiguous
               segment.
-            - `nbytes`: Number of bytes to read.  Must be less than or equal to
+        :param nbytes: Number of bytes to read.  Must be less than or equal to
               the size of the buffer.  Defaults to 0 which means the size of
-              `buffer`.
-            - `flags`: Flags for the recv system call (see recv(2) manpage).
+              ``buffer``.
+        :param flags: Flags for the recv system call (see recv(2) manpage).
               Defaults to 0.
 
-        :Return:
-            Returns the number of bytes read.
+        :returns: The number of bytes read.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef void *cbuf
         cdef Py_ssize_t cbuflen
@@ -917,22 +883,19 @@ cdef public class sock [ object sock_object, type sock_type ]:
         This is for the Python buffer interface.  If you don't know what that
         is, move along.  This method is for Python socket compatibility.
 
-        :Parameters:
-            - `buffer`: A writeable Python buffer object.  Must be a contiguous
+        :param buffer: A writeable Python buffer object.  Must be a contiguous
               segment.
-            - `nbytes`: Number of bytes to read.  Must be less than or equal to
+        :param nbytes: Number of bytes to read.  Must be less than or equal to
               the size of the buffer.  Defaults to 0 which means the size of
-              `buffer`.
-            - `flags`: Flags for the recv system call (see recvfrom(2) manpage).
+              ``buffer``.
+        :param flags: Flags for the recv system call (see recvfrom(2) manpage).
               Defaults to 0.
 
-        :Return:
-            Returns a tuple ``(nbytes, address)`` where ``bytes`` is the number
+        :returns: A tuple ``(nbytes, address)`` where ``bytes`` is the number
             of bytes read and ``address`` then it is the address of the remote
             side.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef sockaddr_storage sa
         cdef void *cbuf
@@ -969,21 +932,19 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 address = self.unparse_address(&sa, addr_len)
                 return r, address
 
-    cdef parse_address (self, object address, sockaddr_storage * sa, socklen_t * addr_len):
+    cdef parse_address (self, object address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve=False):
         """Parse a Python socket address and set the C structure values.
 
-        :Parameters:
-            - `address`: The Python address to parse.  For IP, it should be a
+        :param address: The Python address to parse.  For IP, it should be a
               ``(IP, port)`` tuple where the IP is a string. Use the empty
               string to indicate INADDR_ANY.
               The port should always be a host-byte-order integer.
               For Unix-domain sockets, the address should be a string.
-            - `sa`: OUTPUT: The sockaddr_storage C-structure to store the
+        :param sa: OUTPUT: The sockaddr_storage C-structure to store the
               result in.
-            - `addr_len`: OUTPUT: The size of the structure placed into `sa`.
+        :param addr_len: OUTPUT: The size of the structure placed into ``sa``.
 
-        :Exceptions:
-            - `ValueError`: The value could not be parsed.
+        :raises ValueError: The value could not be parsed.
         """
         cdef sockaddr_in * sin
         cdef sockaddr_in6 *sin6
@@ -996,7 +957,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             ip = PySequence_GetItem(address, 0)
             port = PySequence_GetItem(address, 1)
             if not PyString_Check (ip):
-                raise ValueError, "IP address be a string"
+                raise ValueError, "IP address must be a string"
             if PyString_Size (ip) == 0:
                 if self.domain == AF_INET:
                     ip = "0.0.0.0"
@@ -1012,7 +973,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 sin.sin_port = htons(port)
                 r = inet_pton(AF_INET, PyString_AsString(ip), &sin.sin_addr)
                 if r != 1:
-                    raise ValueError, "not a valid IPv4 address"
+                    if resolve:
+                        return self.parse_address (
+                            (the_resolver.resolve_ipv4 (ip), port), sa, addr_len, False
+                            )
+                    else:
+                        raise ValueError ("not a valid IPv4 address")
             elif self.domain == AF_INET6:
                 sin6.sin6_family = AF_INET6
                 IF UNAME_SYSNAME == "FreeBSD":
@@ -1021,10 +987,15 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 sin6.sin6_port = htons(port)
                 r = inet_pton(AF_INET6, PyString_AsString(ip), &sin6.sin6_addr)
                 if r != 1:
-                    raise ValueError, "not a valid IPv6 address"
+                    if resolve:
+                        return self.parse_address (
+                            (the_resolver.resolve_ipv6 (ip), port), sa, addr_len, False
+                            )
+                    else:
+                        raise ValueError ("not a valid IPv6 address")
             else:
                 raise ValueError, "Unsupported address family: %d" % self.domain
-        elif PyString_Check (address):
+        elif PyString_Check (address) and address[0] == '/':
             # AF_UNIX
             # +1 to grab the NUL char
             l = PyString_Size (address) + 1
@@ -1043,12 +1014,10 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cdef object unparse_address (self, sockaddr_storage *sa, socklen_t addr_len):
         """Unpack a C-socket address structure and generate a Python address object.
 
-        :Parameters:
-            - `sa`: The sockaddr_storage structure to unpack.
-            - `addr_len`: The length of the `sa` structure.
+        :param sa: The sockaddr_storage structure to unpack.
+        :param addr_len: The length of the ``sa`` structure.
 
-        :Return:
-            Returns a ``(IP, port)`` tuple for IP addresses where IP is a
+        :returns: A ``(IP, port)`` tuple for IP addresses where IP is a
             string in canonical format for the given address family . Returns a
             string for UNIX-domain sockets.  Returns None for unknown socket
             domains.
@@ -1077,13 +1046,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         This will block until there is data available to be read.
 
-        :Return:
-            Returns the amount "readable".  For different sockets, this may be
+        :returns: The amount "readable".  For different sockets, this may be
             different values, see the EVFILT_READ section of the kevent manpage
             for details.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         return self._wait_for_read()
 
@@ -1092,11 +1059,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         This will block until it is possible to write to the socket.
 
-        :Return:
-            Returns the number of bytes writeable on the socket.
+        :returns: The number of bytes writeable on the socket.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         return self._wait_for_write()
 
@@ -1106,17 +1071,15 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cdef _wait_for_write (self):
         return the_poller._wait_for_write (self.fd)
 
-    def connect (self, address):
+    cpdef connect_addr (self, address, bint resolve=False):
         """Connect the socket.
 
-        :Parameters:
-            - `address`: The address to connect to.  For IP, it should be a
+        :param address: The address to connect to.  For IP, it should be a
               ``(IP, port)`` tuple where the IP is a string.
               The port should always be a host-byte-order integer. For
               Unix-domain sockets, the address should be a string.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef sockaddr_storage sa
         cdef socklen_t addr_len
@@ -1124,7 +1087,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef coro me
         me = <coro>the_scheduler._current
         memset (&sa, 0, sizeof (sockaddr_storage))
-        self.parse_address (address, &sa, &addr_len)
+        self.parse_address (address, &sa, &addr_len, resolve)
         while 1:
             r = connect (self.fd, <sockaddr*>&sa, addr_len)
             if r == -1:
@@ -1136,18 +1099,19 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 return None
 
+    cpdef connect (self, address):
+        return self.connect_addr (address, True)
+
     def bind (self, address):
         """Bind the socket.
 
-        :Parameters:
-            - `address`: The address to bind to.  For IP, it should be a
+        :param address: The address to bind to.  For IP, it should be a
               ``(IP, port)`` tuple where the IP is a string.  Use the empty
               string to indicate INADDR_ANY.
               The port should always be a host-byte-order integer.
               For Unix-domain sockets, the address should be a string.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef sockaddr_storage sa
         cdef socklen_t addr_len
@@ -1163,11 +1127,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def listen (self, backlog):
         """Set the socket to listen for connections.
 
-        :Parameters:
-            - `backlog`: The maximum size of the queue for pending connections.
+        :param backlog: The maximum size of the queue for pending connections.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef int r
         r = listen (self.fd, backlog)
@@ -1177,14 +1139,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def accept (self):
         """Accept a connection.
 
-        :Return:
-            Returns a tuple ``(socket, address)`` where ``socket`` is a socket
+        :returns: A tuple ``(socket, address)`` where ``socket`` is a socket
             object and ``address`` is an ``(IP, port)`` tuple for IP
             addresses or a string for UNIX-domain sockets. IP addresses are
             returned as strings.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef sockaddr_storage sa
         cdef socklen_t addr_len
@@ -1214,20 +1174,17 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def accept_many (self, int max=0):
         """Accept multiple connections.
 
-        This will accept up to `max` connections for any connections available
+        This will accept up to ``max`` connections for any connections available
         on the listen queue.  This will block if there are no connections
         waiting.
 
-        :Parameters:
-            - `max`: The maximum number of connections to accept.  If not
+        :param max: The maximum number of connections to accept.  If not
               specified, defaults to infinity (accept all pending connections).
 
-        :Return:
-            Returns a list of ``(socket, address)`` tuples (see `accept` method
+        :returns: A list of ``(socket, address)`` tuples (see :meth:`accept` method
             for information on return format).
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef sockaddr_storage sa
         cdef socklen_t addr_len
@@ -1267,11 +1224,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def shutdown (self, int how):
         """Shutdown the socket.
 
-        :Parameters:
-            - `how`: How to shut down the socket (see the shutdown(2) manpage).
+        :param how: How to shut down the socket (see the shutdown(2) manpage).
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef int r
         r = shutdown (self.fd, how)
@@ -1283,12 +1238,10 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def getpeername (self):
         """Get the remote-side address.
 
-        :Return:
-            Returns a ``(IP, port)`` tuple for IP addresses where IP is a
+        :returns: A ``(IP, port)`` tuple for IP addresses where IP is a
             string. Returns a string for UNIX-domain sockets.
 
-        :Exceptions:
-            - `OSError`: OS-level error.
+        :raises OSError: OS-level error.
         """
         cdef sockaddr_storage sa
         cdef socklen_t addr_len
@@ -1305,8 +1258,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def getsockname (self):
         """Get the local address of the socket.
 
-        :Return:
-            Returns a ``(IP, port)`` tuple for IP addresses where IP is a
+        :returns: A ``(IP, port)`` tuple for IP addresses where IP is a
             string or an empty string for INADDR_ANY. Returns a
             string for UNIX-domain sockets (empty string if not bound).
         """
@@ -1327,17 +1279,15 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         The mode and bufsize arguments are as for the built-in open() function.
 
-        The underlying socket is duplicated via `sock.dup` to emulate Python's
+        The underlying socket is duplicated via ``sock.dup`` to emulate Python's
         reference counting behavior.
 
-        :Parameters:
-            - `mode`: The mode of the file, defaults to 'r'.
-            - `bufsize`: The buffer size (0 is no buffering, 1 is line
+        :param mode: The mode of the file, defaults to 'r'.
+        :param bufsize: The buffer size (0 is no buffering, 1 is line
               buffering, greater than 1 is the explicit buffer size).
               Defaults to -1 (does not change the default buffering).
 
-        :Return:
-            Returns a file-like object that wraps the socket.
+        :returns: A file-like object that wraps the socket.
         """
         # Probably unwise to access an underscore private value from the
         # socket module, but it should work OK for the foreseeable future.
@@ -1353,8 +1303,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     def dup(self):
         """Duplicate the socket object using the OS dup() call.
 
-        :Return:
-            Returns a new sock instance that holds the new file descriptor.
+        :returns: A new sock instance that holds the new file descriptor.
         """
         cdef sock new_sock
         cdef int new_fd
@@ -1366,12 +1315,38 @@ cdef public class sock [ object sock_object, type sock_type ]:
         return sock(self.domain, self.stype, 0, new_fd)
 
 
+class NameError (Exception):
+    pass
+
+cdef class dummy_resolver:
+    "blocking name resolver uses socket.getaddrinfo()"
+    def resolve_ipv4 (self, bytes address):
+        addrs = __socketmodule.getaddrinfo (address, None, __socketmodule.AF_INET)
+        if not addrs:
+            raise NameError ("unable to resolve host: %r" % address)
+        else:
+            return addrs[0][4][0]
+    def resolve_ipv6 (self, bytes address):
+        addrs = __socketmodule.getaddrinfo (address, None, __socketmodule.AF_INET6)
+        if not addrs:
+            raise NameError ("unable to resolve host: %r" % address)
+        else:
+            return addrs[0][4][0]
+
+the_resolver = dummy_resolver()
+
+def set_resolver (resolver):
+    "replace the default resolver - return previous value"
+    global the_resolver
+    old_value = the_resolver
+    the_resolver = resolver
+    return old_value
+
 def get_live_sockets():
     """Get the number of live socket objects.  This includes socket objects
     that are closed.
 
-    :Return:
-        Returns the number of socket objects.
+    :returns: The number of socket objects.
     """
     global live_sockets
     return live_sockets
@@ -1436,7 +1411,7 @@ cdef class file_sock(sock):
 
     The constructor takes one argument:
 
-        - ``fileobj``: A Python-like file object.  Currently only needs to
+    :param fileobj: A Python-like file object.  Currently only needs to
           implement the ``fileno`` method.
 
     When the object is deallocated, the file descriptor is closed.
@@ -1459,7 +1434,7 @@ cdef class fd_sock(sock):
 
     The constructor takes one argument:
 
-        - ``fd``: A file descriptor.
+    :param fd: A file descriptor.
 
     When the object is deallocated, the file descriptor is closed.
     """
@@ -1471,55 +1446,45 @@ cdef class fd_sock(sock):
 def tcp_sock():
     """Create a streaming IPv4 socket.
 
-    :Return:
-        Returns a socket object.
+    :returns: A socket object.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     return sock (AF_INET, SOCK_STREAM)
 
 def udp_sock():
     """Create a datagram IPv4 socket.
 
-    :Return:
-        Returns a socket object.
+    :returns: A socket object.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     return sock (AF_INET, SOCK_DGRAM)
 
 def tcp6_sock():
     """Create a streaming IPv6 socket.
 
-    :Return:
-        Returns a socket object.
+    :returns: A socket object.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     return sock (AF_INET6, SOCK_STREAM)
 
 def udp6_sock():
     """Create a datagram IPv6 socket.
 
-    :Return:
-        Returns a socket object.
+    :returns: A socket object.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     return sock (AF_INET6, SOCK_DGRAM)
 
 def unix_sock():
     """Create a streaming unix-domain socket.
 
-    :Return:
-        Returns a socket object.
+    :returns: A socket object.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     return sock (AF_UNIX, SOCK_STREAM)
 
@@ -1529,26 +1494,19 @@ def make_socket (int domain, int stype):
     This is a backwards-compatibility wrapper around the sock object
     constructor.
 
-    :Parameters:
-        - `domain`: The socket domain family (see `AF`).
-        - `stype`: The socket type (see `SOCK`).
+    :param domain: The socket domain family (see :class:`AF`).
+    :param stype: The socket type (see :class:`SOCK`).
 
-    :Return:
-        Returns a socket object.
+    :returns: A socket object.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     return sock (domain, stype)
 
 def has_ipv6():
     """Whether or not this system can create an IPv6 socket.
 
-    :Return:
-        Returns True if this system can create an IPv6 socket, False otherwise
-
-    :Exceptions:
-        - None
+    :returns: True if this system can create an IPv6 socket, False otherwise
     """
     cdef int s
 
@@ -1563,16 +1521,13 @@ def has_ipv6():
 def socketpair(int domain=AF_UNIX, int stype=SOCK_STREAM, int protocol=0):
     """Create an unnamed pair of connected sockets.
 
-    :Parameters:
-        - `domain`: The socket domain family (defaults to AF_UNIX).
-        - `stype`: The socket type (defaults to SOCK_STREAM).
-        - `protocol`: The socket protocol (normally not used, defaults to 0).
+    :param domain: The socket domain family (defaults to AF_UNIX).
+    :param stype: The socket type (defaults to SOCK_STREAM).
+    :param protocol: The socket protocol (normally not used, defaults to 0).
 
-    :Return:
-        Returns a tuple of 2 connected sockets.
+    :returns: A tuple of 2 connected sockets.
 
-    :Exceptions:
-        - `OSError`: OS-level error.
+    :raises OSError: OS-level error.
     """
     cdef int sv[2]
     cdef int rc

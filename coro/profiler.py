@@ -25,17 +25,18 @@
 Introduction
 ============
 This profiler is coro-aware.  It produces output to a binary file on disk. You
-then use the `coro.print_profile` module to convert it to an HTML file.
+then use the :mod:`coro.print_profile` module to convert it to an HTML file.
 
 Using The Profiler
 ==================
-There are two ways to run the profiler.  One is to use the `go` function where
-you give it a python function to run.  Profiling will start and call the
-function, and then the profiler will automatically stop when the function
-exits.
+There are two ways to run the profiler.  One is to use the
+:func:`coro.profiler.go` function where you give it a python function to run.
+Profiling will start and call the function, and then the profiler will
+automatically stop when the function exits.
 
-The other method is to call `start` to start the profiler and `stop` when you
-want to stop profiling.  This can be conveniently done from the backdoor.
+The other method is to call :func:`coro.profiler.start` to start the profiler
+and :func:`coro.profiler.stop` when you want to stop profiling.  This can be
+conveniently done from the backdoor.
 
 Rendering Output
 ================
@@ -49,12 +50,13 @@ Then view the profile output in your web browser.
 Profiler Types
 ==============
 The profiler supports different ways of gathering statistics.  This is done by
-specifying the "bench" object to use (see `go` and `start`).  They default to
-the "rusage" method of gathering statistics about every function call (see the
-getrusage man page for more detail).  If you want a higher performance profile,
-you can use the `coro.bench` object instead which simply records TSC values for
-every function call.  If you want to define your own method of gathering
-statistics, subclass `coro.bench` and implement your own techniques.
+specifying the "bench" object to use (see :func:`go` and :func:`start`).  They
+default to the "rusage" method of gathering statistics about every function
+call (see the getrusage man page for more detail).  If you want a higher
+performance profile, you can use the :class:`coro.bench` object instead which
+simply records TSC values for every function call.  If you want to define your
+own method of gathering statistics, subclass :class:`coro.bench` and implement
+your own techniques.
 
 """
 
@@ -98,14 +100,12 @@ def go (fun, *args, **kwargs):
 
     This will display the results to stdout after the function is finished.
 
-    :Parameters:
-        - `fun`: The function to call.
+    :param fun: The function to call.
 
-    :Keywords:
-        - `profile_filename`: The name of the file to save the profile data.
+    :keyword profile_filename: The name of the file to save the profile data.
           Defaults to '/tmp/coro_profile.bin'.
-        - `profile_bench`: The bench object type to use.  Defaults to
-          `coro.rusage_bench`.
+    :keyword profile_bench: The bench object type to use.  Defaults to
+          :class:`coro.rusage_bench`.
     """
     if kwargs.has_key('profile_filename'):
         profile_filename = kwargs['profile_filename']
