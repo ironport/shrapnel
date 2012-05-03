@@ -237,6 +237,7 @@ def serve():
     s = coro.tcp_sock()
     s.bind (('', 9001))
     s.listen (5)
+    coro.write_stderr ('Try "telnet localhost 9001" to watch the worms!\n')
     while 1:
         c, a = s.accept()
         t = terminal (c)
