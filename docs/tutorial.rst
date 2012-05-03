@@ -469,7 +469,9 @@ The Killer Demo
 
 See :download:`docs/tutorial/worms.py <tutorial/worms.py>` for a fun demo.  Run the script from
 one terminal, and telnet into it from another terminal with a nice
-large window (your terminal needs to support ANSI escape codes).  
+large window (your terminal needs to support ANSI escape codes)::
+
+  $ telnet localhost 9001
 
 Each worm is its own thread, and each socket client has a separate
 view into the shared 'arena'.  This demo can easily handle hundreds of
