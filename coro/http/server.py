@@ -291,9 +291,9 @@ class http_request:
         s = self.DEFAULT_ERROR_MESSAGE % {
             'code': code, 'message': message, 'reason': reason
         }
-        self['Content-Length'] = len(s)
-        self['Content-Type'] = 'text/html'
-        self.push (s)
+        self['content-length'] = str(len(s))
+        self['content-type'] = 'text/html'
+        self.push (s, flush=True)
         self.done()
 
     def log_line (self):
@@ -479,16 +479,16 @@ class server:
 
         self.sock.listen (1024)
         c = coro.spawn (self.run)
-        c.set_name ('http_server (%s:%d)' % addr)
+        c.set_name ('%s (%s:%d)' % (self.__class__.__name__, addr[0], addr[1]))
 
     def run (self):
         self.thread_id = coro.current().thread_id()
         while not self.shutdown_flag:
             try:
                conn, addr = self.accept()
-               client = connection (self)
+               client = self.create_connection()
                c = coro.spawn (client.run, conn, addr)
-               c.set_name ('http connection on %r' % (addr,))
+               c.set_name ('%s connection on %r' % (self.__class__.__name__, addr,))
             except coro.Shutdown:
                 break
             except:
@@ -499,6 +499,9 @@ class server:
 
     def accept (self):
         return self.sock.accept()
+
+    def create_connection (self):
+        return connection (self)
 
     def shutdown (self):
         self.shutdown_flag = 1
@@ -513,8 +516,9 @@ class tlslite_server (server):
 
     "https server using the tlslite package"
 
-    def __init__ (self, cert_path, key_path):
+    def __init__ (self, cert_path, key_path, **handshake_args):
 	server.__init__ (self)
+        self.handshake_args = handshake_args
         self.cert_path = cert_path
 	self.key_path = key_path
         self.read_chain()
@@ -524,7 +528,7 @@ class tlslite_server (server):
 	import tlslite
 	conn0, addr = server.accept (self)
         conn = tlslite.TLSConnection (conn0)
-        conn.handshakeServer (certChain=self.chain, privateKey=self.private)
+        conn.handshakeServer (certChain=self.chain, privateKey=self.private, **self.handshake_args)
 	return conn, addr
 
     def read_chain (self):
