@@ -297,6 +297,10 @@ You can tell the system to exit::
     >>> coro.set_exit()
     >>> Connection closed by foreign host.
 
+[Note that this isn't just exiting the telnet/backdoor connection, but
+telling the entire system to shut down.]
+
+
 .. note::
 
     Try editing the echo server from above, so that it'll exit the
