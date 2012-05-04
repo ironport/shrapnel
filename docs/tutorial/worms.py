@@ -63,10 +63,14 @@ class arena:
             x, y = self.random_pos()
             self.worms.append (worm (self, x, y))
     def cull (self, hoffa=False):
+        removed = []
         for worm in self.worms:
             if worm.stunned:
                 W ('culling worm %r\n' % (worm.chr,))
                 worm.kill (hoffa)
+                removed.append (worm)
+        for r in removed:
+            self.worms.remove (r)
 
 class worm:
 
@@ -91,21 +95,18 @@ class worm:
         coro.spawn (self.go)
         
     def go (self):
-        try:
-            while not self.exit:
-                coro.sleep_relative (self.speed / 10000.0)
-                if random.randrange (0,20) == 10:
+        while not self.exit:
+            coro.sleep_relative (self.speed / 10000.0)
+            if random.randrange (0,20) == 10:
+                if not self.turn():
+                    return
+            else:
+                nx, ny = self.update()
+                while self.arena[(nx,ny)] != ' ':
                     if not self.turn():
                         return
-                else:
                     nx, ny = self.update()
-                    while self.arena[(nx,ny)] != ' ':
-                        if not self.turn():
-                            return
-                        nx, ny = self.update()
-                    self.move ((nx, ny))                        
-        finally:
-            self.arena.worms.remove (self)
+                self.move ((nx, ny))                        
 
     def update (self):
         x, y = self.head
@@ -236,6 +237,7 @@ def serve():
     s = coro.tcp_sock()
     s.bind (('', 9001))
     s.listen (5)
+    coro.write_stderr ('Try "telnet localhost 9001" to watch the worms!\n')
     while 1:
         c, a = s.accept()
         t = terminal (c)
