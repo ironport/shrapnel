@@ -3,7 +3,7 @@
 import coro
 W = coro.write_stderr
 
-from coro.httpd.client import client as http_client
+from coro.http.client import client as http_client
 
 def t0():
     c = http_client ('127.0.0.1', 80)
