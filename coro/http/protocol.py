@@ -133,6 +133,14 @@ class header_set:
         "Is this header present?"
         return self.headers.has_key (key.lower())
 
+    def test (self, key, value):
+        "Is this header present with this value?"
+        for x in self.headers.get (key.lower(), []):
+            if x == value:
+                return True
+        else:
+            return False
+
     def __getitem__ (self, key):
         "Returns the list of values for this header, or None."
         return self.headers.get (key, None)
@@ -146,6 +154,9 @@ class header_set:
         else:
             probe.append (value)
 
+    def __delitem__ (self, name):
+        del self.headers[name]
+
     def __str__ (self):
         "Render the set of headers."
         r = []
@@ -153,3 +164,9 @@ class header_set:
             for v in vl:
                 r.append ('%s: %s\r\n' % (k, v))
         return ''.join (r)
+
+    def copy (self):
+        "Return a copy of this header set"
+        h = header_set()
+        h.headers = self.headers.copy()
+        return h
