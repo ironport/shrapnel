@@ -4,10 +4,12 @@ import coro
 W = coro.write_stderr
 
 from coro.http.client import client as http_client
+from coro.http.protocol import header_set
 
 def t0():
     c = http_client ('127.0.0.1', 80)
-    l = [ c.send_request ('GET', '/postgresql/html/', {}, content=None, force=True) for x in range (10) ]
+    h = header_set()
+    l = [ c.send_request ('GET', '/postgresql/html/', h, content=None, force=True) for x in range (10) ]
     for req in l:
         req.wait()
         W ('%s\n' % (req.response,))
