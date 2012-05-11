@@ -1,5 +1,6 @@
 # -*- Mode: Python -*-
 
+import re
 import coro
 import coro.read_stream
 from protocol import http_file, header_set, latch
@@ -7,6 +8,9 @@ from protocol import http_file, header_set, latch
 W = coro.write_stderr
 
 class HTTP_Protocol_Error (Exception):
+    pass
+
+class Bad_Response (HTTP_Protocol_Error):
     pass
 
 # viewed at its core, HTTP is a two-way exchange of messages,
@@ -63,8 +67,17 @@ class client:
             else:
                 req.wake()
 
+    response_re = re.compile ('([^ ]+) ([0-9][0-9][0-9])')
     def _read_message (self, req):
-        req.response = self.stream.read_line()[:-2]
+        line = self.stream.read_line()
+        if not line:
+            raise HTTP_Protocol_Error ('unexpected close')
+        req.response = line[:-2]
+        m = self.response_re.match (req.response)
+        if not m:
+            raise Bad_Response (req.response)
+        else:
+            req.version, req.reply_code = m.groups()
         lines = []
         while 1:
             line = self.stream.read_line()
