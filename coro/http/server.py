@@ -492,7 +492,7 @@ class server:
             except coro.Shutdown:
                 break
             except:
-                self.log ('error: %r\n' % (coro.compact_traceback(),))
+                self.log ('error: %r' % (coro.compact_traceback(),))
                 coro.sleep_relative (0.25)
                 continue
         self.sock.close()
@@ -526,10 +526,15 @@ class tlslite_server (server):
 
     def accept (self):
 	import tlslite
-	conn0, addr = server.accept (self)
-        conn = tlslite.TLSConnection (conn0)
-        conn.handshakeServer (certChain=self.chain, privateKey=self.private, **self.handshake_args)
-	return conn, addr
+        while 1:
+            conn0, addr = server.accept (self)
+            conn = tlslite.TLSConnection (conn0)
+            try:
+                conn.handshakeServer (certChain=self.chain, privateKey=self.private, **self.handshake_args)
+            except tlslite.errors.TLSAbruptCloseError:
+                self.log ('TLSAbruptCloseError: %r' % (addr,))
+            else:
+                return conn, addr
 
     def read_chain (self):
 	"cert chain is all in one file, in LEAF -> ROOT order"
