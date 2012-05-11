@@ -23,6 +23,17 @@ cdef extern from "zlib.h":
     cdef int inflate      (z_stream *, int)
     cdef int inflateEnd   (z_stream *)
     cdef int inflateReset (z_stream *)
+    cdef int deflateSetDictionary (z_stream *, unsigned char *, unsigned int)
+    cdef int inflateSetDictionary (z_stream *, unsigned char *, unsigned int)
+
+    cdef enum FLUSH_VALUES:
+        Z_NO_FLUSH
+        Z_PARTIAL_FLUSH
+        Z_SYNC_FLUSH
+        Z_FULL_FLUSH
+        Z_FINISH
+        Z_BLOCK
+        Z_TREES
 
     cdef enum COMPRESSION_LEVELS:
         Z_NO_COMPRESSION,
