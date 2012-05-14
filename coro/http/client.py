@@ -26,9 +26,13 @@ class Bad_Response (HTTP_Protocol_Error):
 
 class request:
 
-    def __init__ (self, force=True):
+    def __init__ (self, method, uri, headers, content=None, force=True):
+        self.method = method
+        self.uri = uri
+        self.qheaders = headers
         self.latch = latch()
         self.force = force
+        self.qcontent = content
         self.content = None
         self.response = None
         self.rheader = None
@@ -43,6 +47,30 @@ class request:
 
     def wait (self):
         return self.latch.wait()
+
+    def has_body (self):
+        # XXX duplicates logic from server.py:http_request
+        h = self.rheader
+        if h.has_key ('transfer-encoding'):
+            return True
+        else:
+            probe = h.get_one ('content-length')
+            if probe:
+                try:
+                    size = int (probe)
+                    if size == 0:
+                        return False
+                    elif size > 0:
+                        return True
+                    else:
+                        return False
+                except ValueError:
+                    return False
+            elif h.test ('connection', 'close') and self.method == 'GET':
+                # XXX unless 204
+                return True
+            else:
+                return False
 
 class client:
 
@@ -61,13 +89,20 @@ class client:
     def read_thread (self):
         while 1:
             req = self.pending.pop()
-            self._read_message (req)
-            if not req.response:
+            if req is None:
                 break
             else:
-                req.wake()
+                self._read_message (req)
+                if not req.response:
+                    break
+                else:
+                    req.wake()
 
-    response_re = re.compile ('([^ ]+) ([0-9][0-9][0-9])')
+    def close (self):
+        self.pending.push (None)
+        self.conn.close()
+
+    response_re = re.compile ('([^ ]+) ([0-9][0-9][0-9]) (.+)')
     def _read_message (self, req):
         line = self.stream.read_line()
         if not line:
@@ -77,7 +112,7 @@ class client:
         if not m:
             raise Bad_Response (req.response)
         else:
-            req.version, req.reply_code = m.groups()
+            req.version, req.reply_code, req.reason = m.groups()
         lines = []
         while 1:
             line = self.stream.read_line()
@@ -88,13 +123,13 @@ class client:
             else:
                 lines.append (line[:-2])
         req.rheader = h = header_set (lines)
-        if h['content-length'] or h['transfer-encoding']:
+        if req.has_body():
             req.rfile = http_file (h, self.stream)
 
     def send_request (self, method, uri, headers, content=None, force=False):
         try:
             self.inflight.acquire (1)
-            req = request (force)
+            req = request (method, uri, headers, content, force)
             self._send_request (method, uri, headers, content)
             self.pending.push (req)
             return req
