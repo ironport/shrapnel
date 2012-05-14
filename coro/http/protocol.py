@@ -5,6 +5,9 @@ from coro import read_stream
 
 W = coro.write_stderr
 
+class HTTP_Protocol_Error:
+    pass
+
 # candidate for sync.pyx?
 class latch:
 
@@ -41,6 +44,8 @@ class http_file:
             if content_length:
                 self.content_length = int (content_length)
                 self.streamo = read_stream.buffered_stream (self._gen_read_fixed().next)
+            elif headers.test ('connection', 'close'):
+                self.streamo = read_stream.buffered_stream (self._gen_read_all().next)
             else:
                 raise HTTP_Protocol_Error ("no way to determine length of HTTP data")
             
@@ -72,6 +77,17 @@ class http_file:
             yield block
         self.done_cv.wake_all()
         return
+
+    def _gen_read_all (self):
+        "generate content from all remaining data from socket"
+        s = self.streami
+        while 1:
+            block = s.read_exact (self.buffer_size)
+            if not block:
+                self.done_cv.wake_all()
+                return
+            else:
+                yield block
 
     # XXX implement <size> argument
     def read (self, join=True):
@@ -155,7 +171,13 @@ class header_set:
             probe.append (value)
 
     def __delitem__ (self, name):
+        "Remove a header."
         del self.headers[name]
+
+    def remove (self, name):
+        "remove a header [if present]"
+        if self.headers.has_key (name):
+            del self.headers[name]
 
     def __str__ (self):
         "Render the set of headers."
