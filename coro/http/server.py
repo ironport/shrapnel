@@ -131,7 +131,6 @@ class http_request:
         self.request_number = http_request.request_count
         self.request = request
         self.request_headers = headers
-        #W ('headers=%s\n' % (headers,))
         self.client = client
         self.server = client.server
         self.tstart = time.time()
@@ -364,9 +363,6 @@ class http_request:
         '</html>',
         ''
         ])
-
-class HTTP_Protocol_Error (Exception):
-    pass
 
 # chunking works thus:
 #    <data>
