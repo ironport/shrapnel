@@ -1,5 +1,5 @@
 *************************
-Shrapnel Reference Manaul
+Shrapnel Reference Manual
 *************************
 
 This reference manual describes all of the basic concepts of Shrapnel along with all of the APIs.
