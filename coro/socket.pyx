@@ -1342,6 +1342,10 @@ def set_resolver (resolver):
     the_resolver = resolver
     return old_value
 
+def get_resolver():
+    "return the current resolver"
+    return the_resolver
+
 def get_live_sockets():
     """Get the number of live socket objects.  This includes socket objects
     that are closed.
