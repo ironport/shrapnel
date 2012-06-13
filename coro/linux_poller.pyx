@@ -218,7 +218,28 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         return
 
     cdef notify_of_close (self, int fd):
-        return
+        cdef coro co
+        cdef event_key ek
+
+        ek = event_key(EPOLLIN, fd)
+        if PyDict_Contains(self.event_map, ek):
+            co = self.event_map[ek]
+            del self.event_map[ek]
+
+            try:
+                co.__interrupt(ClosedError(the_scheduler._current))
+            except ScheduleError:
+                W('notify_of_close (%d) [read]: unable to interrupt thread: %r\n' % (fd, co))
+
+        ek = event_key(EPOLLOUT, fd)
+        if PyDict_Contains(self.event_map, ek):
+            co = self.event_map[ek]
+            del self.event_map[ek]
+
+            try:
+                co.__interrupt(ClosedError(the_scheduler._current))
+            except ScheduleError:
+                W('notify_of_close (%d) [write]: unable to interrupt thread: %r\n' % (fd, co))
 
     cdef _register_event(self, event_key ek, unsigned int flags): 
         cdef int r
