@@ -195,7 +195,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         if PyDict_Contains (self.event_map, ek):
             # Should be impossible to have KeyError due to previous line.
             et = self.event_map[ek]
-            raise SimultaneousError (the_scheduler._current, et.target, ek)
+            raise SimultaneousError (the_scheduler._current, et, ek)
         else:
 
             ek1 = event_key (EPOLLOUT, ek.fd)
