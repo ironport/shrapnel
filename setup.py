@@ -20,7 +20,6 @@ except ImportError:
         )
     sys.exit (-1)
 
-
 include_dir = os.getcwd()
 
 def newer(x, y):
@@ -47,6 +46,14 @@ def check_lio():
     status = os.system('test/build/test_lio')
     return exit_ok(status)
 
+compile_time_env = {
+    'COMPILE_LIO': check_lio(),
+    'COMPILE_NETDEV' : False,
+    'COMPILE_LZO' : False,
+    'COMPILE_LZ4' : False,
+    'CORO_DEBUG': False,
+    }
+
 setup (
     name='coro',
     version='1.0.2-000',
@@ -69,40 +76,34 @@ setup (
             'coro._coro',
             ['coro/_coro.pyx', 'coro/swap.c'],
             extra_compile_args = ['-Wno-unused-function'],
-            depends=(glob.glob('coro/*.pyx') +
-                     glob.glob('coro/*.pxi') +
-                     glob.glob('coro/*.pxd') +
-                     [os.path.join(include_dir, 'pyrex', 'python.pxi'),
-                      os.path.join(include_dir, 'pyrex', 'pyrex_helpers.pyx'),
-                      os.path.join(include_dir, 'include', 'pyrex_helpers.h'),
-                      os.path.join(include_dir, 'pyrex',
-                                   'tsc_time_include.pyx'),
-                      os.path.join(include_dir, 'include', 'tsc_time.h'),
-                      os.path.join(include_dir, 'pyrex', 'libc.pxd'),
-                     ]
-                    ),
+            depends = (
+                glob.glob('coro/*.pyx') +
+                glob.glob('coro/*.pxi') +
+                glob.glob('coro/*.pxd') + [
+                    os.path.join(include_dir, 'pyrex', 'python.pxi'),
+                    os.path.join(include_dir, 'pyrex', 'pyrex_helpers.pyx'),
+                    os.path.join(include_dir, 'include', 'pyrex_helpers.h'),
+                    os.path.join(include_dir, 'pyrex', 'tsc_time_include.pyx'),
+                    os.path.join(include_dir, 'include', 'tsc_time.h'),
+                    os.path.join(include_dir, 'pyrex', 'libc.pxd'),
+                    ]
+                 ),
             pyrex_include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'pyrex'),
                 ],
-            #include_dirs=[os.path.join(include_dir, 'pyrex')],
             include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'include'),
                 ],
-            #pyrex_compile_time_env={'COMPILE_LIO': check_lio(),
-            #                        'CORO_DEBUG': True,
-            #                       },
-            # to enable LZO|LZ4 for stack compression, set COMPILE_LZO|COMPILE_LZ4 in coro/_coro.pyx
+            pyrex_compile_time_env = compile_time_env,
+            # to enable LZO|LZ4 for stack compression, set COMPILE_LZO|COMPILE_LZ4 above
             #   and uncomment one of the following:
             #libraries=['lzo2', 'z']
             #libraries=['lz4', 'z'],
             libraries=['z']
             ),
-        Extension(
-            'coro.oserrors',
-            ['coro/oserrors.pyx', ],
-            ),
+        Extension ('coro.oserrors', ['coro/oserrors.pyx', ],),
         Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
         Extension (
             'coro.clocks.tsc_time',
@@ -116,7 +117,7 @@ setup (
         ],
     packages=['coro', 'coro.clocks', 'coro.http', 'coro.dns'],
     package_dir = {
-#        '': 'coroutine',
+    #    '': 'coroutine',
         'coro': 'coro',
         'coro.clocks': 'coro/clocks',
         'coro.dns': 'coro/dns',
