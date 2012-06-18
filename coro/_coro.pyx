@@ -30,39 +30,29 @@ variables are documented in the top level of the coro package ``__init__.py``.
 
 __coro_version__ = "$Id: //prod/main/ap/shrapnel/coro/_coro.pyx#114 $"
 
-DEF CORO_DEBUG = 0
-DEF COMPILE_LIO = 0
-DEF COMPILE_NETDEV = 0
-DEF COMPILE_LZO = 0
-DEF COMPILE_LZ4 = 0
 
 import coro as coro_package
 import warnings
 # Only import things from libc that are very common and have unique names.
-from libc cimport intptr_t,\
-                  memcpy,\
-                  memset,\
-                  off_t,\
-                  time_t,\
-                  timeval,\
-                  uint64_t,\
-                  uintptr_t
+from libc cimport intptr_t, memcpy, memset, off_t, time_t, timeval, uint64_t, uintptr_t
 
 # ================================================================================
 # a re-implementation of the IronPort coro-threading system, this time
-# in Pyrex, and using stack copying and switching with a stripped-down
+# in Cython, and using stack copying and switching with a stripped-down
 # version of the 'set/getcontext' API.
 # ================================================================================
 
 # XXX: blame jj behrens for this.
 # XXX: instead of a two-stack solution, think about an n-stack solution.
-#      [the main drawback is that each coro is then tied to a particular stack]
+#      [the main drawback is that each coro is then tied to a particular stack...
+#       this might be appropriate for a system that needs a small number of high-priority
+#       threads that never get swapped out, e.g, a TCP implementation]
 
 # ================================================================================
 #                        external declarations
 # ================================================================================
 
-include "python.pxi"
+#include "python.pxi"
 # Note that this cimports libc.
 include "pyrex_helpers.pyx"
 include "tsc_time_include.pyx"
@@ -75,8 +65,17 @@ cdef extern from "stdlib.h":
     ELSE:
         void srandomdev()
 
+from cpython.ref cimport Py_DECREF, Py_INCREF
+from cpython.mem cimport PyMem_Free, PyMem_Malloc
+from cpython.list cimport PyList_New
+from cpython.bytes cimport PyBytes_FromStringAndSize
+
 cdef extern from "Python.h":
-    # hack
+    ctypedef struct PyThreadState:
+        PyFrameObject * frame
+        int recursion_depth
+        void * curexc_type, * curexc_value, * curexc_traceback
+        void * exc_type, * exc_value, * exc_traceback
     PyThreadState * _PyThreadState_Current
 
 # ================================================================================
@@ -91,7 +90,7 @@ _ticks_per_sec = tsc_time_module.ticks_per_sec
 # to a Long.
 ticks_per_sec = _ticks_per_sec
 
-cdef object _all_threads
+cdef dict _all_threads
 _all_threads = {}
 all_threads = _all_threads
 
@@ -151,9 +150,6 @@ include "fifo.pyx"
 #                       coroutine/context object
 # ================================================================================
 
-cdef enum:
-    EVENT_SCALE = 16384
-
 import sys
 
 class ScheduleError (Exception):
@@ -194,7 +190,7 @@ cdef extern int coro_breakpoint()
 cdef extern int SHRAP_STACK_PAD
 
 # forward
-cdef public class sched  [ object sched_object, type sched_type ]
+#cdef public class sched  [ object sched_object, type sched_type ]
 cdef public class queue_poller [ object queue_poller_object, type queue_poller_type ]
 cdef sched the_scheduler "the_scheduler"
 cdef queue_poller the_poller "the_poller"
@@ -223,27 +219,6 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
     :func:`spawn` to create one.
     """
 
-    cdef machine_state state
-    cdef object fun
-    cdef object args, kwargs
-    cdef readonly object name
-    # XXX think about doing these as a bitfield/property
-    cdef public int dead, started, id, scheduled
-    cdef public object value
-    cdef void * stack_copy
-    cdef size_t stack_size
-    cdef PyFrameObject * frame
-    cdef void * saved_exception_data[6]
-    # used only by the profiler, a call_stack object. NULL if the profiler is
-    # not enabled or if this is the first call of the coroutine.
-    cdef call_stack * top
-    cdef int saved_recursion_depth
-    cdef int selfish_acts, max_selfish_acts
-    cdef bint compress, compressed
-    cdef object waiting_joiners
-    # Used for thread-local-storage.
-    cdef object _tdict
-
     def __init__ (self, fun, args, kwargs, int id, name=None):
         global live_coros
         self.fun = fun
@@ -260,7 +235,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         self.selfish_acts = default_selfishness
         self.max_selfish_acts = default_selfishness
         if name is None:
-            self.name = 'coro %d' % (self.id,)
+            self.name = b'coro %d' % (self.id,)
         live_coros = live_coros + 1
 
     def __dealloc__ (self):
@@ -731,7 +706,7 @@ cdef int get_coro_id() except -1:
         next_coro_id = next_coro_id + 1
         if next_coro_id == libc.INT_MAX:
             next_coro_id = 1
-        if not PyDict_Contains(_all_threads, result):
+        if not _all_threads.has_key (result):
             return result
 
 def default_exception_notifier():
@@ -901,16 +876,6 @@ ELSE:
 # ================================================================================
 
 cdef public class sched [ object sched_object, type sched_type ]:
-    cdef machine_state state
-    # this is the stack that all coroutines run on
-    cdef void * stack_base
-    cdef int stack_size
-    cdef public object _current, pending, staging
-    cdef coro _last
-    cdef int profiling
-    cdef uint64_t latency_threshold
-    cdef zstack squish
-    cdef object events
 
     def __init__ (self, stack_size=4*1024*1024):
         self.stack_size = stack_size
@@ -1003,7 +968,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
             raise ScheduleError, self
         else:
             co.scheduled = 1
-            PyList_Append (self.pending, (co, value))
+            self.pending.append ((co, value))
 
     cdef _unschedule (self, coro co):
         """Unschedule this coroutine.
@@ -1014,16 +979,16 @@ cdef public class sched [ object sched_object, type sched_type ]:
         """
         cdef int i
         for i from 0 <= i < len(self.pending):
-            co2, v2 = PySequence_GetItem (self.pending, i)
+            co2, v2 = self.pending[i]
             if co is co2:
-                PySequence_DelItem (self.pending, i)
+                del self.pending[i]
                 co.scheduled = 0
                 return True
         else:
             for i from 0 <= i < len(self.staging):
-                co2, v2 = PySequence_GetItem (self.staging, i)
+                co2, v2 = self.staging[i]
                 if co is co2:
-                    PySequence_SetItem (self.staging, i, (None, None))
+                    self.staging[i] = (None, None)
                     co.scheduled = 0
                     return True
             else:
@@ -1128,11 +1093,11 @@ cdef public class sched [ object sched_object, type sched_type ]:
         self.events.insert (e.t, e)
         try:
             try:
-                return PyObject_Call (function, args, kwargs)
+                return function (*args, **kwargs)
             except Interrupted, value:
                 # is this *my* timebomb?
                 args = value.args
-                if (PyTuple_Size(args) > 0) and (PySequence_GetItem (args, 0) is tb):
+                if len(args) > 0 and args[0] is tb:
                     raise TimeoutError
                 else:
                     raise
@@ -1258,6 +1223,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
         cdef coro co
         cdef uint64_t _now
         cdef object _coro_package
+        cdef tuple x
 
         # Make a cdef reference to avoid __Pyx_GetName.
         _coro_package = coro_package
@@ -1270,12 +1236,11 @@ cdef public class sched [ object sched_object, type sched_type ]:
                 _coro_package.now_usec = c_ticks_to_usec(_now)
                 self.schedule_ready_events (_now)
                 while 1:
-                    if PyList_GET_SIZE (self.pending):
+                    if len(self.pending) > 0:
                         self.staging, self.pending = self.pending, self.staging
-                        for i from 0 <= i < PyList_GET_SIZE (self.staging):
-                            x = PyList_GET_ITEM_SAFE (self.staging, i)
-                            co = PyTuple_GET_ITEM_SAFE (x, 0)
-                            value = PyTuple_GET_ITEM_SAFE (x, 1)
+                        for i from 0 <= i < len (self.staging):
+                            x = self.staging[i]
+                            co, value = x
                             # co may be None if it was unscheduled.
                             if co is not None:
                                 #W ('resuming %d: #%d\n' % (i, co.id))
@@ -1465,19 +1430,21 @@ cdef void info(int sig):
     co = the_scheduler._current
     frame = _PyThreadState_Current.frame
     if co:
-        libc.fprintf(libc.stderr, 'coro %i "%s" at %s: %s %i\n',
+        libc.fprintf (
+            libc.stderr, 'coro %i "%s" at %s: %s %i\n',
             co.id,
-            PyString_AsString (co.name),
-            PyString_AsString (<object>frame.f_code.co_filename),
-            PyString_AsString (<object>frame.f_code.co_name),
+            co.name,
+            <bytes>frame.f_code.co_filename,
+            <bytes>frame.f_code.co_name,
             PyCode_Addr2Line  (frame.f_code, frame.f_lasti)
-        )
+            )
     else:
-        libc.fprintf(libc.stderr, 'No current coro. %s: %s %i\n',
-            PyString_AsString (<object>frame.f_code.co_filename),
-            PyString_AsString (<object>frame.f_code.co_name),
+        libc.fprintf (
+            libc.stderr, 'No current coro. %s: %s %i\n',
+            <bytes>frame.f_code.co_filename,
+            <bytes>frame.f_code.co_name,
             PyCode_Addr2Line  (frame.f_code, frame.f_lasti)
-        )
+            )
 
 event_loop        = the_scheduler.event_loop
 with_timeout      = the_scheduler.with_timeout
