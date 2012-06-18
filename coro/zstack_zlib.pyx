@@ -6,10 +6,6 @@ class ZlibError (Exception):
 cimport zlib
 
 cdef class zstack:
-    cdef zlib.z_stream squish, unsquish
-    # this buffer is only used for compression
-    cdef unsigned char * buffer
-    cdef int buffer_size
     def __init__ (self, int size=4*1024*1024):
         cdef int r
         self.squish.zalloc = NULL
