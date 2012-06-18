@@ -269,7 +269,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
     cdef kevent * change_list
     cdef int change_list_index
     cdef int kq_fd
-    cdef object event_map
+    cdef dict event_map
 
     def __cinit__ (self):
         # XXX EVENT_SCALE should be a parameter.
@@ -298,7 +298,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef coro me
         cdef kevent_target kt
         if self.change_list_index < EVENT_SCALE:
-            if PyDict_Contains (self.event_map, kk):
+            if self.event_map.has_key (kk):
                 # Should be impossible to have KeyError due to previous line.
                 kt = self.event_map[kk]
                 raise SimultaneousError (the_scheduler._current, kt.target, kk)
@@ -397,7 +397,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         if r < 0:
             raise_oserror()
 
-    def set_handler (self, object event, object handler, int flags=(EV_ADD|EV_ONESHOT), unsigned int fflags=0):
+    def set_handler (self, tuple event, object handler, int flags=(EV_ADD|EV_ONESHOT), unsigned int fflags=0):
         """Add a kevent handler.
 
         This is a low-level interface to register a kevent handler.
@@ -419,11 +419,10 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef kevent_key kk
         assert callable(handler)
 
-        ident = PySequence_GetItem(event, 0)
-        filter = PySequence_GetItem(event, 1)
+        ident, filter = event
         kk = kevent_key (filter, ident)
         # for kqueue, event == (ident, filter)
-        if PyDict_Contains (self.event_map, kk):
+        if self.event_map.has_key (kk):
             # Should be impossible to have KeyError due to previous line.
             kt = self.event_map[kk]
             raise SimultaneousError (the_scheduler._current, kt.target, kk)
@@ -437,13 +436,12 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
             else:
                 raise SystemError, "too many kevents in change_list"
 
-    cdef set_event_target (self, object event, kevent_target kt):
+    cdef set_event_target (self, tuple event, kevent_target kt):
         cdef short filter
         cdef uintptr_t ident
         cdef kevent_key kk
 
-        ident = PySequence_GetItem(event, 0)
-        filter = PySequence_GetItem(event, 1)
+        ident, filter = event
         kk = kevent_key (filter, ident)
         self.event_map[kk] = kt
 
@@ -453,7 +451,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef kevent_key kk
 
         kk = kevent_key (EVFILT_READ, fd)
-        if PyDict_Contains(self.event_map, kk):
+        if self.event_map.has_key (kk):
             kt = self.event_map[kk]
             kt.flags = kt.flags | KTARGET_CLOSED
             del self.event_map[kk]
@@ -465,7 +463,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 W ('notify_of_close (%d) [read]: unable to interrupt thread: %r\n' % (fd, co))
 
         kk = kevent_key (EVFILT_WRITE, fd)
-        if PyDict_Contains(self.event_map, kk):
+        if self.event_map.has_key (kk):
             kt = self.event_map[kk]
             kt.flags = kt.flags | KTARGET_CLOSED
             del self.event_map[kk]
