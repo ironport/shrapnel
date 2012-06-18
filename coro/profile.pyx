@@ -133,7 +133,7 @@ cdef class internal_function(function):
     cdef object name
 
     def __hash__(self):
-        return PyObject_Hash(self.name)
+        return hash (self.name)
 
     def __cmp__(x, y):
         if not isinstance(x, function) or not isinstance(y, function):
@@ -169,7 +169,7 @@ cdef class python_function(function):
     cdef object code
 
     def __hash__(self):
-        return PyObject_Hash(self.code)
+        return hash (self.code)
 
     def __cmp__(x, y):
         if not isinstance(x, function) or not isinstance(y, function):
@@ -216,7 +216,7 @@ cdef class c_function(function):
     cdef uintptr_t func_addr
 
     def __hash__(self):
-        return PyObject_Hash(self.func_addr)
+        return hash (self.func_addr)
 
     def __cmp__(x, y):
         cdef uintptr_t a,b
@@ -559,7 +559,8 @@ cdef class _profiler:
     """
 
     cdef bench counter, main_bench, wait_bench
-    cdef public object charges, call_counts, bench_class, func_cache
+    cdef public dict charges, call_counts, func_cache
+    cdef public object bench_class
     cdef uint64_t start_ticks
 
     def __init__ (self, bench_class):
@@ -619,7 +620,7 @@ cdef class _profiler:
 
         self.counter.mark(<bench>top.b)
 
-        if PyDict_Contains (self.charges, <function>top.func):
+        if self.charges.has_key (<function>top.func):
             b = self.charges[<function>top.func]
         else:
             b = self.bench_class()
@@ -659,7 +660,7 @@ cdef class _profiler:
         :Return:
             Returns a `call_counts_object`.
         """
-        if PyDict_Contains (self.call_counts, func) == 0:
+        if not self.call_counts.has_key (func):
             cc = call_counts_object()
             self.call_counts[func] = cc
             return cc
@@ -686,7 +687,7 @@ cdef class _profiler:
             Returns a `python_function` object.
         """
         code_ptr = <intptr_t><void *> code
-        if PyDict_Contains (self.func_cache, code_ptr):
+        if self.func_cache.has_key (code_ptr):
             return self.func_cache[code_ptr]
         else:
             func = new_python_function(code)
@@ -705,7 +706,7 @@ cdef class _profiler:
             Returns a `c_function` object.
         """
         c_func_ptr = <intptr_t>PyCFunction_GetFunction(c_func)
-        if PyDict_Contains (self.func_cache, c_func_ptr):
+        if self.func_cache.has_key (c_func_ptr):
             return self.func_cache[c_func_ptr]
         else:
             func = new_c_function(c_func)
