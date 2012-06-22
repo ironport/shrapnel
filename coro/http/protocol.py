@@ -5,7 +5,11 @@ from coro import read_stream
 
 W = coro.write_stderr
 
-class HTTP_Protocol_Error:
+class HTTP_Protocol_Error (Exception):
+    pass
+
+class HTTP_Upgrade (Exception):
+    "indicates a connection has left the HTTP universe"
     pass
 
 # candidate for sync.pyx?
