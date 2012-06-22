@@ -197,7 +197,10 @@ class websocket:
             self.conn.close()
         
     def read_packet_hixie_76 (self):
-        ftype = ord (self.stream.read_exact (1))
+        ftype = self.stream.read_exact (1)
+        if not ftype:
+            return True
+        ftype = ord (ftype)
         if ftype & 0x80:
             length = 0
             while 1:
