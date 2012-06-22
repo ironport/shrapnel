@@ -7,7 +7,10 @@ import os
 import sys
 import hashlib
 
+W = coro.write_stderr
+
 from coro.http.protocol import HTTP_Upgrade
+from coro import read_stream
 
 # RFC 6455
 
@@ -61,58 +64,89 @@ class handler:
         self.handler = handler
                   
     def match (self, request):
-        return request.path == self.path and request.method == 'get' and request['upgrade'] == 'websocket'
+        # try to catch both versions of the protocol
+        return request.path == self.path and request.method == 'get' and request['upgrade'].lower() == 'websocket'
+
+    def h76_frob (self, key):
+        digits = int (''.join ([ x for x in key if x in '0123456789' ]))
+        spaces = key.count (' ')
+        return digits / spaces
 
     def handle_request (self, request):
         rh = request.request_headers
         key = rh.get_one ('sec-websocket-key')
-        d = hashlib.new ('sha1')
-        d.update (key + self.magic)
-        reply = base64.encodestring (d.digest()).strip()
-        r = [
-            'HTTP/1.1 101 Switching Protocols',
-            'Upgrade: websocket',
-            'Connection: Upgrade',
-            'Sec-WebSocket-Accept: %s' % (reply,),
-            ]
-        if rh.has_key ('sec-websocket-protocol'):
-            r.append (
-                'Sec-WebSocket-Protocol: %s' % (
-                    rh.get_one ('sec-websocket-protocol')
-                    )
-                )
         conn = request.client.conn
-        conn.send ('\r\n'.join (r) + '\r\n\r\n')
+        if key:
+            d = hashlib.new ('sha1')
+            d.update (key + self.magic)
+            reply = base64.encodestring (d.digest()).strip()
+            r = [
+                'HTTP/1.1 101 Switching Protocols',
+                'Upgrade: websocket',
+                'Connection: Upgrade',
+                'Sec-WebSocket-Accept: %s' % (reply,),
+                ]
+            if rh.has_key ('sec-websocket-protocol'):
+                # XXX verify this
+                r.append (
+                    'Sec-WebSocket-Protocol: %s' % (
+                        rh.get_one ('sec-websocket-protocol')
+                        )
+                    )
+            conn.send ('\r\n'.join (r) + '\r\n\r\n')
+            protocol = 'rfc6455'
+        else:
+            # for Safari, this implements the obsolete hixie-76 protocol
+            # http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-76
+            key1 = self.h76_frob (rh.get_one ('sec-websocket-key1'))
+            key2 = self.h76_frob (rh.get_one ('sec-websocket-key2'))
+            tail = request.client.stream.read_exact (8)
+            key = struct.pack ('>L', key1) + struct.pack ('>L', key2) + tail
+            d = hashlib.new ('md5')
+            d.update (key)
+            reply = d.digest()
+            host = rh.get_one ('host')
+            r = [
+                'HTTP/1.1 101 WebSocket Protocol Handshake',
+                'Upgrade: WebSocket',
+                'Connection: Upgrade',
+                'Sec-WebSocket-Origin: http://%s' % (host,),
+                'Sec-WebSocket-Location: ws://%s%s' % (host, request.uri),
+                ]
+            all = '\r\n'.join (r) + '\r\n\r\n' + reply
+            conn.send (all)
+            protocol = 'hixie_76'
         # pass this websocket off to its new life...
-        self.handler (request, conn)
+        self.handler (protocol, request, conn)
         raise HTTP_Upgrade
-        
+
 class websocket:
 
-    def __init__ (self, http_request, conn):
-        self.conn = conn
-        coro.spawn (self.protocol)
+    def __init__ (self, proto, http_request):
+        self.request = http_request
+        self.stream = http_request.client.stream
+        self.conn = http_request.client.conn
+        self.proto = proto
+        if proto == 'rfc6455':
+            coro.spawn (self.read_thread)
+        else:
+            coro.spawn (self.read_thread_hixie_76)
 
-    def recv_exact (self, size):
-        left = size
-        r = []
-        while left:
-            block = self.conn.recv (left)
-            if not block:
-                break
-            else:
-                r.append (block)
-                left -= len (block)
-        return ''.join (r)
-
-    def protocol (self):
-        while 1:
-            close_it = self.read_packet()
-            if close_it:
-                break
+    # ------------ RFC 6455 ------------
+    def read_thread (self):
+        try:
+            while 1:
+                try:
+                    close_it = coro.with_timeout (30, self.read_packet)
+                except coro.TimeoutError:
+                    self.send_pong ('bleep')
+                if close_it:
+                    break
+        finally:
+            self.conn.close()
         
     def read_packet (self):
-        head = self.recv_exact (2)
+        head = self.stream.read_exact (2)
         if not head:
             return True
         head, = struct.unpack ('>H', head)
@@ -124,15 +158,17 @@ class websocket:
         if plen < 126:
             pass
         elif plen == 126:
-            plen, = struct.unpack ('>H', self.recv_exact (2))
+            plen, = struct.unpack ('>H', self.stream.read_exact (2))
         else: # plen == 127:
-            plen, = struct.unpack ('>Q', self.recv_exact (8))
+            plen, = struct.unpack ('>Q', self.stream.read_exact (8))
         p.plen = plen
+        if plen > 1<<20:
+            raise TooMuchData (plen)
         if p.mask:
-            p.masking = struct.unpack ('>BBBB', self.recv_exact (4))
+            p.masking = struct.unpack ('>BBBB', self.stream.read_exact (4))
         else:
             p.masking = None
-        p.payload = self.recv_exact (plen)
+        p.payload = self.stream.read_exact (plen)
         if p.opcode in (0, 1, 2):
             return self.handle_packet (p)
         elif p.opcode == 8:
@@ -145,6 +181,48 @@ class websocket:
             return False
         else:
             raise UnknownOpcode (p)
+
+    # ----------- hixie-76 -------------
+    def read_thread_hixie_76 (self):
+        self.stream = self.request.client.stream
+        try:
+            while 1:
+                try:
+                    close_it = coro.with_timeout (30, self.read_packet_hixie_76)
+                except coro.TimeoutError:
+                    self.send_pong ('bleep')
+                if close_it:
+                    break
+        finally:
+            self.conn.close()
+        
+    def read_packet_hixie_76 (self):
+        ftype = ord (self.stream.read_exact (1))
+        if ftype & 0x80:
+            length = 0
+            while 1:
+                b = ord (self.stream.read_exact (1))
+                length = (length << 7) | (b & 0x7f)
+                if not b & 0x80:
+                    break
+                if length > 1<<20:
+                    raise TooMuchData (length)
+            if length:
+                payload = self.stream.read_exact (length)
+            if ftype == 0xff:
+                return True
+        else:
+            data = self.stream.read_until (b'\xff')
+            W ('data=%r\n' % (data,))
+            if ftype == 0x00:
+                p = ws_packet()
+                p.fin = 1
+                p.opcode = 0x01
+                p.mask = None
+                p.payload = data[:-1]
+                self.handle_packet (p)
+        
+    # ---
 
     def handle_packet (self, p):
         # abstract method, override to implement your own logic
@@ -160,22 +238,25 @@ class websocket:
         return self.send_packet (0x0a, data, True)
 
     def send_packet (self, opcode, data, fin=True):
-        head = 0
-        if fin:
-            head |= 0x8000
-        assert opcode in (0, 1, 2, 8, 9, 10)
-        head |= opcode << 8
-        ld = len (data)
-        if ld < 126:
-            head |= ld
-            p = [ struct.pack ('>H', head), data ]
-        elif ld < 1<<16:
-            head |= 126
-            p = [ struct.pack ('>HH', head, ld), data ]
-        elif ld < 1<<32:
-            head |= 127
-            p = [ struct.pack ('>HQ', head, ld), data ]
+        if self.proto == 'rfc6455':
+            head = 0
+            if fin:
+                head |= 0x8000
+            assert opcode in (0, 1, 2, 8, 9, 10)
+            head |= opcode << 8
+            ld = len (data)
+            if ld < 126:
+                head |= ld
+                p = [ struct.pack ('>H', head), data ]
+            elif ld < 1<<16:
+                head |= 126
+                p = [ struct.pack ('>HH', head, ld), data ]
+            elif ld < 1<<32:
+                head |= 127
+                p = [ struct.pack ('>HQ', head, ld), data ]
+            else:
+                raise TooMuchData (ld)
+            # RFC6455: A server MUST NOT mask any frames that it sends to the client.
+            self.conn.writev (p)
         else:
-            raise TooMuchData (ld)
-        # RFC6455: A server MUST NOT mask any frames that it sends to the client.
-        self.conn.writev (p)
+            self.conn.writev (['\x00', data, '\xff'])
