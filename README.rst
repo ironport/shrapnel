@@ -12,7 +12,7 @@ about 8 years of work at IronPort Systems, a provider of high-speed
 mail appliances.  It was open-sourced by Cisco Systems in late 2011.
 
 Features
---------
+========
 
  * Lightweight threads, event-driven scheduler.
  * Underneath: non-blocking operations on descriptors, like sockets and pipes.
@@ -26,6 +26,11 @@ Features
  * other protocols/codecs: ldap, asn1, ftp, mysql, postgres, AMQP_.
  * `MIT License`_.
  
+Tutorial
+========
+
+See http://ironport.github.com/shrapnel/tutorial.html
+
 API Documentation
 =================
 
