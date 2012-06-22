@@ -1,13 +1,15 @@
 # -*- Mode: Python -*-
 
 import coro
+import mimetypes
 import os
 import re
+import stat
 import sys
 import time
 import zlib
 
-from coro.http.http_date import build_http_date
+from coro.http.http_date import build_http_date, parse_http_date
 
 W = sys.stderr.write
 
@@ -121,7 +123,7 @@ class file_handler:
                         if int(length) != file_length:
                             length_match = 0
 
-                ims_date = http_date.parse_http_date (m.group(1))
+                ims_date = parse_http_date (m.group(1))
 
                 if length_match and ims_date:
                     if mtime <= ims_date:
@@ -144,8 +146,10 @@ class file_handler:
                         block = f.read (self.block_size)
                         if not block:
                             break
+                    request.done()
             elif request.method == 'head':
                 pass
+                request.done()
             else:
                 # should be impossible
                 request.error (405)
