@@ -89,15 +89,18 @@ class http_file:
             else:
                 yield block
 
-    # XXX implement <size> argument
-    def read (self, join=True):
-        "read the entire contents.  join=False returns a generator, join=True returns a string."
-        r = (x for x in self.streamo.read_all())
-        if join:
-            return ''.join (r)
+    def read (self, size=0, join=True):
+        "read from the file.  join=False returns a generator, join=True returns a string."
+        if size == 0:
+            r = (x for x in self.streamo.read_all())
+            if join:
+                return ''.join (r)
+            else:
+                return r
         else:
-            return r
-        
+            # ignore join argument
+            return self.streamo.read_exact (size)
+
     def readline (self):
         "read a newline-delimited line."
         if self.done_cv.done:
