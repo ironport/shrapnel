@@ -16,7 +16,7 @@ import sys
 import time
 import zlib
 
-from protocol import latch, http_file, header_set
+from protocol import latch, http_file, header_set, HTTP_Upgrade
 
 W = sys.stderr.write
 
@@ -70,6 +70,7 @@ class connection:
         self.conn = conn
         self.peer = peer
         self.stream = read_stream.sock_stream (self.conn)
+        upgrade = False
         try:
             try:
                 for request in request_stream (self, self.stream).gen_requests():
@@ -87,6 +88,9 @@ class connection:
                             request.wait_until_done()
                         except (coro.TimeoutError, coro.Interrupted):
                             raise
+                        except HTTP_Upgrade:
+                            upgrade = True
+                            break
                         except:
                             tb = coro.compact_traceback()
                             request.error (500, tb)
@@ -94,7 +98,8 @@ class connection:
             except (OSError, coro.TimeoutError, coro.ClosedError):
                 pass
         finally:
-            self.conn.close()
+            if not upgrade:
+                self.conn.close()
 
     def pick_handler (self, request):
         for handler in self.server.handlers:
