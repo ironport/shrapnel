@@ -117,7 +117,7 @@ class handler:
             conn.send (all)
             protocol = 'hixie_76'
         # pass this websocket off to its new life...
-        self.handler (protocol, request, conn)
+        self.handler (protocol, request)
         raise HTTP_Upgrade
 
 class websocket:
@@ -134,6 +134,7 @@ class websocket:
 
     # ------------ RFC 6455 ------------
     def read_thread (self):
+        close_it = False
         try:
             while 1:
                 try:
