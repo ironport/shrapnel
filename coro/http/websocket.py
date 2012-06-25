@@ -144,6 +144,7 @@ class websocket:
                 if close_it:
                     break
         finally:
+            self.handle_close()
             self.conn.close()
         
     def read_packet (self):
@@ -231,6 +232,10 @@ class websocket:
     def handle_packet (self, p):
         # abstract method, override to implement your own logic
         return False
+
+    def handle_close (self):
+        # abstract method
+        pass
 
     def send_text (self, data, fin=True):
         return self.send_packet (0x01, data, fin)
