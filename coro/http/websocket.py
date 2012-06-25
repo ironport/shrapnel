@@ -223,7 +223,6 @@ class websocket:
                 return True
         else:
             data = self.stream.read_until (b'\xff')
-            W ('data=%r\n' % (data,))
             if ftype == 0x00:
                 p = ws_packet()
                 p.fin = 1
