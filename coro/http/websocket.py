@@ -65,7 +65,12 @@ class handler:
                   
     def match (self, request):
         # try to catch both versions of the protocol
-        return request.path == self.path and request.method == 'get' and request['upgrade'].lower() == 'websocket'
+        return (
+            request.path == self.path
+            and request.method == 'get'
+            and request['upgrade']
+            and request['upgrade'].lower() == 'websocket'
+            )
 
     def h76_frob (self, key):
         digits = int (''.join ([ x for x in key if x in '0123456789' ]))
