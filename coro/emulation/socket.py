@@ -52,9 +52,11 @@ for name in _socketmodule.__all__:
         g[name] = value
 del g, name, value
 
-BDADDR_ANY = _socketmodule.BDADDR_ANY
-BDADDR_LOCAL = _socketmodule.BDADDR_LOCAL
-
+try:
+    BDADDR_ANY = _socketmodule.BDADDR_ANY
+    BDADDR_LOCAL = _socketmodule.BDADDR_LOCAL
+except AttributeError:
+    pass
 
 ##############################################################################
 # Timeout.
