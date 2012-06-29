@@ -192,6 +192,7 @@ class websocket:
     # ----------- hixie-76 -------------
     def read_thread_hixie_76 (self):
         self.stream = self.request.client.stream
+        close_it = False
         try:
             while 1:
                 try:
