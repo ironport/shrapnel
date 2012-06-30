@@ -122,13 +122,14 @@ class handler:
             conn.send (all)
             protocol = 'hixie_76'
         # pass this websocket off to its new life...
-        self.handler (protocol, request)
+        coro.spawn (self.handler, protocol, request, self)
         raise HTTP_Upgrade
 
 class websocket:
 
-    def __init__ (self, proto, http_request):
+    def __init__ (self, proto, http_request, handler):
         self.request = http_request
+        self.handler = handler
         self.stream = http_request.client.stream
         self.conn = http_request.client.conn
         self.proto = proto
@@ -146,6 +147,8 @@ class websocket:
                     close_it = coro.with_timeout (30, self.read_packet)
                 except coro.TimeoutError:
                     self.send_pong ('bleep')
+                except coro.ClosedError:
+                    break
                 if close_it:
                     break
         finally:
@@ -199,6 +202,8 @@ class websocket:
                     close_it = coro.with_timeout (30, self.read_packet_hixie_76)
                 except coro.TimeoutError:
                     self.send_pong ('bleep')
+                except coro.ClosedError:
+                    break
                 if close_it:
                     break
         finally:
