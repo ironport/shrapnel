@@ -110,6 +110,7 @@ class field_conn (websocket):
             self.on_mouse_move (int (event[1]), int (event[2]))
         elif event[0] == 'TS':
             tl = self.unpack_touch_list (event[1:])
+            self.last_touch_move = tl[0][0], tl[0][1]
             self.on_mouse_down (tl[0][0], tl[0][1])
         elif event[0] == 'TM':
             tl = self.unpack_touch_list (event[1:])
@@ -118,13 +119,14 @@ class field_conn (websocket):
         elif event[0] == 'TE':
             # emulate mouse up by with saved last touch_move
             x0, y0 = self.last_touch_move
-            self.on_mouse_up (x0, y0)
+            if x0 is not None:
+                self.on_mouse_up (x0, y0)
+            self.last_touch_move = None, None
         else:
             W ('unknown event: %r\n' % (event,))
         return False
 
     def unpack_touch_list (self, tl):
-        W ('touch_list=%r\n' % (tl,))
         return [ [int(y) for y in x.split('.')] for x in tl ]
 
     def on_mouse_down (self, x, y):
@@ -142,8 +144,9 @@ class field_conn (websocket):
         #b = box (random.choice (colors), (x0+px, y0+py, x1+px, y1+py))
         #self.field.Q.insert (b)
         # 2) or move the window
-        self.move_window (x0-x1, y0-y1)
-        self.draw_window()
+        if x0 is not None:
+            self.move_window (x0-x1, y0-y1)
+            self.draw_window()
 
     def on_mouse_move (self, x1, y1):
         x0, y0 = self.mouse_down
