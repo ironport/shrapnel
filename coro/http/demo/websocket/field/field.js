@@ -1,6 +1,7 @@
 
 var connection;
 var msgs_div = document.getElementById ('msgs')
+var draw_cmds = [];
 
 function message (msg) {
     msgs_div.innerHTML = msg;
@@ -11,6 +12,7 @@ if (window["WebSocket"]) {
 
     connection.onopen = function () {
 	message ('connected')
+	animate();
     };
 
     connection.onclose = function (event) {
@@ -21,29 +23,55 @@ if (window["WebSocket"]) {
 	//message ('websocket event: ' + event.data)
 	switch (event.data[0]) {
 	case 'F':
-	    // draw field
-	    var elems = event.data.split ('|')
-	    context.clearRect (0, 0, 1024, 1024);
-	    context.fillStyle = 'rgb(0,0,0,128)';
-	    for (i=0; i < elems.length; i++) {
-		var elem = elems[i];
-		var p = elem.split (',')
-		switch (p[0]) {
-		case 'B':
-		    context.fillStyle = p[1];
-		    context.fillRect (parseInt (p[2]), parseInt (p[3]), parseInt (p[4]), parseInt (p[5]));
-		    break;
-		}
-	    }
-	    break;
-	case 'C':
-	    context.clearRect (0, 0, 1024, 1024);
+	    draw_cmds = event.data.split ('|');
 	    break;
 	case 'M':
 	    message (event.data);
 	    break;
 	}
     }
+}
+
+window.requestAnimFrame = (function(callback){
+    return window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    function(callback){
+        window.setTimeout(callback, 1000 / 60);
+    };
+})();
+
+function animate() {
+    context.clearRect (0, 0, 1024, 1024);
+    context.strokeStyle = 'rgb(0,0,0,0)';
+    for (i=0; i < draw_cmds.length; i++) {
+	var cmd = draw_cmds[i];
+	var p = cmd.split (',')
+	switch (p[0]) {
+	case 'B':
+	    context.fillStyle = p[1];
+	    context.fillRect (parseInt (p[2]), parseInt (p[3]), parseInt (p[4]), parseInt (p[5]));
+	    context.strokeRect (parseInt (p[2]), parseInt (p[3]), parseInt (p[4]), parseInt (p[5]));
+	    break;
+	case 'C':
+	    context.fillStyle = p[1];
+	    draw_circle (parseInt (p[2]), parseInt (p[3]), parseInt (p[4]));
+	    break;
+	}
+    }
+    requestAnimFrame (animate);
+}
+
+
+function draw_circle (x0, y0, r) {
+    // context.fillRect (x0-r, y0-r, r*2, r*2);
+    context.beginPath();
+    context.arc (x0, y0, r, 0, 2*Math.PI);
+    context.closePath();
+    context.fill();
+    context.stroke();
 }
 
 var canvas = document.getElementById ('canvas')
