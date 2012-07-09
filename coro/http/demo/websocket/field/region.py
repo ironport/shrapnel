@@ -41,3 +41,12 @@ def region_contains_region_p (a,b):
            (a[1] <= b[1]) and \
            (a[3] >= b[3])
 
+def union (a, b):
+    x0, y0, x1, y1 = a
+    x2, y2, x3, y3 = b
+    return (
+        min (x0, x2),
+        min (y0, y2),
+        max (x1, x3),
+        max (y1, y3)
+        )
