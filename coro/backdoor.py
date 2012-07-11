@@ -134,6 +134,10 @@ class backdoor:
             else:
                 self.parse(line, env)
 
+    def print_result (self, result):
+        "override to process the result (e.g., pprint)"
+        print result
+
     def parse(self, line, env):
         save = sys.stdout, sys.stderr
         output = cStringIO.StringIO()
@@ -143,7 +147,7 @@ class backdoor:
                 co = compile (line, repr(self), 'eval')
                 result = eval (co, env)
                 if result is not None:
-                    print repr(result)
+                    self.print_result (result)
                     env['_'] = result
             except SyntaxError:
                 try:
