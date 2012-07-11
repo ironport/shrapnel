@@ -108,9 +108,13 @@ class backdoor:
                 lines.append('')
             self.send (self.line_separator.join (lines))
 
-    def read_eval_print_loop (self):
-        self.send_welcome_message()
+    def login (self):
+        "override to provide authentication"
+        pass
 
+    def read_eval_print_loop (self):
+        self.login()
+        self.send_welcome_message()
         if self.global_dict is None:
             # this does the equivalent of 'from __main__ import *'
             env = sys.modules['__main__'].__dict__.copy()
@@ -138,7 +142,7 @@ class backdoor:
         "override to process the result (e.g., pprint)"
         print result
 
-    def parse(self, line, env):
+    def parse (self, line, env):
         save = sys.stdout, sys.stderr
         output = cStringIO.StringIO()
         try:

@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<title>WebSocket Test</title>
+<meta charset="utf-8">
+</head>
+<body>
+<canvas id="canvas" width="1024" height="1024"></canvas>
+<div id="outer_div">
+  <table style="width: 100%; padding: 10px;">
+    <tr><td>
+	Draw with your mouse.
+    </td></tr>
+    <tr><td id="messages" style="vertical-align: bottom">
+    <div id="msgs" style="overflow: hidden"> </div>
+    </td></tr>
+    <tr><td>
+      <button type="button" onclick="connection.send('CD')">New Drawing</button>
+      <button type="button" onclick="connection.send('PD')">Previous Drawing</button>
+      <button type="button" onclick="connection.send('ND')">Next Drawing</button>
+    </td></tr>
+    <tr><td>
+      Keyboard shortcuts: [U]ndo [R]edraw
+    </td></tr>
+  </table>
+</div>
+<script src="simple.js"></script>
+</body>
+</html>

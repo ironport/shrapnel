@@ -178,7 +178,7 @@ class Thread(object):
         if _co is None:
             self.__co = coro.new(self.__bootstrap)
         else:
-            self.__co = co
+            self.__co = _co
         self.ident = self.__co.id
         if name:
             self.__co.set_name(name)

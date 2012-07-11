@@ -104,6 +104,8 @@ setup (
             ['coro/oserrors.pyx', ],
             ),
         Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
+        Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'],),
+        Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
         Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
@@ -114,12 +116,13 @@ setup (
                 ],
             ),
         ],
-    packages=['coro', 'coro.clocks', 'coro.http', 'coro.dns'],
+    packages=['coro', 'coro.clocks', 'coro.http', 'coro.dns', 'coro.emulation'],
     package_dir = {
 #        '': 'coroutine',
         'coro': 'coro',
         'coro.clocks': 'coro/clocks',
         'coro.dns': 'coro/dns',
+        'coro.emulation': 'coro/emulation',
     },
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest',],
     download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
