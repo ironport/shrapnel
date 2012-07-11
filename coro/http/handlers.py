@@ -197,3 +197,92 @@ class favicon_handler:
             request['content-encoding'] = 'deflate'
             request.push (self.data)
             request.done()
+
+# [based on ancient medusa code]
+# This is a 'handler' that wraps an authorization method
+# around access to the resources normally served up by
+# another handler.
+
+# does anyone support digest authentication? (rfc2069)
+
+class auth_handler:
+
+    def __init__ (self, dict, handler, realm='default'):
+        self.dict = dict
+        self.handler = handler
+        self.realm = realm
+        self.pass_count = 0
+        self.fail_count = 0
+
+    def match (self, request):
+        # by default, use the given handler's matcher
+        return self.handler.match (request)
+                
+    def parse_authorization (self, h):
+        parts = h.split()
+        kind = parts[0].lower()
+        if kind != 'digest':
+            return {}
+        else:
+            # split on comma
+            parts = h.split (',')
+            # strip off 'digest '
+            parts[0] = parts[0][7:]
+            # trim extra whitespace
+            parts = [x.strip() for x in parts]
+            d = {}
+            for part in parts:
+                i = part.find ('=')
+                if i == -1:
+                    return {}
+                else:
+                    key = part[:i]
+                    val = part[i+1:]
+                    # strip quotes
+                    val = val.replace ('"', ' ').strip()
+                    d[key.lower()] = val
+            return d
+
+    def check_response (self, request, d):
+        username = d['username']
+        passwd = self.dict.get (username, None)
+        if passwd is None:
+            return False
+        else:
+            hash = lambda x: hashlib.md5(x).hexdigest()
+            s1 = ':'.join ((username, d['realm'], passwd))
+            s2 = ':'.join ((request.method.upper(), request.uri))
+            ha1 = hash (s1)
+            ha2 = hash (s2)
+            s3 = ':'.join ((ha1, d['nonce'], ha2))
+            ha3 = hash (s3)
+            if ha3 == d['response']:
+                return True
+            else:
+                return False
+        
+    def handle_request (self, request):
+        # authorize a request before handling it...
+        h = request['authorization']
+        if h:
+            d = self.parse_authorization (request['authorization'])
+            if d and self.check_response (request, d):
+                return self.handler.handle_request (request)
+            else:
+                self.handle_unauthorized (request)
+        else:
+            self.handle_unauthorized (request)
+        
+    def get_nonce (self):
+        return hashlib.sha1 (os.urandom(16)).hexdigest()[:16]
+
+    def handle_unauthorized (self, request):
+        # We are now going to receive data that we want to ignore.
+        # to ignore the file data we're not interested in.
+        self.fail_count += 1
+        nonce = self.get_nonce()
+        request['WWW-Authenticate'] = ','.join ([
+            'Digest realm="%s"' % self.realm,
+            'nonce="%s"' % (nonce,),
+            ])
+        request.error (401)
