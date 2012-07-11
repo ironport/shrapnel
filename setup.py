@@ -104,6 +104,8 @@ setup (
             ['coro/oserrors.pyx', ],
             ),
         Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
+        Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'],),
+        Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
         Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
