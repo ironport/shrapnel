@@ -374,6 +374,10 @@ cdef class mutex:
                 # nothing to schedule
                 return False
 
+    # for 'with'
+    __enter__ = lock
+    def __exit__ (self, t, v, tb):
+        self.unlock()
 
 # ===========================================================================
 #                         Read/Write Lock
