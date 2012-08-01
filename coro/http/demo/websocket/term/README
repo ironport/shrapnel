@@ -13,3 +13,14 @@ confusing to diagnose.
 The 'terminal' aspect of the javascript is rather clunky, and could
 use some improvement - donations from javascript jockeys are
 appreciated!
+
+In the console/terminal:
+
+  $ python term.py
+
+In your browser, bring up 'term.html':
+
+  https://localhost:9001/term.html
+
+Note: you may want to use your own x509 cert rather than the test cert
+distributed with Shrapnel.
