@@ -23,6 +23,7 @@ if (window["WebSocket"]) {
 	switch (data[0]) {
 	case 'D':
 	    $('#term').append (data.substring (1, data.length));
+	    document.getElementById ('cursor').scrollIntoView();
 	    break;
 	case 'I':
 	    $('#input').append (data.substring (1, data.length));
@@ -31,7 +32,6 @@ if (window["WebSocket"]) {
 	    $('#input').html (data.substring (1, data.length));
 	    break;
 	case 'C':
-	    console.log ('clearing?');
 	    $('#input').empty();
 	    break;
 	}
