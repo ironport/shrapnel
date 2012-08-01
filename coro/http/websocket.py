@@ -132,6 +132,9 @@ class websocket:
         self.handler = handler
         self.stream = http_request.client.stream
         self.conn = http_request.client.conn
+        # tlslite has a deeply buried "except: shutdown()" clause
+        #  that breaks coro timeouts.
+        self.tlslite = hasattr (self.conn, 'ignoreAbruptClose')
         self.proto = proto
         if proto == 'rfc6455':
             coro.spawn (self.read_thread)
@@ -144,7 +147,10 @@ class websocket:
         try:
             while 1:
                 try:
-                    close_it = coro.with_timeout (30, self.read_packet)
+                    if not self.tlslite:
+                        close_it = coro.with_timeout (10, self.read_packet)
+                    else:
+                        close_it = self.read_packet()
                 except coro.TimeoutError:
                     self.send_pong ('bleep')
                 except coro.ClosedError:
@@ -200,8 +206,6 @@ class websocket:
             while 1:
                 try:
                     close_it = coro.with_timeout (30, self.read_packet_hixie_76)
-                except coro.TimeoutError:
-                    self.send_pong ('bleep')
                 except coro.ClosedError:
                     break
                 if close_it:
@@ -276,6 +280,13 @@ class websocket:
             else:
                 raise TooMuchData (ld)
             # RFC6455: A server MUST NOT mask any frames that it sends to the client.
-            self.conn.writev (p)
+            self.writev (p)
         else:
-            self.conn.writev (['\x00', data, '\xff'])
+            self.writev (['\x00', data, '\xff'])
+
+    # for socket wrapping layers like tlslite
+    def writev (self, data):
+        try:
+            return self.conn.writev (data)
+        except AttributeError:
+            return self.conn.write (''.join (data))
