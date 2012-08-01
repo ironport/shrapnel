@@ -24,10 +24,7 @@ class terminal (websocket):
         self.history = []
         self.history_index = 0
         self.line = []
-        try:
-            self.repl.read_eval_print_loop()
-        except Logout:
-            pass
+        self.repl.read_eval_print_loop()
 
     def handle_close (self):
         pass
@@ -53,8 +50,11 @@ class terminal (websocket):
                 self.repl.inlines.push (line)
             elif ascii == 4: # ctrl-d
                 self.repl.inlines.push (None)
-            elif ascii == 16: # ctrl-p
-                self.history_index = (self.history_index + 1) % len(self.history)
+            elif ascii in (16, 14): # ctrl-p, ctrl-n
+                if ascii == 16:
+                    self.history_index = (self.history_index + 1) % len(self.history)
+                else:
+                    self.history_index = (self.history_index - 1) % len(self.history)                    
                 line = self.history[0 - self.history_index]
                 # turn into a list of chars...
                 self.line = [x for x in line]
@@ -111,19 +111,19 @@ if __name__ == '__main__':
     import coro.http
     import coro.backdoor
     import os
-    cwd = os.getcwd()
     ih = coro.http.handlers.favicon_handler()
     sh = coro.http.handlers.coro_status_handler()
     th = handler ('/term', terminal)
     th.auth_dict = {'foo':'bar'}
-    fh = coro.http.handlers.file_handler (cwd)
+    # serve files out of this directory
+    fh = coro.http.handlers.file_handler (os.getcwd())
     handlers = [th, ih, sh, fh]
-    #server = coro.http.server (('0.0.0.0', 9001))
-    server = coro.http.server()
-    #server = coro.http.tlslite_server (
-    #    '/home/rushing/src/spdy/cert/server.crt',
-    #    '/home/rushing/src/spdy/cert/server.key',
-    #    )
+    #server = coro.http.server()
+    server = coro.http.tlslite_server (
+        # should point to the test cert in coro/http/cert/
+        '../../../cert/server.crt',
+        '../../../cert/server.key',
+        )
     for h in handlers:
         server.push_handler (h)
     #coro.spawn (server.start)
