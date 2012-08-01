@@ -7,7 +7,7 @@ function message (msg) {
 }
 
 if (window["WebSocket"]) {
-    connection = new WebSocket ("ws://127.0.0.1:9001/term")
+    connection = new WebSocket ("wss://127.0.0.1:9001/term")
 
     connection.onopen = function () {
 	message ('connected')
