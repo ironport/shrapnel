@@ -41,7 +41,8 @@
 #     class wrappers.
 
 from cpython cimport PyBytes_FromStringAndSize, PyNumber_Long, PyLong_Check
-from libc.string cimport memcpy
+from libc.string cimport memcpy, memset
+from libc.stdint cimport uint64_t, int16_t
 
 import sys
 W = sys.stderr.write
@@ -129,7 +130,7 @@ cdef object _encode_integer (int n):
             result[15-i] = <char> byte
             i = i + 1
             n0 = n
-    return PyBytes_FromStringAndSize (&result[16-i], i)
+    return result[16-i:16]
 
 # encode an integer, ASN1 style.
 # two's complement with the minimum number of bytes.
@@ -174,6 +175,56 @@ cdef object _encode_long_integer (n):
             i = i + 1
             n0 = n
     return result
+
+# I believe that almost no one uses the official latest floating-point format in asn.1
+#   An obviously better solution is to wrap IEEE754 with a BITSTRING, and that's what
+#   I would recommend in a real-world scenario.
+
+cdef union double_layout:
+    double  as_double
+    uint64_t as_uint64
+
+# I can't put these large constants directly into the code, cython is
+#   upgrading them to python objects for some reason.
+cdef uint64_t NEGATIVE_BIT = 1<<63
+cdef uint64_t MANTISSA_MASK = 0xfffffffffffff
+
+# http://www.itu.int/rec/T-REC-X.690-200811-I
+# XXX consider using frexp/ldexp to disassemble double,
+#     but in the meanwhile assuming IEEE 754 is not a bad choice.
+# http://steve.hollasch.net/cgindex/coding/ieeefloat.html
+cdef _encode_double (double f):
+    cdef double_layout x
+    cdef uint64_t x64 = x.as_uint64
+    x.as_double = f
+    cdef bint negative = x64 & NEGATIVE_BIT
+    cdef int16_t exp = ((x64 >> 52) & 0x7ff) - (1023 + 52)
+    cdef uint64_t man = (x64 & MANTISSA_MASK)
+    cdef unsigned char result[10]
+    memset (<void*>&result[0], 0, 10);
+    # bit 8 says binary encoding
+    result[0] = 0b10000000
+    if negative:
+        result[0] |= 0b1000000
+    # base is 2, bits 6-5 are zero
+    # scaling factor and bits 4-3 are zero
+    # two octets to encode exponent
+    result[0] |= 0b01
+    result[1] = exp >> 8
+    result[2] = exp & 0xff
+    cdef int i = 0
+    cdef int j = 3
+    # because of the implied '1' bit (bit 53), we know
+    #   exactly how long the result will be.
+    for i in range (7):
+        result[j] = (man >> (8 * (6-i))) & 0xff
+        j += 1
+    # now set bit 53 - divmod(53,8)==(6,5) - so set bit 5
+    result[3] |= 0b10000
+    return result[:10]
+
+cpdef encode_double (double f):
+    return _TLV1 (TAGS_REAL, _encode_double (f))
 
 def encode_long_integer (n):
     return _encode_long_integer (n)
