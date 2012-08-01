@@ -45,6 +45,7 @@ $(document).keydown (
 	if (event.which == 8) {
 	    // backspace
 	    connection.send ('B');
+	    return false;
 	}
     }
 );
