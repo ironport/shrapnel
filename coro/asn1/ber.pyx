@@ -41,7 +41,7 @@
 #     class wrappers.
 
 from cpython cimport PyBytes_FromStringAndSize, PyNumber_Long, PyLong_Check
-from libc.string cimport memcpy, memset
+from libc.string cimport memcpy
 from libc.stdint cimport uint64_t, int16_t
 
 import sys
@@ -201,7 +201,6 @@ cdef _encode_double (double f):
     cdef int16_t exp = ((x64 >> 52) & 0x7ff) - (1023 + 52)
     cdef uint64_t man = (x64 & MANTISSA_MASK)
     cdef unsigned char result[10]
-    memset (<void*>&result[0], 0, 10);
     # bit 8 says binary encoding
     result[0] = 0b10000000
     if negative:
