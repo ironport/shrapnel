@@ -530,6 +530,7 @@ class tlslite_server (server):
         while 1:
             conn0, addr = server.accept (self)
             conn = tlslite.TLSConnection (conn0)
+            conn.ignoreAbruptClose = True
             try:
                 conn.handshakeServer (certChain=self.chain, privateKey=self.private, **self.handshake_args)
             except tlslite.errors.TLSAbruptCloseError:
