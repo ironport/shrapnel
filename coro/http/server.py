@@ -531,12 +531,8 @@ class tlslite_server (server):
             conn0, addr = server.accept (self)
             conn = tlslite.TLSConnection (conn0)
             conn.ignoreAbruptClose = True
-            try:
-                conn.handshakeServer (certChain=self.chain, privateKey=self.private, **self.handshake_args)
-            except tlslite.errors.TLSAbruptCloseError:
-                self.log ('TLSAbruptCloseError: %r' % (addr,))
-            else:
-                return conn, addr
+            conn.handshakeServer (certChain=self.chain, privateKey=self.private, **self.handshake_args)
+            return conn, addr
 
     def read_chain (self):
 	"cert chain is all in one file, in LEAF -> ROOT order"
