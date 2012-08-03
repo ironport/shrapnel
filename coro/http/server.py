@@ -554,3 +554,20 @@ class tlslite_server (server):
             open (self.key_path).read(),
             private=True
             )
+
+class openssl_server (server):
+
+    def __init__ (self, ctx, verify=False):
+        self.ctx = ctx
+        # XXX do something with verify
+        self.verify = verify
+        server.__init__ (self)
+
+    def create_sock (self):
+        import coro.ssl
+        import socket
+        if ':' in self.addr[0]:
+            domain = socket.AF_INET6
+        else:
+            domain = socket.AF_INET
+        return coro.ssl.sock (self.ctx, domain=domain)
