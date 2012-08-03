@@ -15,13 +15,10 @@ ssl_op_map = {
 
 from openssl import x509, pkey, dh_param
 
-def new_ctx (cert=None, chain=None, key=None, proto=None, ciphers=None, dhparam=None, next_protos=None):
+def new_ctx (cert=None, chain=(), key=None, proto=None, ciphers=None, dhparam=None, next_protos=None):
     ctx = openssl.ssl_ctx()
     if cert:
-        if chain:
-            ctx.use_cert (cert, chain)
-        else:
-            ctx.use_cert (key)
+        ctx.use_cert (cert, chain)
     if key:
         ctx.use_key (key)
     if proto:
