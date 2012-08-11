@@ -2,7 +2,7 @@
 
 import coro
 import coro.http
-import backdoor
+import coro.backdoor
 
 # demonstrate the session handler
 
@@ -41,5 +41,5 @@ server.push_handler (coro.http.handlers.coro_status_handler())
 server.push_handler (coro.http.session_handler.session_handler ('session', session))
 server.push_handler (coro.http.handlers.favicon_handler())
 coro.spawn (server.start, ('0.0.0.0', 9001))
-coro.spawn (backdoor.serve, unix_path='/tmp/httpd.bd')
+coro.spawn (coro.backdoor.serve, unix_path='/tmp/httpd.bd')
 coro.event_loop (30.0)
