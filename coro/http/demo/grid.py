@@ -2,7 +2,7 @@
 
 import coro
 import coro.http
-import backdoor
+import coro.backdoor
 
 # toy: move an X through a grid.
 # tests: POST data, compression, persistent connections, shared state
@@ -75,5 +75,5 @@ server.push_handler (grid_handler (50, 30))
 server.push_handler (coro.http.handlers.coro_status_handler())
 server.push_handler (coro.http.handlers.favicon_handler())
 coro.spawn (server.start, ('0.0.0.0', 9001))
-coro.spawn (backdoor.serve, unix_path='/tmp/httpd.bd')
+coro.spawn (coro.backdoor.serve, unix_path='/tmp/httpd.bd')
 coro.event_loop (30.0)
