@@ -1,14 +1,15 @@
-
 var connection;
 var msgs_div = document.getElementById ('msgs')
 var draw_cmds = [];
+var host = "127.0.0.1";
+var port = "9001";
 
 function message (msg) {
     msgs_div.innerHTML = msg;
 }
 
 if (window["WebSocket"]) {
-    connection = new WebSocket("ws://127.0.0.1:9001/field")
+    connection = new WebSocket("ws://" + host + ":" + port + "/field")
 
     connection.onopen = function () {
 	message ('connected')
