@@ -454,11 +454,11 @@ class server:
         Try up to <retries> time to bind to that address.
         Raises an exception if the bind fails."""
 
-        self.sock = coro.tcp_sock()
+        self.addr = addr
+        self.sock = self.create_sock()
         self.sock.set_reuse_addr()
         done = 0
         save_errno = 0
-        self.addr = addr
         while not done:
             for x in xrange (retries):
                 try:
@@ -500,6 +500,14 @@ class server:
 
     def accept (self):
         return self.sock.accept()
+
+    def create_sock (self):
+        # the assumption here is that you would never run an HTTP server
+        #   on a unix socket, if you need that then override this method.
+        if ':' in self.addr[0]:
+            return coro.tcp6_sock()
+        else:
+            return coro.tcp_sock()
 
     def create_connection (self):
         return connection (self)
