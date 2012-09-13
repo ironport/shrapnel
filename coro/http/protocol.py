@@ -59,16 +59,16 @@ class http_file:
         while 1:
             chunk_size = int (s.read_line()[:-2], 16)
             if chunk_size == 0:
+                assert (s.read_exact (2) == '\r\n')
                 self.done_cv.wake_all()
                 return
             else:
                 remain = chunk_size
                 while remain:
                     ask = min (remain, self.buffer_size)
-                    block = s.read_exact (ask)
-                    assert (s.read_exact (2) == '\r\n')
+                    yield s.read_exact (ask)
                     remain -= ask
-                    yield block
+                assert (s.read_exact (2) == '\r\n')
 
     def _gen_read_fixed (self):
         "generate fixed-size blocks of content."
@@ -115,6 +115,9 @@ class http_file:
     def wait (self):
         "wait until all the content has been read."
         self.done_cv.wait()
+
+    def abort (self, info='aborted'):
+        self.done_cv.wake_all (info)
 
 class header_set:
 
