@@ -39,6 +39,7 @@ class request:
         self.rfile = None
 
     def wake (self):
+        "signal that a reply to this request has been received"
         if self.rfile and self.force:
             self.content = self.rfile.read()
         self.latch.wake_all()
@@ -46,7 +47,14 @@ class request:
             self.rfile.wait()
 
     def wait (self):
+        "wait for the reply to be recieved. (if force=True wait for content as well)"
         return self.latch.wait()
+
+    def abort (self):
+        "abort this client request"
+        self.latch.wake_all()
+        if self.rfile:
+            self.rfile.abort()
 
     def has_body (self):
         # XXX duplicates logic from server.py:http_request
