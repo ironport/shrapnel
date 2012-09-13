@@ -91,10 +91,11 @@ class connection:
                         except HTTP_Upgrade:
                             upgrade = True
                             break
+                        # XXX use Exception here, avoid catch/raise of coro.TimeoutError/Interrupted?
                         except:
                             tb = coro.compact_traceback()
-                            request.error (500, tb)
                             self.server.log ('error: %r request=%r tb=%r' % (self.peer, request, tb))
+                            request.error (500, tb)
             except (OSError, coro.TimeoutError, coro.ClosedError):
                 pass
         finally:
@@ -159,6 +160,9 @@ class http_request:
             self.bad = True
         if self.has_body():
             self.file = http_file (headers, client.stream)
+
+    def __repr__ (self):
+        return '<http request from %r : %r>' % (self.peer, self.request,)
 
     def wait_until_read (self):
         "wait until this entire request body has been read"
