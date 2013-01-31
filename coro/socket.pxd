@@ -1,12 +1,6 @@
 # -*- Mode: Cython -*-
 
-IF UNAME_SYSNAME == "Linux":
-    cdef extern from "stdint.h":
-        ctypedef unsigned char uint8_t
-        ctypedef unsigned short uint16_t
-        ctypedef unsigned int uint32_t
-ELSE:
-    from libc cimport uint8_t, uint16_t, uint32_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t
 
 cdef extern from "netinet/in.h":
     IF UNAME_SYSNAME == "Linux":
