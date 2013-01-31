@@ -25,6 +25,8 @@ __sync_version__ = "$Id: //prod/main/ap/shrapnel/coro/sync.pyx#29 $"
 
 # Note: this file is included by <coro.pyx>
 
+from cpython.list cimport PyList_New
+
 # ================================================================================
 #                      synchronization primitives
 # ================================================================================
@@ -757,11 +759,12 @@ cdef class fifo:
             empty.
         """
         cdef int i
+        cdef list result
         while self.fifo.size == 0:
             self.cv.wait()
         result = [None] * self.fifo.size
         i = 0
         while self.fifo.size:
-            PySequence_SetItem (result, i, self.fifo._pop())
+            result[i] = self.fifo._pop()
             i = i + 1
         return result

@@ -31,147 +31,9 @@ __socket_version__ = "$Id: //prod/main/ap/shrapnel/coro/socket.pyx#57 $"
 
 import socket as __socketmodule
 
-IF UNAME_SYSNAME == "Linux":
-    cdef extern from "stdint.h":
-        ctypedef unsigned char uint8_t
-        ctypedef unsigned short uint16_t
-        ctypedef unsigned int uint32_t
-ELSE:
-    from libc cimport uint8_t, uint16_t, uint32_t
-
-cdef extern from "netinet/in.h":
-    IF UNAME_SYSNAME == "Linux":
-        cdef struct in_addr:
-            uint32_t s_addr
-        cdef struct sockaddr_in:
-            short sin_family
-            unsigned short sin_port
-            in_addr sin_addr
-            char sin_zero[8]
-    ELSE:
-        pass
-
-cdef extern from "sys/un.h":
-    IF UNAME_SYSNAME == "Linux":
-        cdef struct sockaddr_un:
-            short sun_family
-            char sun_path[104]
-    ELSE:
-        pass
-
-cdef extern from "arpa/inet.h":
-    cdef enum:
-        INET_ADDRSTRLEN
-        INET6_ADDRSTRLEN
-
-    int htons (int)
-    int htonl (int)
-    int ntohl (int)
-    int ntohs (int)
-
-cdef extern from "sys/socket.h":
-    int AF_UNSPEC, AF_INET, AF_INET6, AF_UNIX
-    int SOCK_STREAM, SOCK_DGRAM, SOL_SOCKET, INADDR_ANY
-    int SHUT_RD, SHUT_WR, SHUT_RDWR
-
-    int SO_DEBUG, SO_REUSEADDR, SO_KEEPALIVE, SO_DONTROUTE, SO_LINGER
-    int SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT
-    int SO_RCVLOWAT, SO_SNDTIMEO, SO_RCVTIMEO, SO_TYPE, SO_ERROR
-    IF UNAME_SYSNAME == "FreeBSD":
-        int SO_REUSEPORT, SO_ACCEPTFILTER
-
-    int SO_DONTROUTE, SO_LINGER, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF
-    int SO_REUSEADDR, SO_DEBUG, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT
-    int SO_SNDTIMEO, SO_RCVTIMEO, SO_KEEPALIVE, SO_TYPE, SO_ERROR
-
-    ctypedef unsigned int sa_family_t
-    ctypedef unsigned int in_port_t
-    ctypedef unsigned int in_addr_t
-    ctypedef unsigned int socklen_t
-
-    cdef struct in_addr:
-        in_addr_t s_addr
-
-    union ip__u6_addr:
-        uint8_t  __u6_addr8[16]
-        uint16_t __u6_addr16[8]
-        uint32_t __u6_addr32[4]
-
-    struct in6_addr:
-        ip__u6_addr __u6_addr
-
-    IF UNAME_SYSNAME == "FreeBSD" or UNAME_SYSNAME == "Darwin":
-        cdef struct sockaddr:
-            unsigned char sa_len
-            sa_family_t sa_family
-            char sa_data[250]
-
-        cdef struct sockaddr_in:
-            unsigned char sin_len
-            sa_family_t sin_family
-            in_port_t sin_port
-            in_addr sin_addr
-            char sin_zero[8]
-
-        cdef struct sockaddr_in6:
-            unsigned char sin6_len
-            sa_family_t sin6_family
-            in_port_t sin6_port
-            unsigned int sin6_flowinfo
-            in6_addr sin6_addr
-            unsigned int sin6_scope_id
-
-        cdef struct sockaddr_un:
-            unsigned char sun_len
-            sa_family_t sun_family
-            char sun_path[104]
-
-        cdef struct sockaddr_storage:
-            unsigned char sa_len
-            sa_family_t sa_family
-    ELSE:
-        cdef struct sockaddr:
-            sa_family_t sa_family
-            char sa_data[250]
-
-        cdef struct sockaddr_in:
-            sa_family_t sin_family
-            unsigned short sin_port
-            in_addr sin_addr
-            char sa_data[250]
-
-        cdef struct sockaddr_in6:
-            sa_family_t sin6_family
-            unsigned short sin6_port
-            in6_addr sin6_addr
-            char sa_data[250]
-
-        cdef struct sockaddr_storage:
-            sa_family_t sa_family
-            char sa_data[250]
-
-    int socket      (int domain, int type, int protocol)
-    int connect     (int fd, sockaddr * addr, socklen_t addr_len)
-    int accept      (int fd, sockaddr * addr, socklen_t * addr_len)
-    int bind        (int fd, sockaddr * addr, socklen_t addr_len)
-    int listen      (int fd, int backlog)
-    int shutdown    (int fd, int how)
-    int close       (int fd)
-    int getsockopt  (int fd, int level, int optname, void * optval, socklen_t * optlen)
-    int setsockopt  (int fd, int level, int optname, void * optval, socklen_t optlen)
-    int getpeername (int fd, sockaddr * name, socklen_t * namelen)
-    int getsockname (int fd, sockaddr * name, socklen_t * namelen)
-    int sendto      (int fd, void * buf, size_t len, int flags, sockaddr * addr, socklen_t addr_len)
-    int send        (int fd, void * buf, size_t len, int flags)
-    int recv        (int fd, void * buf, size_t len, int flags)
-    int recvfrom    (int fd, void * buf, size_t len, int flags, sockaddr * addr, socklen_t * addr_len)
-    int _c_socketpair "socketpair"  (int d, int type, int protocol, int *sv)
-    int inet_pton   (int af, char *src, void *dst)
-    char *inet_ntop (int af, void *src, char *dst, socklen_t size)
-    char * inet_ntoa (in_addr pin)
-    int inet_aton   (char * cp, in_addr * pin)
-
-
+from cpython.int cimport PyInt_Check
+from cpython.bytes cimport PyBytes_Size
+from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM, PyTuple_GET_ITEM
 
 cdef int min (int a, int b):
     if a < b:
@@ -179,27 +41,12 @@ cdef int min (int a, int b):
     else:
         return b
 
-cdef extern from "sys/uio.h":
-    cdef struct iovec:
-        void * iov_base
-        size_t iov_len
-
-cdef extern from "unistd.h":
-    size_t write (int fd, char * buf, size_t nbytes)
-    size_t read  (int fd, char * buf, size_t nbytes)
-    size_t writev(int d, iovec *iov, int iovcnt)
-    size_t readv (int d, iovec *iov, int iovcnt)
-
-cdef extern from "fcntl.h":
-    int fcntl (int fd, int cmd, ...)
-    int F_GETFL, O_NONBLOCK, F_SETFL
-
 # Number of socket objects.  Note that this also includes closed socket objects.
 cdef int live_sockets
 
 live_sockets = 0
 
-cdef _readv_compute(size_list, buffer_tuple, int n, int received, iovec * iov,
+cdef _readv_compute(list size_list, tuple buffer_tuple, int n, int received, iovec * iov,
                     int * left, int * iov_pos, int * complete_index, int * partial_size):
     """Compute the IO Vector for the readv method.
 
@@ -225,13 +72,14 @@ cdef _readv_compute(size_list, buffer_tuple, int n, int received, iovec * iov,
     """
     cdef int i
     cdef int size
+    cdef bytes buffer
     iov_pos[0] = 0
     left[0] = 0
     complete_index[0] = -1
     partial_size[0] = -1
     for i from 0 <= i < n:
-        size = PySequence_GetItem(size_list, i)
-        buffer = PyTuple_GET_ITEM(buffer_tuple, i)
+        size = size_list[i]
+        buffer = buffer_tuple[i]
         Py_INCREF(buffer)
         if received >= left[0] + size:
             # This buffer has been completely received.
@@ -239,17 +87,16 @@ cdef _readv_compute(size_list, buffer_tuple, int n, int received, iovec * iov,
         elif received > left[0]:
             # This buffer has been partially received.
             partial_size[0] = (received - left[0])
-            iov[iov_pos[0]].iov_base = <void *> PyString_AS_STRING(buffer) + partial_size[0]
+            iov[iov_pos[0]].iov_base = <void *> buffer + partial_size[0]
             iov[iov_pos[0]].iov_len = size - partial_size[0]
             iov_pos[0] = iov_pos[0] + 1
         else:
             # This buffer still needs data.
-            iov[iov_pos[0]].iov_base = <void *> PyString_AS_STRING(buffer)
+            iov[iov_pos[0]].iov_base = <void *> buffer
             iov[iov_pos[0]].iov_len = size
             iov_pos[0] = iov_pos[0] + 1
         left[0] = left[0] + size
     left[0] = left[0] - received
-
 
 cdef public class sock [ object sock_object, type sock_type ]:
 
@@ -277,7 +124,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     :ivar stype: The socket type (SOCK_STREAM, SOCK_DGRAM)
     """
 
-    cdef public int fd, orig_fd, domain, stype
+    #cdef public int fd, orig_fd, domain, stype
 
     def __init__ (self, int domain=AF_INET, int stype=SOCK_STREAM, int protocol=0, int fd=-1):
         global live_sockets
@@ -372,6 +219,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         """
         cdef int flag, r
         cdef socklen_t flagsize
+        cdef bytes s
         if buflen == 0:
             flag = 0
             flagsize = sizeof (flag)
@@ -381,12 +229,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 return flag
         else:
-            s = PyString_FromStringAndSize (NULL, buflen)
-            r = getsockopt (self.fd, level, optname, <void*>PyString_AS_STRING (s), &buflen)
+            s = PyBytes_FromStringAndSize (NULL, buflen)
+            r = getsockopt (self.fd, level, optname, <void*>s, &buflen)
             if r == -1:
                 raise_oserror()
             else:
-                return PyString_FromStringAndSize (PyString_AS_STRING (s), buflen)
+                return PyBytes_FromStringAndSize (s, buflen)
 
     def setsockopt (self, int level, int optname, value):
         """Set a socket option.
@@ -403,8 +251,8 @@ cdef public class sock [ object sock_object, type sock_type ]:
             flag = value
             r = setsockopt (self.fd, level, optname, <void*>&flag, sizeof (flag))
         else:
-            optlen = PyString_Size (value) # does typecheck
-            r = setsockopt (self.fd, level, optname, <void*>PyString_AS_STRING (value), optlen)
+            optlen = PyBytes_Size (value) # does typecheck
+            r = setsockopt (self.fd, level, optname, <void*>value, optlen)
         if r == -1:
             raise_oserror()
 
@@ -427,7 +275,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 raise_oserror()
 
-    def send (self, data):
+    def send (self, bytes data):
         """Send data on the socket.
 
         This will repeatedly call write to ensure all data has been sent. This
@@ -444,8 +292,8 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef int r, left, sent
 
         sent = 0
-        left = PyString_Size (data)
-        buffer = PyString_AS_STRING (data)
+        left = len(data)
+        buffer = data
         while left > 0:
             if self._try_selfish() == 1:
                 r = write (self.fd, buffer, left)
@@ -481,7 +329,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         """
         return self.send(data)
 
-    def sendto (self, data, address, int flags=0):
+    def sendto (self, bytes data, address, int flags=0):
         """Send data to a specific address.
 
         :param data: The data to send.
@@ -507,7 +355,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         buffer = data
         while 1:
             if self._try_selfish() == 1:
-                r = sendto (self.fd, buffer, PyString_Size (data), flags, <sockaddr*>&sa, addr_len)
+                r = sendto (self.fd, buffer, len(data), flags, <sockaddr*>&sa, addr_len)
             else:
                 r = -1
                 libc.errno = libc.EWOULDBLOCK
@@ -521,7 +369,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 return r
 
-    def recv (self, int buffer_size):
+    cpdef recv (self, int buffer_size):
         """Receive data.
 
         This may return less data than you request if the socket buffer is not
@@ -535,14 +383,14 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         :raises OSError: OS-level error.
         """
-        cdef buffer
+        cdef bytes buffer
         cdef int r, new_buffer_size
 
-        buffer = PyString_FromStringAndSize (NULL, buffer_size)
+        buffer = PyBytes_FromStringAndSize (NULL, buffer_size)
         while 1:
             if self._try_selfish() == 1:
-                #r = recv (self.fd, PyString_AS_STRING (buffer), buffer_size, 0)
-                r = read (self.fd, PyString_AS_STRING (buffer), buffer_size)
+                #r = recv (self.fd, buffer, buffer_size, 0)
+                r = read (self.fd, buffer, buffer_size)
             else:
                 r = -1
                 libc.errno = libc.EWOULDBLOCK
@@ -551,7 +399,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     # kqueue will tell us exactly how many bytes are waiting for us.
                     new_buffer_size = min (self._wait_for_read(), buffer_size)
                     if new_buffer_size != buffer_size:
-                        buffer = PyString_FromStringAndSize (NULL, new_buffer_size)
+                        buffer = PyBytes_FromStringAndSize (NULL, new_buffer_size)
                         buffer_size = new_buffer_size
                 else:
                     raise_oserror()
@@ -560,16 +408,16 @@ cdef public class sock [ object sock_object, type sock_type ]:
             elif r == buffer_size:
                 return buffer
             else:
-                return PyString_FromStringAndSize (PyString_AS_STRING (buffer), r)
+                return PyBytes_FromStringAndSize (buffer, r)
 
-    def read (self, buffer_size):
+    cpdef read (self, int buffer_size):
         """Read data.
 
         This is an alias for the :meth:`recv` method.
         """
-        return self.recv(buffer_size)
+        return self.recv (buffer_size)
 
-    def recvfrom (self, int buffer_size, int flags=0):
+    cpdef recvfrom (self, int buffer_size, int flags=0):
         """Receive data.
 
         This may return less data than you request if the socket buffer is not
@@ -587,24 +435,17 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
         :raises OSError: OS-level error.
         """
-        cdef buffer
+        cdef bytes buffer
         cdef sockaddr_storage sa
         cdef int r, new_buffer_size
         cdef socklen_t addr_len
 
-        buffer = PyString_FromStringAndSize (NULL, buffer_size)
+        buffer = PyBytes_FromStringAndSize (NULL, buffer_size)
         while 1:
             if self._try_selfish() == 1:
                 addr_len = sizeof (sockaddr_storage)
                 memset (&sa, 0, sizeof (sockaddr_storage))
-                r = recvfrom (
-                    self.fd,
-                    PyString_AS_STRING (buffer),
-                    buffer_size,
-                    flags,
-                    <sockaddr*>&sa,
-                    &addr_len
-                    )
+                r = recvfrom (self.fd, <void*>buffer, buffer_size, flags, <sockaddr*>&sa, &addr_len)
             else:
                 r = -1
                 libc.errno = libc.EWOULDBLOCK
@@ -613,7 +454,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     # kqueue will tell us exactly how many bytes are waiting for us.
                     new_buffer_size = min (self._wait_for_read(), buffer_size)
                     if new_buffer_size != buffer_size:
-                        buffer = PyString_FromStringAndSize (NULL, new_buffer_size)
+                        buffer = PyBytes_FromStringAndSize (NULL, new_buffer_size)
                         buffer_size = new_buffer_size
                 else:
                     raise_oserror()
@@ -624,10 +465,10 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 elif r == buffer_size:
                     result = buffer
                 else:
-                    result = PyString_FromStringAndSize (PyString_AS_STRING (buffer), r)
+                    result = PyBytes_FromStringAndSize (buffer, r)
                 return (result, address)
 
-    def recv_exact (self, int bytes):
+    cpdef recv_exact (self, int nbytes):
         """Receive exactly the number of bytes requested.
 
         This will repeatedly call read until all data is received.
@@ -642,13 +483,14 @@ cdef public class sock [ object sock_object, type sock_type ]:
         """
         cdef char * p, * p0
         cdef int r
+        cdef bytes buffer
 
-        buffer = PyString_FromStringAndSize (NULL, bytes)
-        p = PyString_AS_STRING (buffer)
+        buffer = PyBytes_FromStringAndSize (NULL, nbytes)
+        p = buffer
         p0 = p
-        while bytes:
+        while nbytes:
             if self._try_selfish() == 1:
-                r = read (self.fd, p, bytes)
+                r = read (self.fd, p, nbytes)
             else:
                 r = -1
                 libc.errno = libc.EWOULDBLOCK
@@ -658,13 +500,13 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 else:
                     raise_oserror()
             elif r == 0:
-                raise EOFError, PyString_FromStringAndSize (buffer, p - p0)
+                raise EOFError, PyBytes_FromStringAndSize (buffer, p - p0)
             else:
-                bytes = bytes - r
+                nbytes -= r
                 p = p + r
         return buffer
 
-    def readv (self, size_list):
+    cpdef readv (self, list size_list):
         """Read a vector array of data.
 
         This will repeatedly call readv until all data is received. If the end
@@ -688,17 +530,19 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef int left
         cdef int complete_index
         cdef int partial_size
+        cdef bytes buffer, new_buffer
+        cdef tuple buffer_tuple, new_buffer_tuple
 
         received = 0
 
-        n = PySequence_Size(size_list)
+        n = len (size_list)
         iov = <iovec *> PyMem_Malloc(sizeof(iovec) * n)
         # Prepare string buffers in which to read the result.
         buffer_tuple = PyTuple_New(n)
         for i from 0 <= i < n:
-            size = PySequence_GetItem(size_list, i)
-            buffer = PyString_FromStringAndSize(NULL, size)
-            PyTuple_SET_ITEM(buffer_tuple, i, buffer)
+            size = size_list[i]
+            buffer = PyBytes_FromStringAndSize(NULL, size)
+            buffer_tuple[i] = buffer
             Py_INCREF(buffer)
 
         try:
@@ -731,7 +575,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                         # Unfortunately can't call _PyString_Resize in Pyrex. :(
                         if complete_index == -1:
                             new_buffer_tuple = PyTuple_New(1)
-                            buffer = PyTuple_GET_ITEM(buffer_tuple, 0)
+                            buffer = buffer_tuple[0]
                             Py_INCREF(buffer)
                             new_buffer = buffer[:partial_size]
                             PyTuple_SET_ITEM(new_buffer_tuple, 0, new_buffer)
@@ -739,11 +583,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
                         else:
                             new_buffer_tuple = PyTuple_New(complete_index + 2)
                             for i from 0 <= i <= complete_index:
-                                buffer = PyTuple_GET_ITEM(buffer_tuple, i)
+                                buffer = buffer_tuple[i]
                                 Py_INCREF(buffer)
                                 PyTuple_SET_ITEM(new_buffer_tuple, i, buffer)
                                 Py_INCREF(buffer)
-                            buffer = PyTuple_GET_ITEM(buffer_tuple, complete_index+1)
+                            buffer = buffer_tuple[complete_index+1]
                             Py_INCREF(buffer)
                             new_buffer = buffer[:partial_size]
                             PyTuple_SET_ITEM(new_buffer_tuple, complete_index+1, new_buffer)
@@ -757,7 +601,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         finally:
             PyMem_Free(iov)
 
-    def writev (self, data):
+    cpdef writev (self, list data):
         """Write a vector array of data.
 
         This will repeatedly call writev until all data is sent. If it is
@@ -774,9 +618,10 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef int r, left, size, sent
         cdef int n, i, j
         cdef iovec * iov
+        cdef bytes elem
 
         sent = 0
-        n = PySequence_Size (data)
+        n = len (data)
         iov = <iovec *> PyMem_Malloc (sizeof (iovec) * n)
 
         try:
@@ -787,8 +632,8 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 i = 0
                 j = 0
                 while i < n:
-                    elem = PySequence_GetItem (data, i)
-                    size = PyString_Size (elem)
+                    elem = data[i]
+                    size = len (elem)
                     # three cases:
                     # [--------][XXXXXXXX][-----------]
                     #       3   |   2     |    1
@@ -799,12 +644,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
                         pass
                     elif sent > left:
                         # 2) this buffer contains <sent>
-                        iov[j].iov_base = (PyString_AS_STRING (elem)) + (sent - left)
+                        iov[j].iov_base = <void*>(<char*>elem + (sent - left))
                         iov[j].iov_len = size - (sent - left)
                         j = j + 1
                     else:
                         # 3) this buffer is after <sent>
-                        iov[j].iov_base = PyString_AS_STRING (elem)
+                        iov[j].iov_base = <void*><char*>elem
                         iov[j].iov_len = size
                         j = j + 1
                     left = left + size
@@ -830,107 +675,170 @@ cdef public class sock [ object sock_object, type sock_type ]:
         finally:
             PyMem_Free (iov)
 
-    def recv_into(self, buffer, int nbytes=0, int flags=0):
-        """Receive data into a Python buffer.
+    # SMR 20120717 temporarily disabling this code, cython does not expose this part
+    #   of the 'old' buffer interface.  Looks like there's a new one, and the necessary
+    #   compatibility will require updating this code.
+    IF False:
+        cpdef recv_into (self, buffer, int nbytes=0, int flags=0):
+            """Receive data into a Python buffer.
 
-        This is for the Python buffer interface.  If you don't know what that
-        is, move along.  This method is for Python socket compatibility.
+            This is for the Python buffer interface.  If you don't know what that
+            is, move along.  This method is for Python socket compatibility.
 
-        :param buffer: A writeable Python buffer object.  Must be a contiguous
-              segment.
-        :param nbytes: Number of bytes to read.  Must be less than or equal to
-              the size of the buffer.  Defaults to 0 which means the size of
-              ``buffer``.
-        :param flags: Flags for the recv system call (see recv(2) manpage).
-              Defaults to 0.
+            :param buffer: A writeable Python buffer object.  Must be a contiguous
+                  segment.
+            :param nbytes: Number of bytes to read.  Must be less than or equal to
+                  the size of the buffer.  Defaults to 0 which means the size of
+                  ``buffer``.
+            :param flags: Flags for the recv system call (see recv(2) manpage).
+                  Defaults to 0.
 
-        :returns: The number of bytes read.
+            :returns: The number of bytes read.
 
-        :raises OSError: OS-level error.
-        """
-        cdef void *cbuf
-        cdef Py_ssize_t cbuflen
-        cdef int r
+            :raises OSError: OS-level error.
+            """
+            cdef void *cbuf
+            cdef Py_ssize_t cbuflen
+            cdef int r
 
-        if nbytes < 0:
-            raise ValueError('negative buffersize in recv_into')
+            if nbytes < 0:
+                raise ValueError('negative buffersize in recv_into')
 
-        PyObject_AsWriteBuffer(buffer, &cbuf, &cbuflen)
+            PyObject_AsWriteBuffer(buffer, &cbuf, &cbuflen)
 
-        if nbytes == 0:
-            nbytes = cbuflen
+            if nbytes == 0:
+                nbytes = cbuflen
 
-        if cbuflen < nbytes:
-            raise ValueError('buffer too small for requested bytes')
+            if cbuflen < nbytes:
+                raise ValueError('buffer too small for requested bytes')
 
-        while 1:
-            if self._try_selfish() == 1:
-                r = recv(self.fd, cbuf, nbytes, flags)
-            else:
-                r = -1
-                libc.errno = libc.EWOULDBLOCK
-            if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
-                    self._wait_for_read()
+            while 1:
+                if self._try_selfish() == 1:
+                    r = recv(self.fd, cbuf, nbytes, flags)
                 else:
-                    raise_oserror()
-            else:
-                return r
-
-    def recvfrom_into(self, buffer, int nbytes=0, int flags=0):
-        """Receive data into a Python buffer.
-
-        This is for the Python buffer interface.  If you don't know what that
-        is, move along.  This method is for Python socket compatibility.
-
-        :param buffer: A writeable Python buffer object.  Must be a contiguous
-              segment.
-        :param nbytes: Number of bytes to read.  Must be less than or equal to
-              the size of the buffer.  Defaults to 0 which means the size of
-              ``buffer``.
-        :param flags: Flags for the recv system call (see recvfrom(2) manpage).
-              Defaults to 0.
-
-        :returns: A tuple ``(nbytes, address)`` where ``bytes`` is the number
-            of bytes read and ``address`` then it is the address of the remote
-            side.
-
-        :raises OSError: OS-level error.
-        """
-        cdef sockaddr_storage sa
-        cdef void *cbuf
-        cdef Py_ssize_t cbuflen
-        cdef ssize_t nread
-        cdef socklen_t addr_len
-        cdef int r
-
-        if nbytes < 0:
-            raise ValueError('negative buffersize in recv_into')
-
-        PyObject_AsWriteBuffer(buffer, &cbuf, &cbuflen)
-
-        if nbytes == 0:
-            nbytes = cbuflen
-
-        if cbuflen < nbytes:
-            raise ValueError('buffer too small for requested bytes')
-
-        while 1:
-            if self._try_selfish() == 1:
-                addr_len = sizeof(sockaddr_storage)
-                memset(&sa, 0, sizeof(sockaddr_storage))
-                r = recvfrom(self.fd, cbuf, nbytes, flags, <sockaddr*>&sa, &addr_len)
-            else:
-                r = -1
-                libc.errno = libc.EWOULDBLOCK
-            if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
-                    self._wait_for_read()
+                    r = -1
+                    libc.errno = libc.EWOULDBLOCK
+                if r == -1:
+                    if libc.errno == libc.EWOULDBLOCK:
+                        self._wait_for_read()
+                    else:
+                        raise_oserror()
                 else:
-                    raise_oserror()
+                    return r
+
+        cpdef recvfrom_into(self, buffer, int nbytes=0, int flags=0):
+            """Receive data into a Python buffer.
+
+            This is for the Python buffer interface.  If you don't know what that
+            is, move along.  This method is for Python socket compatibility.
+
+            :param buffer: A writeable Python buffer object.  Must be a contiguous
+                  segment.
+            :param nbytes: Number of bytes to read.  Must be less than or equal to
+                  the size of the buffer.  Defaults to 0 which means the size of
+                  ``buffer``.
+            :param flags: Flags for the recv system call (see recvfrom(2) manpage).
+                  Defaults to 0.
+
+            :returns: A tuple ``(nbytes, address)`` where ``bytes`` is the number
+                of bytes read and ``address`` then it is the address of the remote
+                side.
+
+            :raises OSError: OS-level error.
+            """
+            cdef sockaddr_storage sa
+            cdef void *cbuf
+            cdef Py_ssize_t cbuflen
+            cdef ssize_t nread
+            cdef socklen_t addr_len
+            cdef int r
+
+            if nbytes < 0:
+                raise ValueError('negative buffersize in recv_into')
+
+            PyObject_AsWriteBuffer(buffer, &cbuf, &cbuflen)
+
+            if nbytes == 0:
+                nbytes = cbuflen
+
+            if cbuflen < nbytes:
+                raise ValueError('buffer too small for requested bytes')
+
+            while 1:
+                if self._try_selfish() == 1:
+                    addr_len = sizeof(sockaddr_storage)
+                    memset(&sa, 0, sizeof(sockaddr_storage))
+                    r = recvfrom(self.fd, cbuf, nbytes, flags, <sockaddr*>&sa, &addr_len)
+                else:
+                    r = -1
+                    libc.errno = libc.EWOULDBLOCK
+                if r == -1:
+                    if libc.errno == libc.EWOULDBLOCK:
+                        self._wait_for_read()
+                    else:
+                        raise_oserror()
+                else:
+                    address = self.unparse_address(&sa, addr_len)
+                    return r, address
+
+    cdef parse_address_inet (self, tuple address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
+        cdef sockaddr_in * sin = <sockaddr_in *>sa
+        cdef bytes ip
+        cdef uint16_t port
+        ip, port = address
+        if not ip:
+            ip = b'0.0.0.0'
+        sin.sin_family = AF_INET
+        IF UNAME_SYSNAME == "FreeBSD":
+            sin.sin_len = sizeof (sockaddr_in)
+        addr_len[0] = sizeof (sockaddr_in)
+        sin.sin_port = htons(port)
+        r = inet_pton (AF_INET, ip, &sin.sin_addr)
+        if r != 1:
+            if resolve:
+                # recurse
+                self.parse_address_inet (
+                    (the_resolver.resolve_ipv4 (ip), port), sa, addr_len, False
+                    )
             else:
-                address = self.unparse_address(&sa, addr_len)
-                return r, address
+                raise ValueError ("not a valid IPv4 address")
+
+    cdef parse_address_inet6 (self, tuple address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
+        cdef sockaddr_in6 * sin6 = <sockaddr_in6 *> sa
+        cdef bytes ip
+        cdef uint16_t port
+        ip, port = address
+        if not ip:
+            ip = b'::'
+        sin6.sin6_family = AF_INET6
+        IF UNAME_SYSNAME == "FreeBSD":
+            sin6.sin6_len = sizeof(sockaddr_in6)
+        addr_len[0] = sizeof(sockaddr_in6)
+        sin6.sin6_port = htons(port)
+        r = inet_pton(AF_INET6, ip, &sin6.sin6_addr)
+        if r != 1:
+            if resolve:
+                # recurse
+                self.parse_address_inet6 (
+                    (the_resolver.resolve_ipv6 (ip), port), sa, addr_len, False
+                    )
+            else:
+                raise ValueError ("not a valid IPv6 address")
+
+    cdef parse_address_unix (self, bytes address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
+        cdef sockaddr_un * sun
+        # AF_UNIX
+        # +1 to grab the NUL char
+        l = len (address) + 1
+        sun = <sockaddr_un *>sa
+        sun.sun_family = AF_UNIX
+        IF UNAME_SYSNAME == "FreeBSD":
+            sun.sun_len = sizeof (sockaddr_un)
+        if (l < sizeof (sun.sun_path)):
+            memcpy (<void *>sun.sun_path, <void*><char*>address, l)
+            addr_len[0] = sizeof (sockaddr_un)
+        else:
+            raise ValueError, "name too long"
 
     cdef parse_address (self, object address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve=False):
         """Parse a Python socket address and set the C structure values.
@@ -950,66 +858,14 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef sockaddr_in6 *sin6
         cdef sockaddr_un * sun
         cdef int r, l
-        if PyTuple_Check (address) and PyTuple_Size (address) == 2:
-            # AF_INET and AF_INET6
-            sin = <sockaddr_in *>sa
-            sin6 = <sockaddr_in6 *>sa
-            ip = PySequence_GetItem(address, 0)
-            port = PySequence_GetItem(address, 1)
-            if not PyString_Check (ip):
-                raise ValueError, "IP address must be a string"
-            if PyString_Size (ip) == 0:
-                if self.domain == AF_INET:
-                    ip = "0.0.0.0"
-                elif self.domain == AF_INET6:
-                    ip = "::"
-                else:
-                    raise ValueError, "Unsupported address family: %d" % self.domain
-            if self.domain == AF_INET:
-                sin.sin_family = AF_INET
-                IF UNAME_SYSNAME == "FreeBSD":
-                    sin.sin_len = sizeof(sockaddr_in)
-                addr_len[0] = sizeof(sockaddr_in)
-                sin.sin_port = htons(port)
-                r = inet_pton(AF_INET, PyString_AsString(ip), &sin.sin_addr)
-                if r != 1:
-                    if resolve:
-                        return self.parse_address (
-                            (the_resolver.resolve_ipv4 (ip), port), sa, addr_len, False
-                            )
-                    else:
-                        raise ValueError ("not a valid IPv4 address")
-            elif self.domain == AF_INET6:
-                sin6.sin6_family = AF_INET6
-                IF UNAME_SYSNAME == "FreeBSD":
-                    sin6.sin6_len = sizeof(sockaddr_in6)
-                addr_len[0] = sizeof(sockaddr_in6)
-                sin6.sin6_port = htons(port)
-                r = inet_pton(AF_INET6, PyString_AsString(ip), &sin6.sin6_addr)
-                if r != 1:
-                    if resolve:
-                        return self.parse_address (
-                            (the_resolver.resolve_ipv6 (ip), port), sa, addr_len, False
-                            )
-                    else:
-                        raise ValueError ("not a valid IPv6 address")
-            else:
-                raise ValueError, "Unsupported address family: %d" % self.domain
-        elif PyString_Check (address) and address[0] == '/':
-            # AF_UNIX
-            # +1 to grab the NUL char
-            l = PyString_Size (address) + 1
-            sun = <sockaddr_un *>sa
-            sun.sun_family = AF_UNIX
-            IF UNAME_SYSNAME == "FreeBSD":
-                sun.sun_len = sizeof (sockaddr_un)
-            if (l < sizeof (sun.sun_path)):
-                memcpy (<void *>sun.sun_path, PyString_AS_STRING (address), l)
-                addr_len[0] = sizeof (sockaddr_un)
-            else:
-                raise ValueError, "name too long"
+        if self.domain == AF_INET:
+            return self.parse_address_inet (address, sa, addr_len, resolve)
+        elif self.domain == AF_INET6:
+            return self.parse_address_inet6 (address, sa, addr_len, resolve)
+        elif self.domain == AF_UNIX:
+            return self.parse_address_unix (address, sa, addr_len, resolve)
         else:
-            raise ValueError, "can't interpret argument as socket address"
+            raise ValueError, "can't parse address for this socket domain"
 
     cdef object unparse_address (self, sockaddr_storage *sa, socklen_t addr_len):
         """Unpack a C-socket address structure and generate a Python address object.
@@ -1030,11 +886,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
         if (<sockaddr_in *>sa).sin_family == AF_INET:
             sin = <sockaddr_in *> sa
             inet_ntop (AF_INET, &(sin.sin_addr), ascii_buf, INET_ADDRSTRLEN)
-            return (PyString_FromString(ascii_buf), ntohs(sin.sin_port))
+            return (ascii_buf, ntohs(sin.sin_port))
         elif (<sockaddr_in6 *>sa).sin6_family == AF_INET6:
             sin6 = <sockaddr_in6 *> sa
             inet_ntop (AF_INET6, &(sin6.sin6_addr), ascii_buf, INET6_ADDRSTRLEN)
-            return (PyString_FromString(ascii_buf), ntohs(sin6.sin6_port))
+            return (ascii_buf, ntohs(sin6.sin6_port))
         elif (<sockaddr_un *>sa).sun_family == AF_UNIX:
             sun = <sockaddr_un *>sa
             return sun.sun_path
@@ -1102,7 +958,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cpdef connect (self, address):
         return self.connect_addr (address, True)
 
-    def bind (self, address):
+    cpdef bind (self, address):
         """Bind the socket.
 
         :param address: The address to bind to.  For IP, it should be a
@@ -1124,7 +980,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         if r == -1:
             raise_oserror()
 
-    def listen (self, backlog):
+    cpdef listen (self, int backlog):
         """Set the socket to listen for connections.
 
         :param backlog: The maximum size of the queue for pending connections.
@@ -1136,7 +992,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         if r == -1:
             raise_oserror()
 
-    def accept (self):
+    cpdef accept (self):
         """Accept a connection.
 
         :returns: A tuple ``(socket, address)`` where ``socket`` is a socket
@@ -1171,7 +1027,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     self.unparse_address (&sa, addr_len)
                     )
 
-    def accept_many (self, int max=0):
+    cpdef accept_many (self, int max=0):
         """Accept multiple connections.
 
         This will accept up to ``max`` connections for any connections available
@@ -1191,6 +1047,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef int r, count
         cdef int upper_limit
         cdef coro me
+        cdef list result
         count = 0
         result = PyList_New(max)
         if max == 0:
@@ -1215,13 +1072,13 @@ cdef public class sock [ object sock_object, type sock_type ]:
                            self.unparse_address (&sa, addr_len)
                           )
                 if max == 0:
-                    PyList_Append (result, element)
+                    result.append (element)
                 else:
-                    PyList_SetItem_SAFE (result, count, element)
+                    result[count] = element
                 count = count + 1
         return result
 
-    def shutdown (self, int how):
+    cpdef shutdown (self, int how):
         """Shutdown the socket.
 
         :param how: How to shut down the socket (see the shutdown(2) manpage).
@@ -1235,7 +1092,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         else:
             return None
 
-    def getpeername (self):
+    cpdef getpeername (self):
         """Get the remote-side address.
 
         :returns: A ``(IP, port)`` tuple for IP addresses where IP is a
@@ -1255,7 +1112,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         else:
             return self.unparse_address (&sa, addr_len)
 
-    def getsockname (self):
+    cpdef getsockname (self):
         """Get the local address of the socket.
 
         :returns: A ``(IP, port)`` tuple for IP addresses where IP is a
@@ -1300,7 +1157,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         # platform issue).
         return __socketmodule._fileobject(self.dup(), mode, bufsize, True)
 
-    def dup(self):
+    cpdef dup(self):
         """Duplicate the socket object using the OS dup() call.
 
         :returns: A new sock instance that holds the new file descriptor.
@@ -1421,7 +1278,7 @@ cdef class file_sock(sock):
     When the object is deallocated, the file descriptor is closed.
     """
 
-    cdef object _fileobj
+    #cdef object _fileobj
 
     def __init__(self, fileobj):
         # we need to keep the original file object around, because if its

@@ -130,12 +130,12 @@ cdef class ThreadLocal:
         cdef coro co
 
         # _all_threads.itervalues() might be better here.
-        for co in PyDict_Values(_all_threads):
+        for co in _all_threads.values():
             if co._tdict is not None:
                 # Avoiding exceptions for performance.
                 # Would be much better to just call PyDict_DelItem, but we've
                 # defined it with except -1.
-                if PyDict_Contains(co._tdict, self.key):
+                if co._tdict.has_key (self.key):
                     del co._tdict[self.key]
 
     property __dict__:
