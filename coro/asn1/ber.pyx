@@ -186,7 +186,7 @@ cdef union double_layout:
 
 # I can't put these large constants directly into the code, cython is
 #   upgrading them to python objects for some reason.
-cdef uint64_t NEGATIVE_BIT = 1<<63
+cdef uint64_t NEGATIVE_BIT = (<uint64_t>1)<<63
 cdef uint64_t MANTISSA_MASK = 0xfffffffffffff
 
 # http://www.itu.int/rec/T-REC-X.690-200811-I
