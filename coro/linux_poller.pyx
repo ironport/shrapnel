@@ -173,7 +173,7 @@ cdef class event_key:
 cdef public class queue_poller [ object queue_poller_object, type queue_poller_type ]:
 
     cdef int ep_fd
-    cdef object event_map
+    cdef dict event_map
 
     def __init__ (self):
         self.ep_fd = -1
@@ -192,7 +192,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
     cdef object set_wait_for (self, event_key ek):
         cdef coro me
         cdef unsigned flag = 0
-        if PyDict_Contains (self.event_map, ek):
+        if self.event_map.has_key (ek):
             # Should be impossible to have KeyError due to previous line.
             et = self.event_map[ek]
             raise SimultaneousError (the_scheduler._current, et, ek)
@@ -201,8 +201,8 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
             ek1 = event_key (EPOLLOUT, ek.fd)
             ek2 = event_key (EPOLLIN, ek.fd)
 
-            if ( (PyDict_Contains (self.event_map, ek2) and ek.events == EPOLLOUT) or
-                (PyDict_Contains (self.event_map, ek1) and ek.events == EPOLLIN)):
+            if ((self.event_map.has_key (ek2) and ek.events == EPOLLOUT) or
+                (self.event_map.has_key (ek1) and ek.events == EPOLLIN)):
                 flags = EPOLLOUT | EPOLLIN | EPOLLET
             else:
                 flags = EPOLLET
@@ -222,7 +222,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef event_key ek
 
         ek = event_key(EPOLLIN, fd)
-        if PyDict_Contains(self.event_map, ek):
+        if self.event_map.has_key (ek):
             co = self.event_map[ek]
             del self.event_map[ek]
 
@@ -232,7 +232,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 W('notify_of_close (%d) [read]: unable to interrupt thread: %r\n' % (fd, co))
 
         ek = event_key(EPOLLOUT, fd)
-        if PyDict_Contains(self.event_map, ek):
+        if self.event_map.has_key (ek):
             co = self.event_map[ek]
             del self.event_map[ek]
 
