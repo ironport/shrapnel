@@ -1,4 +1,4 @@
- # Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
+# Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,6 @@ __coro_version__ = "$Id: //prod/main/ap/shrapnel/coro/_coro.pyx#114 $"
 
 import coro as coro_package
 import warnings
-# Only import things from libc that are very common and have unique names.
-from libc cimport intptr_t, memcpy, memset, off_t, time_t, timeval, uint64_t, uintptr_t
 
 # ================================================================================
 # a re-implementation of the IronPort coro-threading system, this time
@@ -52,8 +50,6 @@ from libc cimport intptr_t, memcpy, memset, off_t, time_t, timeval, uint64_t, ui
 #                        external declarations
 # ================================================================================
 
-#include "python.pxi"
-# Note that this cimports libc.
 include "pyrex_helpers.pyx"
 include "tsc_time_include.pyx"
 
@@ -699,12 +695,14 @@ cdef int next_coro_id
 
 next_coro_id = 1
 
+from libc.limits cimport INT_MAX
+
 cdef int get_coro_id() except -1:
     global next_coro_id
     while 1:
         result = next_coro_id
         next_coro_id = next_coro_id + 1
-        if next_coro_id == libc.INT_MAX:
+        if next_coro_id == INT_MAX:
             next_coro_id = 1
         if not _all_threads.has_key (result):
             return result
@@ -1422,6 +1420,8 @@ def set_print_exit_string(val):
     global _print_exit_string
     _print_exit_string = val
 
+from libc cimport stdio
+
 cdef void info(int sig):
     """Function to print current coroutine when SIGINFO (CTRL-T) is received."""
     cdef coro co
@@ -1430,8 +1430,8 @@ cdef void info(int sig):
     co = the_scheduler._current
     frame = _PyThreadState_Current.frame
     if co:
-        libc.fprintf (
-            libc.stderr, 'coro %i "%s" at %s: %s %i\n',
+        stdio.fprintf (
+            stdio.stderr, 'coro %i "%s" at %s: %s %i\n',
             co.id,
             co.name,
             <bytes>frame.f_code.co_filename,
@@ -1439,8 +1439,8 @@ cdef void info(int sig):
             PyCode_Addr2Line  (frame.f_code, frame.f_lasti)
             )
     else:
-        libc.fprintf (
-            libc.stderr, 'No current coro. %s: %s %i\n',
+        stdio.fprintf (
+            stdio.stderr, 'No current coro. %s: %s %i\n',
             <bytes>frame.f_code.co_filename,
             <bytes>frame.f_code.co_name,
             PyCode_Addr2Line  (frame.f_code, frame.f_lasti)
@@ -1468,10 +1468,12 @@ _exit_code = 0
 global _print_exit_string
 _print_exit_string = True
 
+from libc.signal cimport signal, SIGINFO, sighandler_t
+
 # A convenient place to make absolutely sure the C random number generator is
 # seeded.
 IF UNAME_SYSNAME == "Linux":
     random()
 ELSE:
     srandomdev()
-    libc.signal(libc.SIGINFO, info)
+    signal (SIGINFO, <sighandler_t>info)
