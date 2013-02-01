@@ -153,7 +153,7 @@ def aio_read (int fd, int nbytes, uint64_t offset):
         raise_oserror()
     else:
         r = _aio_error (&cb.cb)
-        if r == libc.EINPROGRESS:
+        if r == errno.EINPROGRESS:
             # delayed async operation
             # 0 because we're not in the changelist.
             kt = kevent_target (me, 0)
@@ -222,7 +222,7 @@ def aio_write (int fd, object buffer, uint64_t offset):
         raise_oserror()
     else:
         r = _aio_error (&cb.cb)
-        if r == libc.EINPROGRESS:
+        if r == errno.EINPROGRESS:
             # delayed async operation
             # wait for the kevent to wake us up
             # 0 because we're not in the changelist.
