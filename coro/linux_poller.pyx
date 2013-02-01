@@ -28,8 +28,10 @@ __poller_version__ = "$Id"
 #                                epoll
 # ================================================================================
 
-from libc cimport uint64_t, uint32_t
-from libc cimport uint64_t
+from libc.stdint cimport uint64_t, uint32_t
+from libc cimport unistd
+from libc cimport errno
+from xlibc.stdlib cimport alloca
 
 cdef extern from "sys/time.h":
     cdef struct timespec:
@@ -186,7 +188,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
 
     cdef tear_down(self):
         if self.ep_fd != -1:
-            libc.close(self.ep_fd)
+            unistd.close (self.ep_fd)
             self.ep_fd = -1
 
     cdef object set_wait_for (self, event_key ek):
@@ -255,7 +257,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         )
 
         # if fd doesn't exist in epoll, add it
-        if r == -1 and (libc.errno == libc.ENOENT):
+        if r == -1 and (errno.errno == errno.ENOENT):
             r = epoll_ctl (
                 self.ep_fd,
                 EPOLL_CTL_ADD,
@@ -263,7 +265,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 &org_e
             )
 
-        if r == -1 and (libc.errno != libc.EEXIST):
+        if r == -1 and (errno.errno != errno.EEXIST):
             raise_oserror()
 
     cdef _wait_for_with_eof (self, int fd, int events):
@@ -320,7 +322,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef event_key ek
         cdef py_event _py_event
         ts.tv_sec, ts.tv_nsec = timeout
-        events = <epoll_event *> libc.alloca (sizeof (epoll_event) * nevents)
+        events = <epoll_event *> alloca (sizeof (epoll_event) * nevents)
 
         r = epoll_wait (self.ep_fd, events, nevents, timeout[0] * SECS_TO_MILLISECS + (timeout[1] / NSECS_TO_MILLISECS))
         #W ('{%d}' % (r,))
