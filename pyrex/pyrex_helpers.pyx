@@ -24,13 +24,15 @@
 
 cdef object oserrors
 from coro import oserrors
-cimport libc
+from xlibc cimport stdarg
+from libc cimport errno
+from libc cimport stdint
 
 cdef raise_oserror():
-    oserrors.map_exception(OSError(libc.errno, libc.strerror(libc.errno)))
+    oserrors.map_exception(OSError(errno.errno, errno.strerror(errno.errno)))
 
 cdef raise_oserror_with_errno(int e):
-    oserrors.map_exception(OSError(e, libc.strerror(e)))
+    oserrors.map_exception(OSError(e, errno.strerror(e)))
 
 cdef object __builtin__
 import __builtin__
@@ -40,8 +42,8 @@ bool = __builtin__.bool
 
 cdef extern from "pyrex_helpers.h":
 
-    int     va_int(libc.va_list)
-    char *  va_charptr(libc.va_list)
+    int     va_int(stdarg.va_list)
+    char *  va_charptr(stdarg.va_list)
 
     object  PySequence_Fast_GET_ITEM_SAFE   (object, int)
 
@@ -57,8 +59,8 @@ cdef extern from "pyrex_helpers.h":
 
     object  PyDict_GET_ITEM_SAFE    (object, object, object)
 
-    void *  Pyrex_Malloc_SAFE       (libc.size_t) except NULL
-    void *  Pyrex_Realloc_SAFE      (void *, libc.size_t) except NULL
+    void *  Pyrex_Malloc_SAFE       (size_t) except NULL
+    void *  Pyrex_Realloc_SAFE      (void *, size_t) except NULL
     void    Pyrex_Free_SAFE         (void *)
 
     object  minimal_ulonglong       (unsigned long long)
