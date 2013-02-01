@@ -200,7 +200,12 @@ include "python.pxi"
 include "pyrex_helpers.pyx"
 
 import time
-from libc cimport uint64_t, int64_t, uint32_t, time_t
+from libc.stdint cimport uint64_t, int64_t, uint32_t
+from libc.stddef cimport size_t
+from libc.string cimport strlen
+# cython does not have a libc/time.pxd yet
+from xlibc cimport time
+from libc cimport stdlib
 
 cdef extern from "rdtsc.h":
     uint64_t _c_rdtsc "rdtsc" ()
@@ -219,9 +224,9 @@ c_rdtsc = _c_rdtsc
 
 cdef int64_t c_get_kernel_usec():
     global emulation_offset_usec
-    cdef libc.timeval tv_now
+    cdef time.timeval tv_now
 
-    libc.gettimeofday(&tv_now, NULL)
+    time.gettimeofday(&tv_now, NULL)
 
     return ((<int64_t>tv_now.tv_sec) * 1000000 + tv_now.tv_usec) + emulation_offset_usec
 
@@ -250,7 +255,7 @@ cdef uint64_t get_ticks_per_sec() except -1:
         if sysctlbyname("machdep.tsc_freq_new", <void *>&buffer[0], &buffer_size, NULL, 0) == -1:
             if sysctlbyname("machdep.tsc_freq", <void *>&buffer[0], &buffer_size, NULL, 0) == -1:
                 # Not all systems have this sysctl that we can build on
-                if libc.getenv("BUILDING") == NULL:
+                if stdlib.getenv("BUILDING") == NULL:
                     raise SystemError
                 else:
                     return 2793008320
@@ -296,7 +301,7 @@ def rdtsc():
 cdef object struct_time
 struct_time = time.struct_time
 
-cdef _mk_tt(libc.tm * t):
+cdef _mk_tt(time.tm * t):
     """Make a Python time tuple."""
     return struct_time((t.tm_year + 1900,
                         t.tm_mon + 1,
@@ -308,7 +313,7 @@ cdef _mk_tt(libc.tm * t):
                         t.tm_yday + 1,
                         t.tm_isdst))
 
-cdef _get_tt(tt, libc.tm * t):
+cdef _get_tt(tt, time.tm * t):
     """Convert a Python "time tuple" to a C tm struct."""
     if isinstance(tt, struct_time):
         # Convert to a tuple, this should be the most efficient way.
@@ -335,21 +340,21 @@ cdef _get_tt(tt, libc.tm * t):
     t.tm_yday  = t.tm_yday - 1
     t.tm_isdst = PyTuple_GET_ITEM_SAFE(tt, 8)
 
-cdef _strftime(char * format, libc.tm * t):
+cdef _strftime(char * format, time.tm * t):
     cdef char * buffer
-    cdef libc.size_t i
-    cdef libc.size_t buflen
-    cdef libc.size_t format_len
+    cdef size_t i
+    cdef size_t buflen
+    cdef size_t format_len
 
-    format_len = libc.strlen(format)
+    format_len = strlen(format)
 
     i = 1024
     while 1:
-        buffer = <char *> libc.malloc(i)
+        buffer = <char *> stdlib.malloc(i)
         if buffer == NULL:
             raise MemoryError
         try:
-            buflen = libc.strftime(buffer, i, format, t)
+            buflen = time.strftime(buffer, i, format, t)
             if buflen > 0 or i >= 256 * format_len:
                 # Copied from Python's strftime implementation.
                 # If the result is 0, but we had a buffer that was 256 times
@@ -358,7 +363,7 @@ cdef _strftime(char * format, libc.tm * t):
                 # result.
                 return PyString_FromStringAndSize(buffer, buflen)
         finally:
-            libc.free(buffer)
+            stdlib.free(buffer)
         # Double the buffer size and try again.
         i = i*2
 
@@ -413,7 +418,7 @@ def set_time(posix_timestamp):
           current time.  Pass in a value of 0 to disable emulation.
     """
     global emulation_offset_usec, emulation_offset_tsc, c_rdtsc
-    cdef libc.timeval tv_now
+    cdef time.timeval tv_now
     cdef int64_t diff
 
     if posix_timestamp == 0:
@@ -421,7 +426,7 @@ def set_time(posix_timestamp):
         emulation_offset_tsc = 0
         c_rdtsc = _c_rdtsc
     else:
-        libc.gettimeofday(&tv_now, NULL)
+        time.gettimeofday(&tv_now, NULL)
 
         diff = posix_timestamp - tv_now.tv_sec
         emulation_offset_usec = diff * 1000000
@@ -594,7 +599,7 @@ def now_raw_posix_fsec():
 # Time objects.
 ###########################################################################
 
-cdef time_t _asctime_cache_time
+cdef time.time_t _asctime_cache_time
 cdef object _asctime_cache_string
 
 cdef class Time:
@@ -670,7 +675,7 @@ cdef class Time:
 
     cdef c_ctime(self):
         cdef char * p
-        cdef time_t posix_sec
+        cdef time.time_t posix_sec
         global _asctime_cache_string, _asctime_cache_time
 
         # We only compute this once a second.  Note that this is a
@@ -680,7 +685,7 @@ cdef class Time:
         if posix_sec == _asctime_cache_time and _asctime_cache_string is not None:
             return _asctime_cache_string
         else:
-            p = libc.ctime(&posix_sec)
+            p = time.ctime(&posix_sec)
             p[24] = c'\0'
             _asctime_cache_string = p
             _asctime_cache_time = posix_sec
@@ -695,12 +700,12 @@ cdef class Time:
         return self.c_localtime()
 
     cdef c_localtime(self):
-        cdef libc.tm * t
-        cdef time_t posix_sec
+        cdef time.tm * t
+        cdef time.time_t posix_sec
 
         posix_sec = c_ticks_to_sec(self.tsc)
 
-        t = libc.localtime(&posix_sec)
+        t = time.localtime(&posix_sec)
         return _mk_tt(t)
 
     def gmtime(self):
@@ -712,12 +717,12 @@ cdef class Time:
         return self.c_gmtime()
 
     cdef c_gmtime(self):
-        cdef libc.tm * t
-        cdef time_t posix_sec
+        cdef time.tm * t
+        cdef time.time_t posix_sec
 
         posix_sec = c_ticks_to_sec(self.tsc)
 
-        t = libc.gmtime(&posix_sec)
+        t = time.gmtime(&posix_sec)
         return _mk_tt(t)
 
     def mkstr_local(self, format):
@@ -733,12 +738,12 @@ cdef class Time:
         return self.c_mkstr_local(format)
 
     cdef c_mkstr_local(self, char * format):
-        cdef libc.tm * t
-        cdef time_t posix_sec
+        cdef time.tm * t
+        cdef time.time_t posix_sec
 
         posix_sec = c_ticks_to_sec(self.tsc)
 
-        t = libc.localtime(&posix_sec)
+        t = time.localtime(&posix_sec)
         return _strftime(format, t)
 
     def mkstr_utc(self, format):
@@ -754,12 +759,12 @@ cdef class Time:
         return self.c_mkstr_utc(format)
 
     cdef c_mkstr_utc(self, char * format):
-        cdef libc.tm * t
-        cdef time_t posix_sec
+        cdef time.tm * t
+        cdef time.time_t posix_sec
 
         posix_sec = c_ticks_to_sec(self.tsc)
 
-        t = libc.gmtime(&posix_sec)
+        t = time.gmtime(&posix_sec)
         return _strftime(format, t)
 
 cdef class TSC(Time):
@@ -881,7 +886,7 @@ cdef class Posix(Time):
         return c_ticks_to_sec(self.tsc)
 
     def __richcmp__(x, y, int op):
-        cdef time_t a, b
+        cdef time.time_t a, b
 
         if isinstance(x, Time):
             a = c_ticks_to_sec((<Time>x).tsc)
@@ -1259,11 +1264,11 @@ cdef fPosix c_now_posix_fsec():
 def mktime_tsc(tt):
     """Convert a Python time-tuple to a TSC object."""
     cdef TSC t
-    cdef time_t posix
-    cdef libc.tm tm_st
+    cdef time.time_t posix
+    cdef time.tm tm_st
 
     _get_tt(tt, &tm_st)
-    posix = libc.mktime(&tm_st)
+    posix = time.mktime(&tm_st)
     t = TSC()
     t.tsc = c_sec_to_ticks(posix)
     return t
@@ -1271,11 +1276,11 @@ def mktime_tsc(tt):
 def mktime_posix_sec(tt):
     """Convert a Python time-tuple to a Posix object."""
     cdef Posix t
-    cdef time_t posix
-    cdef libc.tm tm_st
+    cdef time.time_t posix
+    cdef time.tm tm_st
 
     _get_tt(tt, &tm_st)
-    posix = libc.mktime(&tm_st)
+    posix = time.mktime(&tm_st)
     t = Posix()
     t.tsc = c_sec_to_ticks(posix)
     return t
@@ -1283,11 +1288,11 @@ def mktime_posix_sec(tt):
 def mktime_posix_usec(tt):
     """Convert a Python time-tuple to a uPosix object."""
     cdef uPosix t
-    cdef time_t posix
-    cdef libc.tm tm_st
+    cdef time.time_t posix
+    cdef time.tm tm_st
 
     _get_tt(tt, &tm_st)
-    posix = libc.mktime(&tm_st)
+    posix = time.mktime(&tm_st)
     t = uPosix()
     t.tsc = c_sec_to_ticks(posix)
     return t
@@ -1295,11 +1300,11 @@ def mktime_posix_usec(tt):
 def mktime_posix_fsec(tt):
     """Convert a Python time-tuple to an fPosix object."""
     cdef fPosix t
-    cdef time_t posix
-    cdef libc.tm tm_st
+    cdef time.time_t posix
+    cdef time.tm tm_st
 
     _get_tt(tt, &tm_st)
-    posix = libc.mktime(&tm_st)
+    posix = time.mktime(&tm_st)
     t = fPosix()
     t.tsc = c_sec_to_ticks(posix)
     return t
@@ -1316,7 +1321,7 @@ def TSC_from_ticks(int64_t t):
     v.tsc = t
     return v
 
-def TSC_from_posix_sec(time_t t):
+def TSC_from_posix_sec(time.time_t t):
     """Convert a raw POSIX seconds value to a TSC object."""
     cdef TSC v
 
@@ -1350,7 +1355,7 @@ def Posix_from_ticks(int64_t t):
     v.tsc = t
     return v
 
-def Posix_from_posix_sec(time_t t):
+def Posix_from_posix_sec(time.time_t t):
     """Convert a raw POSIX seconds value to a Posix object."""
     cdef Posix v
 
@@ -1384,7 +1389,7 @@ def uPosix_from_ticks(int64_t t):
     v.tsc = t
     return v
 
-def uPosix_from_posix_sec(time_t t):
+def uPosix_from_posix_sec(time.time_t t):
     """Convert a raw POSIX seconds value to a uPosix object."""
     cdef uPosix v
 
@@ -1418,7 +1423,7 @@ def fPosix_from_ticks(int64_t t):
     v.tsc = t
     return v
 
-def fPosix_from_posix_sec(time_t t):
+def fPosix_from_posix_sec(time.time_t t):
     """Convert a raw POSIX seconds value to an fPosix object."""
     cdef fPosix v
 
