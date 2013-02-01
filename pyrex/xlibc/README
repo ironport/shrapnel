@@ -1,0 +1,5 @@
+The idea here is that the pxd files distributed with Cython are
+missing some things.  Since we expect/hope that they'll eventually
+make it into the distribution, we want to ease the transition as much
+as possible.  To that end, 'xlibc.time' should eventually be fixed as
+'libc.time'.
