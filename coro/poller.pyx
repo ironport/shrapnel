@@ -33,6 +33,9 @@ cdef extern from "sys/time.h":
         unsigned int tv_sec
         unsigned int tv_nsec
 
+from xlibc.stdlib cimport alloca
+
+# XXX consider putting these into a pxd file
 cdef extern from "sys/event.h":
 
     cdef struct kevent:
@@ -264,6 +267,8 @@ cdef class kevent_key:
         else:
             return (self.filter == other.filter) and (self.ident == other.ident)
 
+from posix cimport unistd
+
 cdef public class queue_poller [ object queue_poller_object, type queue_poller_type ]:
 
     cdef kevent * change_list
@@ -290,7 +295,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
 
     cdef tear_down(self):
         if self.kq_fd != -1:
-            libc.close(self.kq_fd)
+            unistd.close (self.kq_fd)
             self.kq_fd = -1
 
     cdef object set_wait_for (self, kevent_key kk, unsigned int fflags):
@@ -484,7 +489,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef py_kevent py_event
         ts.tv_sec, ts.tv_nsec = timeout
         # poll() is only called from <main>, so alloca() is OK.
-        events = <kevent *> libc.alloca (sizeof (kevent) * nevents)
+        events = <kevent *> alloca (sizeof (kevent) * nevents)
         if the_scheduler.profiling:
             the_profiler.charge_main()
         # Loop to handle EINTR.
@@ -497,7 +502,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                 nevents,
                 &ts
                 )
-            if not (r==-1 and libc.errno==libc.EINTR):
+            if not (r==-1 and errno.errno==errno.EINTR):
                 break
         if the_scheduler.profiling:
             the_profiler.charge_wait()
