@@ -29,7 +29,7 @@ __poller_version__ = "$Id"
 # ================================================================================
 
 from libc.stdint cimport uint64_t, uint32_t
-from libc cimport unistd
+from posix cimport unistd
 from libc cimport errno
 from xlibc.stdlib cimport alloca
 
