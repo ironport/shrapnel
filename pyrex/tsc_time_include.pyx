@@ -36,18 +36,19 @@
 # This will allow direct C access to the member variables of the Time objects.
 
 cimport coro.clocks.tsc_time as tsc_time
+from libc.stdint cimport int64_t
 
 cdef extern from "tsc_time.h":
 
     # Raw conversion functions.
-    libc.int64_t  c_usec_to_ticks "usec_to_ticks" (libc.int64_t)
-    libc.int64_t  c_ticks_to_usec "ticks_to_usec" (libc.int64_t)
-    libc.int64_t  c_sec_to_ticks  "sec_to_ticks"  (libc.int64_t)
-    libc.int64_t  c_ticks_to_sec  "ticks_to_sec"  (libc.int64_t)
-    double        c_ticks_to_fsec "ticks_to_fsec" (libc.int64_t)
-    libc.int64_t  c_fsec_to_ticks "fsec_to_ticks" (double)
-    void          c_update_time_relation "update_time_relation" ()
-    libc.int64_t  c_rdtsc         "rdtsc"         ()
+    int64_t  c_usec_to_ticks "usec_to_ticks" (int64_t)
+    int64_t  c_ticks_to_usec "ticks_to_usec" (int64_t)
+    int64_t  c_sec_to_ticks  "sec_to_ticks"  (int64_t)
+    int64_t  c_ticks_to_sec  "ticks_to_sec"  (int64_t)
+    double   c_ticks_to_fsec "ticks_to_fsec" (int64_t)
+    int64_t  c_fsec_to_ticks "fsec_to_ticks" (double)
+    void     c_update_time_relation "update_time_relation" ()
+    int64_t  c_rdtsc         "rdtsc"         ()
 
     # Constructors.
     tsc_time.TSC now_tsc()
