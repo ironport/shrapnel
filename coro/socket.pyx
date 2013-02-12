@@ -1217,6 +1217,7 @@ class AF:
     """Socket families."""
 
     INET = AF_INET
+    INET6 = AF_INET6
     UNIX = AF_UNIX
     LOCAL = AF_UNIX
 
