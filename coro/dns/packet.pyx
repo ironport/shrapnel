@@ -96,6 +96,31 @@ class OPCODE:
     IQUERY = 1
     STATUS = 2
 
+class RCODE:
+    NoError    = 0
+    FormErr    = 1
+    ServFail   = 2
+    NXDomain   = 3
+    NotImp     = 4
+    Refused    = 5
+    YXDomain   = 6
+    YXRRSet    = 7
+    NXRRSet    = 8
+    NotAuth    = 9
+    NotZone    = 10
+    BADVERS    = 16
+    BADSIG     = 16
+    BADKEY     = 17
+    BADTIME    = 18
+    BADMODE    = 19
+    BADNAME    = 20
+    BADALG     = 21
+
+RCODE_MAP = {}
+for name in dir (RCODE):
+    if not name.startswith ('__'):
+        RCODE_MAP [getattr (RCODE, name)] = name
+
 # Low-level 16 and 32 bit integer packing and unpacking
 
 cpdef bytes pack16bit (uint32_t n):
@@ -514,3 +539,46 @@ cdef class Unpacker:
         for i in range (h.arcount):
             arl.append (self.getRR())
         return h, qdl, anl, nsl, arl
+
+# minimal dfa to accept "($|(a+(.a+)*)$)":
+# ([[('$', 3), ('a', 1)],
+#  [('.', 2), ('$', 3), ('a', 1)],
+#  [('a', 1)]
+#  []],
+#  [3])
+# yes, I'm sure this could have been done more simply.
+# this way I don't have to think.
+
+def dot_sane (bytes s):
+    cdef char * s0 = s
+    cdef char ch
+    cdef int i = 0
+    cdef int state = 0
+    # we use the NUL terminator in the machine
+    for i in range (len (s) + 1):
+        ch = s0[i]
+        if state == 0:
+            if ch == b'\000':
+                return True
+            elif ch == b'.':
+                return False
+            else:
+                state = 1
+        elif state == 1:
+            if ch == b'\000':
+                return True
+            elif ch == b'.':
+                state = 2
+            else:
+                state = 1
+        elif state == 2:
+            if ch == b'\000':
+                return False
+            elif ch == '.':
+                return False
+            else:
+                state = 1
+    # unreachable
+    return False
+        
+    
