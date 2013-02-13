@@ -851,9 +851,7 @@ from coro.lru import lru_with_pin
 from coro.dns.reply import unpack_reply        
 
 import os
-import hashlib
-seed = hashlib.sha512 (repr (coro.get_now()) + repr(os.getpid())).digest()
-set_seed (seed + seed)
+set_seed (os.urandom (128))
 
 if not coro.has_ipv6():
     root_hints = [ x for x in root_hints if not ':' in x ]
