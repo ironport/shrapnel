@@ -61,13 +61,13 @@ def dns_random (uint32_t n):
                     incr(iin[3])
         surf()
         outleft = 8
-    return out[decr(outleft)] % n
+    return <int> (out[decr(outleft)] % n)
 
-def set_seed (bytes b):
+def set_seed (bytes b not None):
     "set the initial seed for the SURF PRNG"
     cdef int i
     cdef uint8_t * p
     p = <uint8_t *> (&seed[0])
     cdef unsigned char * x = b
-    for i in range (len (b)):
+    for i in range (min (len (b), sizeof(seed))):
         p[i] = <uint8_t> x[i]
