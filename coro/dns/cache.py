@@ -106,6 +106,7 @@ h.root-servers.net.	3600000	IN	AAAA	2001:500:1::803f:235
 i.root-servers.net.	3600000	IN	A	192.36.148.17
 i.root-servers.net.	3600000	IN	AAAA	2001:7fe::53"""
 
+# filtered below if !ipv6
 root_hints = [ x.split()[4] for x in raw_hints.split('\n') ]
 
 def domain_suffix (a, b):
@@ -840,7 +841,7 @@ def permute (x):
 import coro
 import coro.dns
 import coro.dns.packet as packet
-from coro.dns.random import dns_random
+from coro.dns.surf import dns_random, set_seed
 import random
 from aplib import tb
 import coro
@@ -848,6 +849,14 @@ import socket
 from coro.dns.exceptions import *
 from coro.lru import lru_with_pin
 from coro.dns.reply import unpack_reply        
+
+import os
+import hashlib
+seed = hashlib.sha512 (repr (coro.get_now()) + repr(os.getpid())).digest()
+set_seed (seed + seed)
+
+if not coro.has_ipv6():
+    root_hints = [ x for x in root_hints if not ':' in x ]
 
 # emulate 'statsmon' module
 class StaticCounter:
@@ -859,12 +868,12 @@ class StaticCounter:
     def __repr__ (self):
         return '<counter %r %r>' % (self.name, self.val)
 
-dns_request = StaticCounter('dns_request')
-net_request = StaticCounter('net_request')
-cache_hit = StaticCounter('cache_hit')
-cache_miss = StaticCounter('cache_miss')
+dns_request     = StaticCounter('dns_request')
+net_request     = StaticCounter('net_request')
+cache_hit       = StaticCounter('cache_hit')
+cache_miss      = StaticCounter('cache_miss')
 cache_exception = StaticCounter('cache_exception')
-cache_expired = StaticCounter('cache_expired')
+cache_expired   = StaticCounter('cache_expired')
 
 if __name__ == '__main__':
     import backdoor
