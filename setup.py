@@ -105,7 +105,7 @@ setup (
             ),
         Extension ('coro.oserrors', ['coro/oserrors.pyx', ],),
         Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
-        Extension ('coro.dns.random', ['coro/dns/random.c',],),
+        Extension ('coro.dns.surf', ['coro/dns/surf.pyx',],),
         Extension ('coro.lru', ['coro/lru.pyx'], ),
         Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'],),
         Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
