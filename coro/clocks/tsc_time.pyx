@@ -1,19 +1,19 @@
 # Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy  
+# Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights  
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-# copies of the Software, and to permit persons to whom the Software is 
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in 
+# The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
@@ -209,6 +209,11 @@ cdef extern from "sys/sysctl.h":
     int sysctlbyname(char *name, void *oldp, size_t *oldlenp, void *newp,
                       size_t newlen)
 
+IF UNAME_SYSNAME == "Linux":
+    DEF _GNU_SOURCE=1
+    cdef extern from "sched.h":
+       int sched_getcpu()
+
 # This is a pointer so that the time shifting functions can replace it.
 cdef uint64_t (*c_rdtsc) ()
 c_rdtsc = _c_rdtsc
@@ -236,9 +241,34 @@ cdef uint64_t get_ticks_per_sec() except -1:
     cdef char buffer[128]
     cdef size_t buffer_size
 
-    # XXX - Need to find a way to get ticks per sec on Linux, fake it for now
     IF UNAME_SYSNAME == "Linux":
-        return 2793008320
+        current_cpu_number = sched_getcpu()
+        f = open('/proc/cpuinfo')
+        try:
+            lines = f.readlines()
+        finally:
+            f.close()
+
+        cpu_found = False
+        cpu_speed_mhz = None
+        for line in lines:
+            if line.startswith('processor'):
+                found_cpu_number = int(line.split(':')[-1].strip())
+                if found_cpu_number == current_cpu_number:
+                    cpu_found = True
+                continue
+
+            if not cpu_found:
+                continue
+
+            if line.startswith('cpu MHz'):
+                cpu_speed_mhz = float(line.split(':')[-1].strip())
+                break
+
+        if cpu_speed_mhz is None:
+            raise RuntimeError('failed to detect CPU frequency')
+
+        return cpu_speed_mhz * 1000000
 
     buffer_size = sizeof(buffer)
 
