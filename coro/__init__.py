@@ -35,6 +35,10 @@ import os
 
 UNAME = os.uname()[0]
 
+# install default dns resolver
+import coro.dns.cache
+coro.dns.cache.install()
+
 # ============================================================================
 #                        tracebacks/exceptions
 # ============================================================================
