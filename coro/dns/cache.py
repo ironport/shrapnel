@@ -834,9 +834,12 @@ class dns_cache:
         del self.cache[key]
 
 def permute (x):
-    x0 = list (x)
-    random.shuffle (x0)
-    return x0
+    if len(x) == 1:
+        return x
+    else:
+        x0 = list (x)
+        random.shuffle (x0)
+        return x0
 
 import coro
 import coro.dns
@@ -855,6 +858,24 @@ set_seed (os.urandom (128))
 
 if not coro.has_ipv6():
     root_hints = [ x for x in root_hints if not ':' in x ]
+
+class resolver:
+    def __init__ (self):
+        self.cache = dns_cache()
+
+    def gethostbyname (self, name, qtype):
+        for ttl, addr in permute (self.cache.query (name, qtype)):
+            return addr
+
+    def resolve_ipv4 (self, name):
+        return self.gethostbyname (name, 'A')
+
+    def resolve_ipv6 (self, name):
+        return self.gethostbyname (name, 'AAAA')
+    
+def install():
+    "install the builtin resolver into the coro socket layer"
+    coro.set_resolver (resolver())
 
 # emulate 'statsmon' module
 class StaticCounter:
