@@ -25,7 +25,7 @@ __event_queue_version__ = "$Id: event_queue.pyx,v 1.1 2007/01/03 00:19:50 ehuss 
 include "python.pxi"
 from cython.operator cimport dereference as deref, preincrement as inc
 from libcpp.utility cimport pair
-from libc cimport uint64_t
+from libc.stdint cimport uint64_t
 
 cdef extern from "<map>" namespace "std":
     cdef cppclass multimap[T, U]:
