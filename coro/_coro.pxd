@@ -1,7 +1,12 @@
 # -*- Mode: Cython -*-
 
 from cpython.ref cimport PyObject
-from libc cimport intptr_t, memcpy, memset, off_t, time_t, timeval, uint64_t, uintptr_t
+
+# Only import things from libc that are very common and have unique names.
+from libc.stdint cimport intptr_t, uintptr_t, uint64_t
+from libc.string cimport memcpy, memset
+from posix.unistd cimport off_t
+from xlibc.time cimport timeval
 
 cdef extern from "Python.h":
 

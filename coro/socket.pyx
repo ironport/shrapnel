@@ -35,6 +35,8 @@ from cpython.int cimport PyInt_Check
 from cpython.bytes cimport PyBytes_Size
 from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM, PyTuple_GET_ITEM
 
+from libc cimport errno
+
 cdef int min (int a, int b):
     if a < b:
         return a
@@ -266,7 +268,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef int r
         if self.fd != -1:
             r = close (self.fd)
-            if r == 0 or (libc.errno == libc.ECONNRESET or libc.errno == libc.ENOTCONN):
+            if r == 0 or (errno.errno == errno.ECONNRESET or errno.errno == errno.ENOTCONN):
                 self.fd = -1
                 the_poller.notify_of_close (self.orig_fd)
                 # XXX: if we are a listening AF_UNIX socket,
@@ -275,7 +277,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 raise_oserror()
 
-    def send (self, bytes data):
+    cpdef int send (self, bytes data):
         """Send data on the socket.
 
         This will repeatedly call write to ensure all data has been sent. This
@@ -300,9 +302,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 #r = send (self.fd, buffer, left, 0)
             else:
                 r = -1
-                libc.errno = libc.EWOULDBLOCK
+                errno.errno = errno.EAGAIN
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     # XXX kqueue can tell us exactly how much
                     #     room is available, is this useful?
                     self._wait_for_write()
@@ -315,21 +317,21 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 if left == 0:
                     return sent
 
-    def sendall(self, data):
+    cpdef int sendall(self, bytes data):
         """Send all data.
 
         This is an alias for the :meth:`send` method.
         """
         return self.send(data)
 
-    def write (self, data):
+    cpdef int write (self, bytes data):
         """Write data.
 
         This is an alias for the :meth:`send` method.
         """
         return self.send(data)
 
-    def sendto (self, bytes data, address, int flags=0):
+    cpdef int sendto (self, bytes data, address, int flags=0):
         """Send data to a specific address.
 
         :param data: The data to send.
@@ -358,9 +360,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 r = sendto (self.fd, buffer, len(data), flags, <sockaddr*>&sa, addr_len)
             else:
                 r = -1
-                libc.errno = libc.EWOULDBLOCK
+                errno.errno = errno.EAGAIN
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     # XXX kqueue can tell us exactly how much
                     #     room is available, is this useful?
                     self._wait_for_write()
@@ -369,7 +371,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 return r
 
-    cpdef recv (self, int buffer_size):
+    cpdef bytes recv (self, int buffer_size):
         """Receive data.
 
         This may return less data than you request if the socket buffer is not
@@ -393,9 +395,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 r = read (self.fd, buffer, buffer_size)
             else:
                 r = -1
-                libc.errno = libc.EWOULDBLOCK
+                errno.errno = errno.EAGAIN
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     # kqueue will tell us exactly how many bytes are waiting for us.
                     new_buffer_size = min (self._wait_for_read(), buffer_size)
                     if new_buffer_size != buffer_size:
@@ -404,13 +406,13 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 else:
                     raise_oserror()
             elif r == 0:
-                return ''
+                return b''
             elif r == buffer_size:
                 return buffer
             else:
                 return PyBytes_FromStringAndSize (buffer, r)
 
-    cpdef read (self, int buffer_size):
+    cpdef bytes read (self, int buffer_size):
         """Read data.
 
         This is an alias for the :meth:`recv` method.
@@ -448,9 +450,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 r = recvfrom (self.fd, <void*>buffer, buffer_size, flags, <sockaddr*>&sa, &addr_len)
             else:
                 r = -1
-                libc.errno = libc.EWOULDBLOCK
+                errno.errno = errno.EAGAIN
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     # kqueue will tell us exactly how many bytes are waiting for us.
                     new_buffer_size = min (self._wait_for_read(), buffer_size)
                     if new_buffer_size != buffer_size:
@@ -468,7 +470,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     result = PyBytes_FromStringAndSize (buffer, r)
                 return (result, address)
 
-    cpdef recv_exact (self, int nbytes):
+    cpdef bytes recv_exact (self, int nbytes):
         """Receive exactly the number of bytes requested.
 
         This will repeatedly call read until all data is received.
@@ -493,9 +495,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 r = read (self.fd, p, nbytes)
             else:
                 r = -1
-                libc.errno = libc.EWOULDBLOCK
+                errno.errno = errno.EAGAIN
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     self._wait_for_read()
                 else:
                     raise_oserror()
@@ -555,9 +557,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     rc = readv(self.fd, iov, iov_pos)
                 else:
                     rc = -1
-                    libc.errno = libc.EWOULDBLOCK
+                    errno.errno = errno.EAGAIN
                 if rc == -1:
-                    if libc.errno == libc.EWOULDBLOCK:
+                    if errno.errno == errno.EAGAIN:
                         self._wait_for_read()
                     else:
                         raise_oserror()
@@ -601,7 +603,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         finally:
             PyMem_Free(iov)
 
-    cpdef writev (self, list data):
+    cpdef int writev (self, list data):
         """Write a vector array of data.
 
         This will repeatedly call writev until all data is sent. If it is
@@ -661,9 +663,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     r = writev (self.fd, iov, j)
                 else:
                     r = -1
-                    libc.errno = libc.EWOULDBLOCK
+                    errno.errno = errno.EAGAIN
                 if r == -1:
-                    if libc.errno == libc.EWOULDBLOCK:
+                    if errno.errno == errno.EAGAIN:
                         self._wait_for_write()
                     else:
                         raise_oserror()
@@ -717,9 +719,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     r = recv(self.fd, cbuf, nbytes, flags)
                 else:
                     r = -1
-                    libc.errno = libc.EWOULDBLOCK
+                    errno.errno = errno.EAGAIN
                 if r == -1:
-                    if libc.errno == libc.EWOULDBLOCK:
+                    if errno.errno == errno.EAGAIN:
                         self._wait_for_read()
                     else:
                         raise_oserror()
@@ -771,9 +773,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
                     r = recvfrom(self.fd, cbuf, nbytes, flags, <sockaddr*>&sa, &addr_len)
                 else:
                     r = -1
-                    libc.errno = libc.EWOULDBLOCK
+                    errno.errno = errno.EAGAIN
                 if r == -1:
-                    if libc.errno == libc.EWOULDBLOCK:
+                    if errno.errno == errno.EAGAIN:
                         self._wait_for_read()
                     else:
                         raise_oserror()
@@ -947,7 +949,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         while 1:
             r = connect (self.fd, <sockaddr*>&sa, addr_len)
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK or libc.errno == libc.EINPROGRESS:
+                if errno.errno == errno.EAGAIN or errno.errno == errno.EINPROGRESS:
                     self._wait_for_write()
                     return None
                 else:
@@ -1013,11 +1015,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 r = accept (self.fd, <sockaddr *>&sa, &addr_len)
             else:
                 r = -1
-                libc.errno = libc.EWOULDBLOCK
+                errno.errno = errno.EAGAIN
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     self._wait_for_read()
-                elif libc.errno == libc.ECONNABORTED:
+                elif errno.errno == errno.ECONNABORTED:
                     pass
                 else:
                     raise_oserror()
@@ -1061,9 +1063,9 @@ cdef public class sock [ object sock_object, type sock_type ]:
             addr_len = sizeof (sockaddr_storage)
             r = accept (self.fd, <sockaddr *>&sa, &addr_len)
             if r == -1:
-                if libc.errno == libc.EWOULDBLOCK:
+                if errno.errno == errno.EAGAIN:
                     return result[:count]
-                elif libc.errno == libc.ECONNABORTED:
+                elif errno.errno == errno.ECONNABORTED:
                     pass
                 else:
                     raise_oserror()
@@ -1165,7 +1167,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef sock new_sock
         cdef int new_fd
 
-        new_fd = libc.dup(self.fd)
+        new_fd = unistd.dup(self.fd)
         if new_fd == -1:
             raise_oserror()
 

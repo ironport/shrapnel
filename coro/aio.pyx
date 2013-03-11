@@ -24,6 +24,9 @@ __aio_version__ = "$Id: //prod/main/ap/shrapnel/coro/aio.pyx#19 $"
 
 # XXX todo - tests: coverage, performance, leak.
 
+from cpython.bytes cimport PyBytes_FromStringAndSize, PyBytes_Check, PyBytes_AS_STRING
+from libc cimport errno
+
 cdef extern from "signal.h":
 
     cdef union sigval:
@@ -69,16 +72,16 @@ cdef class aio_control_block:
         self.cb.aio_offset = offset
         self.cb.aio_sigevent.sigev_notify = SIGEV_KEVENT
         self.cb.aio_sigevent.sigev_notify_kqueue = kq_fd
-        if PyString_Check (str_or_size):
+        if PyBytes_Check (str_or_size):
             self.buffer_string = str_or_size
-            self.cb.aio_buf = PyString_AS_STRING (str_or_size)
-            self.cb.aio_nbytes = PyString_Size (str_or_size)
+            self.cb.aio_buf = PyBytes_AS_STRING (str_or_size)
+            self.cb.aio_nbytes = PyBytes_Size (str_or_size)
         elif PyInt_Check (str_or_size):
-            self.buffer_string = PyString_FromStringAndSize (NULL, str_or_size)
-            self.cb.aio_buf = PyString_AS_STRING (self.buffer_string)
+            self.buffer_string = PyBytes_FromStringAndSize (NULL, str_or_size)
+            self.cb.aio_buf = PyBytes_AS_STRING (self.buffer_string)
             self.cb.aio_nbytes = str_or_size
         else:
-            raise ValueError, "expected (int <kq_fd>, int <fd>, long <offset>, string|size <str_or_size>)"
+            raise ValueError, "expected (int <kq_fd>, int <fd>, long <offset>, bytes|size <str_or_size>)"
 
     def __repr__ (self):
         return '<aiocb on fd=%d for %d bytes @ %r at 0x%x>' % (
@@ -153,7 +156,7 @@ def aio_read (int fd, int nbytes, uint64_t offset):
         raise_oserror()
     else:
         r = _aio_error (&cb.cb)
-        if r == libc.EINPROGRESS:
+        if r == errno.EINPROGRESS:
             # delayed async operation
             # 0 because we're not in the changelist.
             kt = kevent_target (me, 0)
@@ -222,7 +225,7 @@ def aio_write (int fd, object buffer, uint64_t offset):
         raise_oserror()
     else:
         r = _aio_error (&cb.cb)
-        if r == libc.EINPROGRESS:
+        if r == errno.EINPROGRESS:
             # delayed async operation
             # wait for the kevent to wake us up
             # 0 because we're not in the changelist.

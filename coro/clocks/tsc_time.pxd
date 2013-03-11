@@ -20,12 +20,11 @@
 
 # Pyrex definition file for tsc_time module objects.
 
-# Work around Pyrex's poor recursive import/include support.
-cimport libc as _libc
+from libc.stdint cimport int64_t
 
 cdef class Time:
 
-    cdef readonly _libc.int64_t tsc
+    cdef readonly int64_t tsc
 
     cdef c_ctime(self)
     cdef c_localtime(self)
