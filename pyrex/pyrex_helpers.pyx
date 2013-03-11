@@ -25,14 +25,15 @@
 cdef object oserrors
 from coro import oserrors
 from xlibc cimport stdarg
+
+from libc cimport string
 from libc cimport errno
-from libc cimport stdint
 
 cdef raise_oserror():
-    oserrors.map_exception(OSError(errno.errno, errno.strerror(errno.errno)))
+    oserrors.map_exception (OSError (errno.errno, string.strerror (errno.errno)))
 
-cdef raise_oserror_with_errno(int e):
-    oserrors.map_exception(OSError(e, errno.strerror(e)))
+cdef raise_oserror_with_errno (int e):
+    oserrors.map_exception (OSError (e, string.strerror (e)))
 
 cdef object __builtin__
 import __builtin__
