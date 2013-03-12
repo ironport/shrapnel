@@ -25,6 +25,8 @@ __socket_version__ = "$Id: //prod/main/ap/shrapnel/coro/socket.pyx#57 $"
 
 # Note: this file is included by <coro.pyx>
 
+DEF KQUEUE = (UNAME_SYSNAME == "FreeBSD" or UNAME_SYSNAME == "Darwin")
+
 # ================================================================================
 #                                socket
 # ================================================================================
@@ -387,12 +389,13 @@ cdef public class sock [ object sock_object, type sock_type ]:
         """
         cdef bytes buffer
         cdef int r, new_buffer_size
+        cdef char * p
 
         buffer = PyBytes_FromStringAndSize (NULL, buffer_size)
+        p = buffer
         while 1:
             if self._try_selfish() == 1:
-                #r = recv (self.fd, buffer, buffer_size, 0)
-                r = read (self.fd, buffer, buffer_size)
+                r = read (self.fd, p, buffer_size)
             else:
                 r = -1
                 errno.errno = errno.EAGAIN
@@ -400,9 +403,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 if errno.errno == errno.EAGAIN:
                     # kqueue will tell us exactly how many bytes are waiting for us.
                     new_buffer_size = min (self._wait_for_read(), buffer_size)
-                    if new_buffer_size != buffer_size:
-                        buffer = PyBytes_FromStringAndSize (NULL, new_buffer_size)
-                        buffer_size = new_buffer_size
+                    IF KQUEUE:
+                        # kqueue will tell us exactly how many bytes are waiting for us.
+                        if new_buffer_size != buffer_size:
+                            buffer = PyBytes_FromStringAndSize (NULL, new_buffer_size)
+                            buffer_size = new_buffer_size
+                            p = buffer
                 else:
                     raise_oserror()
             elif r == 0:
@@ -441,13 +447,15 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef sockaddr_storage sa
         cdef int r, new_buffer_size
         cdef socklen_t addr_len
+        cdef char * p
 
         buffer = PyBytes_FromStringAndSize (NULL, buffer_size)
+        p = buffer
         while 1:
             if self._try_selfish() == 1:
                 addr_len = sizeof (sockaddr_storage)
                 memset (&sa, 0, sizeof (sockaddr_storage))
-                r = recvfrom (self.fd, <void*>buffer, buffer_size, flags, <sockaddr*>&sa, &addr_len)
+                r = recvfrom (self.fd, <void*>p, buffer_size, flags, <sockaddr*>&sa, &addr_len)
             else:
                 r = -1
                 errno.errno = errno.EAGAIN
@@ -455,9 +463,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 if errno.errno == errno.EAGAIN:
                     # kqueue will tell us exactly how many bytes are waiting for us.
                     new_buffer_size = min (self._wait_for_read(), buffer_size)
-                    if new_buffer_size != buffer_size:
-                        buffer = PyBytes_FromStringAndSize (NULL, new_buffer_size)
-                        buffer_size = new_buffer_size
+                    IF KQUEUE:
+                        # kqueue will tell us exactly how many bytes are waiting for us.
+                        if new_buffer_size != buffer_size:
+                            buffer = PyBytes_FromStringAndSize (NULL, new_buffer_size)
+                            buffer_size = new_buffer_size
+                            p = buffer
                 else:
                     raise_oserror()
             else:
