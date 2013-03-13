@@ -846,7 +846,7 @@ import coro.dns
 import coro.dns.packet as packet
 from coro.dns.surf import dns_random, set_seed
 import random
-from aplib import tb
+from coro import tb
 import coro
 import socket
 from coro.dns.exceptions import *
