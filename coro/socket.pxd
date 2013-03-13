@@ -169,11 +169,11 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cpdef object recvfrom (self, int buffer_size, int flags=?)
     cpdef bytes recv_exact (self, int bytes)
     cpdef readv (self, list size_list)
-    cpdef int send (self, bytes data)
-    cpdef int sendto (self, bytes data, address, int flags=?)
-    cpdef int sendall (self, bytes data)
-    cpdef int write (self, bytes data)
-    cpdef int writev (self, list data)
+    cpdef int send (self, bytes data) except -1
+    cpdef int sendto (self, bytes data, address, int flags=?) except -1
+    cpdef int sendall (self, bytes data) except -1
+    cpdef int write (self, bytes data) except -1
+    cpdef int writev (self, list data) except -1
     # XXX is there a cpython.type for buffer objects?
     IF False:
         cpdef recv_into (self, buffer, int nbytes=?, int flags=?)

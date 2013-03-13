@@ -279,7 +279,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 raise_oserror()
 
-    cpdef int send (self, bytes data):
+    cpdef int send (self, bytes data) except -1:
         """Send data on the socket.
 
         This will repeatedly call write to ensure all data has been sent. This
@@ -319,21 +319,21 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 if left == 0:
                     return sent
 
-    cpdef int sendall(self, bytes data):
+    cpdef int sendall(self, bytes data) except -1:
         """Send all data.
 
         This is an alias for the :meth:`send` method.
         """
         return self.send(data)
 
-    cpdef int write (self, bytes data):
+    cpdef int write (self, bytes data) except -1:
         """Write data.
 
         This is an alias for the :meth:`send` method.
         """
         return self.send(data)
 
-    cpdef int sendto (self, bytes data, address, int flags=0):
+    cpdef int sendto (self, bytes data, address, int flags=0) except -1:
         """Send data to a specific address.
 
         :param data: The data to send.
@@ -614,7 +614,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         finally:
             PyMem_Free(iov)
 
-    cpdef int writev (self, list data):
+    cpdef int writev (self, list data) except -1:
         """Write a vector array of data.
 
         This will repeatedly call writev until all data is sent. If it is
