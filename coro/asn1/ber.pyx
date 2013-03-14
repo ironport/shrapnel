@@ -303,10 +303,10 @@ cdef object _INTEGER (long n):
 
 cdef object _BOOLEAN (long n):
     if n:
-        n = 0xff
+        b = '\xff'
     else:
-        n = 0x00
-    return _TLV1 (TAGS_BOOLEAN, _encode_integer (n))
+        b = '\x00'
+    return _TLV1 (TAGS_BOOLEAN, b)
 
 cdef object _SEQUENCE (object elems):
     return _TLV (TAGS_SEQUENCE, elems)
