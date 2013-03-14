@@ -17,9 +17,11 @@ class simple_test (ber_test_case):
             SET (INTEGER(34), INTEGER(19), OCTET_STRING('fishing line')),
             OBJID ([2,3,4,5,6,88]),
             OCTET_STRING ("spaghetti"),
+            BOOLEAN(True),
+            BOOLEAN(False),
             )
-        self.assertEqual (x, '0(1\x14\x02\x01"\x02\x01\x13\x04\x0cfishing line\x06\x05S\x04\x05\x06X\x04\tspaghetti')
-        self.assertEqual (decode (x), ([[34, 19, 'fishing line'], ('oid', [2, 3, 4, 5, 6, 88]), 'spaghetti'], 42))
+        self.assertEqual (x, '0.1\x14\x02\x01"\x02\x01\x13\x04\x0cfishing line\x06\x05S\x04\x05\x06X\x04\tspaghetti\x01\x01\xff\x01\x01\x00')
+        self.assertEqual (decode (x), ([[34, 19, 'fishing line'], ('oid', [2, 3, 4, 5, 6, 88]), 'spaghetti', True, False], 48))
 
 # www.google.com cert
 google_cert = """-----BEGIN CERTIFICATE-----
