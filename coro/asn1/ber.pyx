@@ -81,7 +81,7 @@ TAG_TABLE = {
     0x1E : 'BMP_STRING',                # 30: Basic Multilingual Plane/Unicode string
     }
 
-cdef int length_of_length (int n):
+cdef long length_of_length (long n):
     cdef int r
     # how long will the BER-encoded length <n> be?
     if n < 0x80:
@@ -93,9 +93,9 @@ cdef int length_of_length (int n):
             r = r + 1
         return r
 
-cdef void encode_length (int l, int n, char * buffer):
+cdef void encode_length (long l, long n, char * buffer):
     # caller must ensure room. see length_of_length above.
-    cdef int i
+    cdef long i
     if l < 0x80:
         buffer[0] = <char> l
     else:
@@ -106,8 +106,8 @@ cdef void encode_length (int l, int n, char * buffer):
 
 # encode an integer, ASN1 style.
 # two's complement with the minimum number of bytes.
-cdef object _encode_integer (int n):
-    cdef int n0, byte, i
+cdef object _encode_integer (long n):
+    cdef long n0, byte, i
     # 16 bytes is more than enough for int == int64_t
     cdef char result[16]
     i = 0
@@ -135,7 +135,7 @@ cdef object _encode_integer (int n):
 # encode an integer, ASN1 style.
 # two's complement with the minimum number of bytes.
 cdef object _encode_long_integer (n):
-    cdef int byte, i, rlen
+    cdef long byte, i, rlen
     cdef char * rbuf
     # 1) how many bytes?
     n0 = n
@@ -234,9 +234,9 @@ def encode_long_integer (n):
 # _TLV1 (tag, data)
 # <tag> is an ASN1 tag
 # <data> is a single string
-cdef object _TLV1 (int tag, bytes data):
+cdef object _TLV1 (long tag, bytes data):
     # compute length of concatenated data
-    cdef int rlen, i, lol
+    cdef long rlen, i, lol
     cdef bytes s
     rlen = len (data)
     # compute length of length
@@ -259,9 +259,9 @@ cdef object _TLV1 (int tag, bytes data):
 # _TLV (tag, *data)
 # <data> is a sequence of strings
 # <tag> is an ASN1 tag
-cdef object _TLV (int tag, object data):
+cdef object _TLV (long tag, object data):
     # compute length of concatenated data
-    cdef int rlen, i, ilen, lol
+    cdef long rlen, i, ilen, lol
     cdef bytes s
     rlen = 0
     for s in data:
@@ -286,22 +286,22 @@ cdef object _TLV (int tag, object data):
     # return result
     return result
 
-cdef object _CHOICE (int n, bint structured):
+cdef object _CHOICE (long n, bint structured):
     if structured:
         n = n | <int>FLAGS_STRUCTURED
     n = n | <int>FLAGS_CONTEXT
     return n
 
-cdef object _APPLICATION (int n):
+cdef object _APPLICATION (long n):
     return n | <int>FLAGS_APPLICATION | <int>FLAGS_STRUCTURED
 
-cdef object _ENUMERATED (int n):
+cdef object _ENUMERATED (long n):
     return _TLV1 (TAGS_ENUMERATED, _encode_integer (n))
 
-cdef object _INTEGER (int n):
+cdef object _INTEGER (long n):
     return _TLV1 (TAGS_INTEGER, _encode_integer (n))
 
-cdef object _BOOLEAN (int n):
+cdef object _BOOLEAN (long n):
     if n:
         n = 0xff
     else:
@@ -318,8 +318,8 @@ cdef object _OCTET_STRING (bytes s):
     return _TLV1 (TAGS_OCTET_STRING, s)
 
 cdef object _OBJID (list l):
-    cdef unsigned int i, list_len, one_num, temp_buf_off, temp_buf_len, done
-    cdef unsigned int buf_len, first_two_as_int
+    cdef unsigned long i, list_len, one_num, temp_buf_off, temp_buf_len, done
+    cdef unsigned long buf_len, first_two_as_int
     cdef char temp_buf[5], buf[32]
 
     if len(l) < 2:
@@ -366,16 +366,16 @@ cdef object _OBJID (list l):
 # externally visible python interfaces
 # ================================================================================
 
-def TLV (int tag, *data):
+def TLV (long tag, *data):
     return _TLV (tag, data)
 
-def CHOICE (int n, bint structured):
+def CHOICE (long n, bint structured):
     return _CHOICE (n, structured)
 
-def APPLICATION (int n):
+def APPLICATION (long n):
     return _APPLICATION (n)
 
-def ENUMERATED (int n):
+def ENUMERATED (long n):
     return _ENUMERATED (n)
 
 def INTEGER (n):
@@ -384,7 +384,7 @@ def INTEGER (n):
     else:
         return _INTEGER (n)
 
-def BOOLEAN (int n):
+def BOOLEAN (long n):
     return _BOOLEAN (n)
 
 def SEQUENCE (*elems):
@@ -438,27 +438,27 @@ kind_bitstring   = 'bitstring'
 
 # SAFETY NOTE: it's important for each decoder to correctly handle length == zero.
 
-cdef object decode_string (unsigned char * s, int * pos, int length):
+cdef object decode_string (unsigned char * s, long * pos, long length):
     # caller guarantees sufficient data in <s>
     result = PyBytes_FromStringAndSize (<char *> (s+(pos[0])), length)
     pos[0] = pos[0] + length
     return result
 
-cdef object decode_raw (unsigned char * s, int * pos, int length):
+cdef object decode_raw (unsigned char * s, long * pos, long length):
     # caller guarantees sufficient data in <s>
     result = PyBytes_FromStringAndSize (<char *> (s+(pos[0])), length)
     pos[0] = pos[0] + length
     return result
 
-cdef object decode_bitstring (unsigned char * s, int * pos, int length):
+cdef object decode_bitstring (unsigned char * s, long * pos, long length):
     # caller guarantees sufficient data in <s>
     unused = <int>s[pos[0]]
     result = PyBytes_FromStringAndSize (<char *> (s+(pos[0]+1)), length-1)
     pos[0] = pos[0] + length
     return unused, result
 
-cdef object decode_integer (unsigned char * s, int * pos, int length):
-    cdef int n
+cdef object decode_integer (unsigned char * s, long * pos, long length):
+    cdef long n
     if length == 0:
         return 0
     else:
@@ -478,7 +478,7 @@ cdef object decode_integer (unsigned char * s, int * pos, int length):
         return n
 
 # almost identical, but note the cast to long, this generates very different code
-cdef object decode_long_integer (unsigned char * s, int * pos, int length):
+cdef object decode_long_integer (unsigned char * s, long * pos, long length):
     if length == 0:
         return 0
     else:
@@ -497,8 +497,8 @@ cdef object decode_long_integer (unsigned char * s, int * pos, int length):
         pos[0] = pos[0] + 1
         return n
 
-cdef object decode_structured (unsigned char * s, int * pos, int length):
-    cdef int start, end
+cdef object decode_structured (unsigned char * s, long * pos, long length):
+    cdef long start, end
     cdef list result = []
     start = pos[0]
     end = start + length
@@ -509,8 +509,8 @@ cdef object decode_structured (unsigned char * s, int * pos, int length):
             result.append (item)
     return result
 
-cdef object decode_objid (unsigned char * s, int * pos, int length):
-    cdef int i, m, n, hi, lo
+cdef object decode_objid (unsigned char * s, long * pos, long length):
+    cdef long i, m, n, hi, lo
     cdef list r
     m = s[pos[0]]
     # first * 40 + second
@@ -528,25 +528,25 @@ cdef object decode_objid (unsigned char * s, int * pos, int length):
         pos[0] = pos[0] + 1
     return r
 
-cdef object decode_boolean (unsigned char * s, int * pos, int length):
+cdef object decode_boolean (unsigned char * s, long * pos, long length):
     pos[0] = pos[0] + 1
     if s[pos[0]-1] == 0xff:
         return True
     else:
         return False
 
-cdef int _decode_length (unsigned char * s, int * pos, int lol):
+cdef long _decode_length (unsigned char * s, long * pos, long lol):
     # actually supports only up to 32-bit lengths
-    cdef unsigned int i, n
+    cdef unsigned long i, n
     n = 0
     for i from 0 <= i < lol:
         n = (n << 8) | s[pos[0]]
         pos[0] = pos[0] + 1
     return n
 
-cdef object _decode (unsigned char * s, int * pos, int eos, bint just_tlv):
-    cdef int tag, lol
-    cdef unsigned int length
+cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
+    cdef long tag, lol
+    cdef unsigned long length
     # 1) get tag
     tag = <int> s[pos[0]]
     if tag & 0x1f == 0x1f:
@@ -620,7 +620,7 @@ cdef object _decode (unsigned char * s, int * pos, int eos, bint just_tlv):
             else:
                 return (kind, tag & 0x1f, decode_raw (s, pos, length))
 
-def decode (bytes s, int pos=0, just_tlv=0):
+def decode (bytes s, long pos=0, just_tlv=0):
     return _decode (
         <unsigned char *> s,
         &pos,
