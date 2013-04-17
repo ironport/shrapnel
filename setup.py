@@ -108,6 +108,7 @@ setup (
         Extension ('coro.dns.surf', ['coro/dns/surf.pyx',],),
         Extension ('coro.lru', ['coro/lru.pyx'], ),
         Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'],),
+        Extension ('coro.db.postgres.proto', ['coro/db/postgres/proto.pyx'],),
         Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
         Extension (
             'coro.clocks.tsc_time',
@@ -119,7 +120,10 @@ setup (
                 ],
             ),
         ],
-    packages=['coro', 'coro.clocks', 'coro.http', 'coro.dns', 'coro.emulation'],
+    packages=[
+        'coro', 'coro.clocks', 'coro.http', 'coro.dns',
+        'coro.emulation', 'coro.db', 'coro.asn1', 'coro.db.postgres'
+        ],
     package_dir = {
     #    '': 'coroutine',
         'coro': 'coro',
