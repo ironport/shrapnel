@@ -1,0 +1,3 @@
+# -*- Mode: Python -*-
+
+import postgres
