@@ -11,6 +11,17 @@ supporting both 32-bit and 64-bit platforms.  It is the culmination of
 about 8 years of work at IronPort Systems, a provider of high-speed
 mail appliances.  It was open-sourced by Cisco Systems in late 2011.
 
+Status
+======
+
+Apr 17, 2013: I've just merged in a long chain of branches for several
+important features:
+
+ * Support for pure-cython servers (branch 'pxdfix')
+ * Full DNS resolver implementation (branch 'dns-cache')
+ * Updated postgres support (branch 'postgres')
+
+
 Features
 ========
 
