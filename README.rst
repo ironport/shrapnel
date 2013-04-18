@@ -32,7 +32,7 @@ Features
  * Thread synchronization primitives, like mutexes, semaphores, etc...
  * with_timeout(): wrap any funcall with a timeout.
  * Wait on kqueue events like file/directory changes, signals, processes, etc... [kqueue only]
- * DNS stub resolver (full-fledged resolver may be forthcoming)
+ * DNS resolver and cache
  * HTTP server and client (plus WebSocket, RFC6455 & hixie-76)
  * Support for TLS via tlslite (openssl interface may be forthcoming)
  * other protocols/codecs: ldap, asn1, ftp, mysql, postgres, AMQP_.
