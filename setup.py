@@ -149,6 +149,7 @@ setup (
         Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'],),
         Extension ('coro.db.postgres.proto', ['coro/db/postgres/proto.pyx'],),
         Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
+        Extension ('coro.http.zspdy', ['coro/http/zspdy.pyx'], include_dirs=['coro'], libraries=['z'], depends=['coro/zlib.pxd']),
         Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
