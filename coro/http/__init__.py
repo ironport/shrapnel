@@ -1,6 +1,6 @@
 # -*- Mode: Python -*-
 
-from server import server, tlslite_server, connection, http_request
+from server import server, tlslite_server, openssl_server, connection, http_request
 import handlers
 import coro
 from coro import read_stream

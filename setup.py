@@ -54,9 +54,48 @@ compile_time_env = {
     'CORO_DEBUG': False,
     }
 
+#--------------------------------------------------------------------------------
+# OpenSSL support 
+#--------------------------------------------------------------------------------
+import os
+import sys
+
+# If you need NPN support (for SPDY), you most likely will have to link against
+#   newer openssl than the one that came with your OS.  (this is circa 2012).
+# 1) change the value of ossl_base below.
+# 2) change the value of either 'libraries' or 'extra_link_args' depending on
+#    your platform.
+#    For OS X: use 'manual static link'
+
+# statically link is a bit tricky
+# Note: be sure to remove coro/openssl.c if you change this, see NPN probe below.
+ossl_base = '/Users/rushing/src/openssl-1.0.1c'
+#ossl_base = '/usr/'
+
+def O (path):
+    return os.path.join (ossl_base, path)
+
+# cheap probe for npn support
+USE_NPN = (open (O('include/openssl/ssl.h')).read().find ('next_protos') != -1)
+
+OpenSSL_Extension = Extension (
+    'coro.ssl.openssl',
+    ['coro/ssl/openssl.pyx'],
+    depends=['coro/ssl/openssl.pxi'],
+    # manual static link
+    extra_link_args = [ O('libcrypto.a'), O('libssl.a') ],
+    # link to an absolute location
+    #extra_link_args = [ '-L %s -lcrypto -lssl' % (ossl_base,) ]
+    # 'normal' link
+    #libraries = ['crypto', 'ssl'],
+    include_dirs = [ O('include') ],
+    cython_compile_time_env = {'NPN' : USE_NPN},
+    )
+#--------------------------------------------------------------------------------
+
 setup (
     name='coro',
-    version='1.0.2-000',
+    version='1.0.3-000',
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
@@ -119,13 +158,14 @@ setup (
                 os.path.join(include_dir, 'include'),
                 ],
             ),
+        # the pre-computed openssl extension from above
+        OpenSSL_Extension,
         ],
     packages=[
-        'coro', 'coro.clocks', 'coro.http', 'coro.dns',
+        'coro', 'coro.clocks', 'coro.http', 'coro.dns', 'coro.ssl',
         'coro.emulation', 'coro.db', 'coro.asn1', 'coro.db.postgres'
         ],
     package_dir = {
-    #    '': 'coroutine',
         'coro': 'coro',
         'coro.clocks': 'coro/clocks',
         'coro.dns': 'coro/dns',
