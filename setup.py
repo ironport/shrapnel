@@ -68,15 +68,20 @@ import sys
 #    For OS X: use 'manual static link'
 
 # statically link is a bit tricky
-# Note: be sure to remove coro/openssl.c if you change this, see NPN probe below.
-ossl_base = '/Users/rushing/src/openssl-1.0.1c'
-#ossl_base = '/usr/'
+# Note: be sure to remove coro/ssl/openssl.c if you change this, see NPN probe below.
+#ossl_base = '/Users/rushing/src/openssl-1.0.1c'
+ossl_base = '/usr/'
 
 def O (path):
     return os.path.join (ossl_base, path)
 
 # cheap probe for npn support
 USE_NPN = (open (O('include/openssl/ssl.h')).read().find ('next_protos') != -1)
+
+if USE_NPN:
+    sys.stderr.write ('detected NPN-capable OpenSSL\n')
+else:
+    sys.stderr.write ('NPN support disabled.  Needs OpenSSL-1.0.1+\n')
 
 OpenSSL_Extension = Extension (
     'coro.ssl.openssl',
