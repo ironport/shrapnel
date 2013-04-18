@@ -34,7 +34,7 @@ Features
  * Wait on kqueue events like file/directory changes, signals, processes, etc... [kqueue only]
  * DNS resolver and cache
  * HTTP server and client (plus WebSocket, RFC6455 & hixie-76)
- * Support for TLS via tlslite (openssl interface may be forthcoming)
+ * Support for TLS via tlslite and openssl (plus NPN for both)
  * other protocols/codecs: ldap, asn1, ftp, mysql, postgres, AMQP_.
  * `MIT License`_.
  
