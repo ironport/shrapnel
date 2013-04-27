@@ -1,4 +1,6 @@
-$Header: //prod/main/ap/ssh/README#1 $
+
+Note: This SSH implementation was written by Eric Huss, probably around 2005-2006.
+It has been modified so as to integrate it into the shrapnel/coro package directly.
 
 python implementation of SSH2
 
