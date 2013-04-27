@@ -20,8 +20,6 @@
 
 # -*- Mode: Pyrex -*-
 
-# XXX make an iterator interface for this...
-
 cdef class node:
     cdef object data
     cdef node next
@@ -53,7 +51,18 @@ cdef class _fifo:
         else:
             self.tail.next = tail
             self.tail = tail
-        self.size = self.size + 1
+        self.size += 1
+
+    cpdef push_front (self, object data):
+        cdef node head
+        head = node (data, None)
+        if self.size == 0:
+            self.head = head
+            self.tail = head
+        else:
+            head.next = self.head
+            self.head = head
+        self.size += 1
 
     cdef _pop (self):
         cdef node head
