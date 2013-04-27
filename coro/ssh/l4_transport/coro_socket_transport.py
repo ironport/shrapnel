@@ -27,22 +27,19 @@
 __version__ = '$Revision: #2 $'
 
 import coro
-import dnsqr
-import dns_exceptions
+from coro.dns.exceptions import DNS_Error
+from coro.oserrors import raise_oserror
 import errno
-import inet_utils
-import ironutil
 import socket
-import ssh.l4_transport
-import ssh.keys.remote_host
+from coro.ssh import l4_transport
+from coro.ssh.keys import remote_host
 
-class coro_socket_transport(ssh.l4_transport.Transport):
+class coro_socket_transport(l4_transport.Transport):
 
     # The socket
     s = None
 
     def __init__(self, ip, port=22, bind_ip=None, hostname=None):
-        assert inet_utils.is_ip(ip)
         self.ip = ip
         self.port = port
         self.bind_ip = bind_ip
@@ -53,6 +50,7 @@ class coro_socket_transport(ssh.l4_transport.Transport):
         if self.bind_ip is not None:
             self.s.bind((self.bind_ip, 0))
 
+        coro.write_stderr ('connecting to %s port %s\n' % (self.ip, self.port))
         self.s.connect((self.ip, self.port))
 
     def read(self, bytes):
@@ -80,11 +78,11 @@ class coro_socket_transport(ssh.l4_transport.Transport):
             return self.s.send(bytes)
         except OSError, why:
             if why.errno == errno.EBADF:
-                ironutil.raise_oserror(errno.EPIPE)
+                raise_oserror(errno.EPIPE)
             else:
                 raise
         except coro.ClosedError:
-            ironutil.raise_oserror(errno.EPIPE)
+            raise_oserror(errno.EPIPE)
 
     def read_line(self):
         # XXX: This should be made more efficient with buffering.
@@ -122,13 +120,20 @@ class coro_socket_transport(ssh.l4_transport.Transport):
 
     def get_hostname(self):
         if self.hostname is None:
+            resolver = coro.get_resolver()
             try:
-                in_addr = inet_utils.to_in_addr(self.ip)
-                self.hostname = dnsqr.query (in_addr, 'PTR')[0][1]
-            except (dns_exceptions.DNS_Error, IndexError):
+                in_addr = to_in_addr_arpa (self.ip)
+                self.hostname = resolver.cache.query (in_addr, 'PTR')[0][1]
+            except (DNS_Error, IndexError):
                 # XXX: Log debug message.
                 pass
         return self.hostname
 
     def get_host_id(self):
-        return ssh.keys.remote_host.IPv4_Remote_Host_ID(self.ip, self.get_hostname())
+        return remote_host.IPv4_Remote_Host_ID(self.ip, self.get_hostname())
+
+# obviously ipv4 only
+def to_in_addr_arpa (ip):
+    octets = ip.split ('.')
+    octets.reverse()
+    return '%s.in-addr.arpa' % ('.'.join (octets))

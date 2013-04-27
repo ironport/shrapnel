@@ -53,12 +53,11 @@ import binascii
 import errno
 import os
 import re
-import ssh.keys.openssh_key_storage
-import ssh.keys.dss
-import ssh.keys.rsa
-import ssh.keys.openssh_key_formats
-from ssh.keys.key_storage import Host_Key_Changed_Error
-from ssh.keys.remote_host import IPv4_Remote_Host_ID
+
+from coro.ssh.keys import dss, rsa
+from coro.ssh.keys import openssh_key_formats
+from coro.ssh.keys.key_storage import Host_Key_Changed_Error
+from coro.ssh.keys.remote_host import IPv4_Remote_Host_ID
 
 class OpenSSH_Known_Hosts:
 
@@ -127,7 +126,7 @@ class OpenSSH_Known_Hosts:
             line = line.strip()
             if len(line)==0 or line[0]=='#':
                 continue
-            m = ssh.keys.openssh_key_formats.ssh2_known_hosts_entry.match(line)
+            m = openssh_key_formats.ssh2_known_hosts_entry.match(line)
             if m:
                 if key.name == m.group('keytype'):
                     if self._match_host(host, m.group('list_of_hosts')):
@@ -138,7 +137,7 @@ class OpenSSH_Known_Hosts:
                             changed = Host_Key_Changed_Error(host_id, '%s:%i' % (filename, line_number))
             else:
                 # Currently not supporting SSH1 style.
-                #m = ssh.keys.openssh_key_formats.ssh1_key.match(line)
+                #m = openssh_key_formats.ssh1_key.match(line)
                 continue
 
         if changed is None:
@@ -196,7 +195,8 @@ class OpenSSH_Known_Hosts:
         key = key_obj.name + ' ' + base64_key
         # XXX: static or class method would make this instantiation not necessary.
         #      Too bad the syntax sucks.
-        x = ssh.keys.openssh_key_storage.OpenSSH_Key_Storage()
+        from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage        
+        x = OpenSSH_Key_Storage()
         parsed_key = x.parse_public_key(key)
         if parsed_key.public_key == key_obj.public_key:
             return 1
@@ -226,7 +226,7 @@ class OpenSSH_Known_Hosts:
                 line = line.strip()
                 new_line = line
                 if len(line)!=0 and line[0]!='#':
-                    m = ssh.keys.openssh_key_formats.ssh2_known_hosts_entry.match(line)
+                    m = openssh_key_formats.ssh2_known_hosts_entry.match(line)
                     if m:
                         if public_host_key.name == m.group('keytype'):
                             # Same keytype..See if we need to update.
@@ -235,9 +235,9 @@ class OpenSSH_Known_Hosts:
                             base64_key = m.group('base64_key')
                             binary_key = binascii.a2b_base64(base64_key)
                             if public_host_key.name == 'ssh-dss':
-                                key_obj = ssh.keys.dss.SSH_DSS()
+                                key_obj = dss.SSH_DSS()
                             elif public_host_key.name == 'ssh-rsa':
-                                key_obj = ssh.keys.dss.SSH_RSA()
+                                key_obj = dss.SSH_RSA()
                             else:
                                 # This should never happen.
                                 raise ValueError, public_host_key.name
@@ -312,8 +312,8 @@ lists.ironport.com,10.1.1.109 ssh-dss AAAAB3NzaC1kc3MAAACBAOfO0s6KFDk8lU7hJyLWev
                 return [self.tmp_filename]
 
         try:
-            import openssh_key_storage
-            keystore = openssh_key_storage.OpenSSH_Key_Storage()
+            from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
+            keystore = OpenSSH_Key_Storage()
             x = custom_known_hosts(tmp_filename)
             # Make some keys to test against.
             # 10.1.1.108

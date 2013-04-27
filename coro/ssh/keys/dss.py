@@ -27,8 +27,7 @@ __version__ = '$Revision: #1 $'
 
 import public_private_key
 import hashlib
-import ssh.util.packet
-import ssh.util.random
+from coro.ssh.util import packet, random
 from Crypto.PublicKey import DSA
 from Crypto.Util import number
 
@@ -44,7 +43,7 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
     public_key = (0L, 0L, 0L, 0L)
 
     def set_public_key(self, public_key):
-        dss, p, q, g, y = ssh.util.packet.unpack_payload(DSS_PUBLIC_KEY_PAYLOAD, public_key)
+        dss, p, q, g, y = packet.unpack_payload(DSS_PUBLIC_KEY_PAYLOAD, public_key)
         if dss != 'ssh-dss':
             raise ValueError, dss
         self.public_key = (p, q, g, y)
@@ -52,7 +51,7 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
     set_public_key.__doc__ = public_private_key.SSH_Public_Private_Key.set_public_key.__doc__
 
     def set_private_key(self, private_key):
-        dss, p, q, g, y, x = ssh.util.packet.unpack_payload(DSS_PRIVATE_KEY_PAYLOAD, private_key)
+        dss, p, q, g, y, x = packet.unpack_payload(DSS_PRIVATE_KEY_PAYLOAD, private_key)
         if dss != 'ssh-dss':
             raise ValueError, dss
         self.private_key = (p, q, g, y, x)
@@ -61,7 +60,7 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
 
     def get_public_key_blob(self):
         p, q, g, y = self.public_key
-        return ssh.util.packet.pack_payload(DSS_PUBLIC_KEY_PAYLOAD,
+        return packet.pack_payload(DSS_PUBLIC_KEY_PAYLOAD,
                         ('ssh-dss',
                          p, q, g, y))
 
@@ -69,7 +68,7 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
 
     def get_private_key_blob(self):
         p, q, g, y, x = self.public_key
-        return ssh.util.packet.pack_payload(DSS_PRIVATE_KEY_PAYLOAD,
+        return packet.pack_payload(DSS_PRIVATE_KEY_PAYLOAD,
                         ('ssh-dss',
                          p, q, g, y, x))
 
@@ -80,11 +79,11 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
         dsa_obj = DSA.construct( (y, g, p, q, x) )
         message_hash = hashlib.sha1(message).digest()
         # Get a random number that is greater than 2 and less than q.
-        random_number = ssh.util.random.get_random_number_from_range(2, q)
+        random_number = random.get_random_number_from_range(2, q)
         random_data = number.long_to_bytes(random_number)
         r, s = dsa_obj.sign(message_hash, random_data)
         signature = number.long_to_bytes(r, 20) + number.long_to_bytes(s, 20)
-        return ssh.util.packet.pack_payload(DSS_SIG_PAYLOAD,
+        return packet.pack_payload(DSS_SIG_PAYLOAD,
                             ('ssh-dss',
                              signature))
 
@@ -92,7 +91,7 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
 
     def verify(self, message, signature):
         p, q, g, y = self.public_key
-        dss, blob = ssh.util.packet.unpack_payload(DSS_SIG_PAYLOAD, signature)
+        dss, blob = packet.unpack_payload(DSS_SIG_PAYLOAD, signature)
         if dss != 'ssh-dss':
             raise ValueError, dss
         # blob is the concatenation of r and s
@@ -106,22 +105,22 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
 
     verify.__doc__ = public_private_key.SSH_Public_Private_Key.verify.__doc__
 
-DSS_PUBLIC_KEY_PAYLOAD = (ssh.util.packet.STRING,  # "ssh-dss"
-                          ssh.util.packet.MPINT,   # p
-                          ssh.util.packet.MPINT,   # q
-                          ssh.util.packet.MPINT,   # g
-                          ssh.util.packet.MPINT    # y
+DSS_PUBLIC_KEY_PAYLOAD = (packet.STRING,  # "ssh-dss"
+                          packet.MPINT,   # p
+                          packet.MPINT,   # q
+                          packet.MPINT,   # g
+                          packet.MPINT    # y
                          )
 
-DSS_PRIVATE_KEY_PAYLOAD = (ssh.util.packet.STRING,  # "ssh-dss"
-                           ssh.util.packet.MPINT,   # p
-                           ssh.util.packet.MPINT,   # q
-                           ssh.util.packet.MPINT,   # g
-                           ssh.util.packet.MPINT,   # y
-                           ssh.util.packet.MPINT,   # x
+DSS_PRIVATE_KEY_PAYLOAD = (packet.STRING,  # "ssh-dss"
+                           packet.MPINT,   # p
+                           packet.MPINT,   # q
+                           packet.MPINT,   # g
+                           packet.MPINT,   # y
+                           packet.MPINT,   # x
                           )
 
 
-DSS_SIG_PAYLOAD = (ssh.util.packet.STRING,  # "ssh-dss"
-                   ssh.util.packet.STRING   # signature_key_blob
+DSS_SIG_PAYLOAD = (packet.STRING,  # "ssh-dss"
+                   packet.STRING   # signature_key_blob
                   )

@@ -26,9 +26,9 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.mac
+from coro.ssh.mac import SSH_MAC_Method
 
-class MAC_None(ssh.mac.SSH_MAC_Method):
+class MAC_None(SSH_MAC_Method):
 
     name = 'none'
 

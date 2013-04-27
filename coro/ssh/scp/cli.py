@@ -28,8 +28,7 @@ __version__ = '$Revision: #1 $'
 import optparse
 import sys
 
-import ssh.scp.client
-import ssh.scp.core
+from coro.ssh.scp import client, core
 
 usage = """\
 scp [options] file1 file2
@@ -90,7 +89,7 @@ class CLI:
         if options.action_from:
             scp = self._get_scp()
             scp.verbosity = options.verbosity
-            scp.debug(ssh.scp.core.DEBUG_EXTRA, 'options: %r', args)
+            scp.debug(core.DEBUG_EXTRA, 'options: %r', args)
             scp.read_response()
             scp.send(options.preserve,
                      options.recursive,
@@ -101,7 +100,7 @@ class CLI:
         elif options.action_to:
             scp = self._get_scp()
             scp.verbosity = options.verbosity
-            scp.debug(ssh.scp.core.DEBUG_EXTRA, 'options: %r', args)
+            scp.debug(core.DEBUG_EXTRA, 'options: %r', args)
             if len(arguments) != 1:
                 scp.hard_error('Must specify 1 target.')
             scp.receive(options.preserve,
@@ -121,10 +120,10 @@ class CLI:
                        )
 
     def _get_scp(self):
-        return ssh.scp.core.SCP()
+        return core.SCP()
 
     def _get_client(self):
-        return ssh.scp.client.Client()
+        return client.Client()
 
 if __name__ == '__main__':
     cli = CLI()

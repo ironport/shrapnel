@@ -26,7 +26,7 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.util.packet
+from coro.ssh.util import packet
 import dss
 import rsa
 
@@ -52,7 +52,7 @@ def parse_public_key(public_key):
     <public_key>: A packed public key.  The format should be a packed string
                   with the first value being a string to identify the type.
     """
-    data, offset = ssh.util.packet.unpack_payload_get_offset((ssh.util.packet.STRING,), public_key)
+    data, offset = packet.unpack_payload_get_offset((packet.STRING,), public_key)
     keytype = data[0]
     if not keytypes.has_key(keytype):
         raise Unknown_Key_Type(keytype)

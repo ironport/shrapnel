@@ -26,6 +26,9 @@
 # ASN.1 standard.
 #
 
+import sys
+sys.stderr.write ('FIX ber.py to use coro.asn1.ber\n')
+
 __version__ = '$Revision: #1 $'
 
 # flags for BER tags

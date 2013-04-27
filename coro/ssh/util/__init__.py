@@ -47,9 +47,7 @@ def pick_from_list(name, algorithms):
             return algorithm
     return None
 
-nonprintable = map(chr, range(256))
-nonprintable = filter(lambda x: not x.isprint() and not x.isspace(), nonprintable)
-nonprintable = ''.join(nonprintable)
+nonprintable = ''.join ([x for x in map (chr, range(256)) if x not in string.printable])
 nonprintable_replacement = '$'*len(nonprintable)
 nonprintable_table = string.maketrans(nonprintable, nonprintable_replacement)
 

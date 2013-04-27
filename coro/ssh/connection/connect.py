@@ -29,12 +29,12 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.transport
-import ssh.util.packet
-import ssh.util.debug
+from coro.ssh.transport import SSH_Service
+from coro.ssh.util import packet as ssh_packet
+from coro.ssh.util import debug as ssh_debug
 from constants import *
 
-class Connection_Service(ssh.transport.SSH_Service):
+class Connection_Service(SSH_Service):
     name = 'ssh-connection'
 
     # This is a counter used to assign local channel ID's.
@@ -76,48 +76,48 @@ class Connection_Service(ssh.transport.SSH_Service):
         self.next_channel_id += 1               # XXX: Overflow?
         self.local_channels[channel.channel_id] = channel
 
-    def msg_global_request(self, packet):
+    def msg_global_request(self, pkt):
         # XXX: finish this (it's a server thing)
-        data, offset = ssh.util.packet.unpack_payload_get_offset(SSH_MSG_GLOBAL_REQUEST_PAYLOAD, packet)
+        data, offset = ssh_packet.unpack_payload_get_offset(SSH_MSG_GLOBAL_REQUEST_PAYLOAD, pkt)
         msg, request_name, want_reply = data
         raise NotImplementedError
 
-    def msg_channel_window_adjust(self, packet):
-        msg, channel_id, bytes_to_add = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD, packet)
+    def msg_channel_window_adjust(self, pkt):
+        msg, channel_id, bytes_to_add = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         channel.remote_channel.window_data_left += bytes_to_add
-        self.transport.debug.write(ssh.util.debug.DEBUG_3, 'channel %i window increased by %i to %i', (channel.remote_channel.channel_id, bytes_to_add, channel.remote_channel.window_data_left))
+        self.transport.debug.write(ssh_debug.DEBUG_3, 'channel %i window increased by %i to %i', (channel.remote_channel.channel_id, bytes_to_add, channel.remote_channel.window_data_left))
         channel.window_data_added_cv.wake_all()
 
-    def msg_channel_data(self, packet):
-        msg, channel_id, data = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_DATA_PAYLOAD, packet)
+    def msg_channel_data(self, pkt):
+        msg, channel_id, data = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_DATA_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         # XXX: In theory, we should verify that len(data) <= channel.max_packet_size
         if len(data) > channel.window_data_left:
-            self.transport.debug.write(ssh.util.debug.WARNING, 'channel %i %i bytes overflowed window of %i', (channel.channel_id, len(data), channel.remote_channel.window_data_left))
+            self.transport.debug.write(ssh_debug.WARNING, 'channel %i %i bytes overflowed window of %i', (channel.channel_id, len(data), channel.remote_channel.window_data_left))
             # Data is ignored.
         else:
             channel.window_data_left -= len(data)
             channel.append_data_received(data)
 
-    def msg_channel_extended_data(self, packet):
-        msg, channel_id, data_type_code, data = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD, packet)
+    def msg_channel_extended_data(self, pkt):
+        msg, channel_id, data_type_code, data = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         if len(data) > channel.window_data_left:
-            self.transport.debug.write(ssh.util.debug.WARNING, 'channel %i %i bytes overflowed window of %i', (channel.channel_id, len(data), channel.remote_channel.window_data_left))
+            self.transport.debug.write(ssh_debug.WARNING, 'channel %i %i bytes overflowed window of %i', (channel.channel_id, len(data), channel.remote_channel.window_data_left))
             # Data is ignored.
         else:
             channel.window_data_left -= len(data)
             channel.append_extended_data_received(data_type_code, data)
 
-    def msg_channel_eof(self, packet):
-        msg, channel_id = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_EOF_PAYLOAD, packet)
+    def msg_channel_eof(self, pkt):
+        msg, channel_id = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_EOF_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         # assert it is not already closed?
         channel.set_eof()
 
-    def msg_channel_close(self, packet):
-        msg, channel_id = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_CLOSE_PAYLOAD, packet)
+    def msg_channel_close(self, pkt):
+        msg, channel_id = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_CLOSE_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         del self.local_channels[channel_id]
         del self.remote_channels[channel.remote_channel.channel_id]
@@ -128,26 +128,26 @@ class Connection_Service(ssh.transport.SSH_Service):
             channel.close()
         channel.set_eof()
 
-    def msg_channel_request(self, packet):
-        data, offset = ssh.util.packet.unpack_payload_get_offset(SSH_MSG_CHANNEL_REQUEST_PAYLOAD, packet)
+    def msg_channel_request(self, pkt):
+        data, offset = ssh_packet.unpack_payload_get_offset(SSH_MSG_CHANNEL_REQUEST_PAYLOAD, pkt)
         msg, channel_id, request_type, want_reply = data
         channel = self.local_channels[channel_id]
-        channel.handle_request(request_type, want_reply, packet[offset:])
+        channel.handle_request(request_type, want_reply, pkt[offset:])
 
-    def msg_channel_success(self, packet):
-        msg, channel_id = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_SUCCESS_PAYLOAD, packet)
+    def msg_channel_success(self, pkt):
+        msg, channel_id = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_SUCCESS_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         channel.channel_request_success()
 
-    def msg_channel_failure(self, packet):
-        msg, channel_id = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD, packet)
+    def msg_channel_failure(self, pkt):
+        msg, channel_id = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         channel.channel_request_failure()
 
-    def msg_channel_open_confirmation(self, packet):
-        data, offset = ssh.util.packet.unpack_payload_get_offset(SSH_MSG_CHANNEL_OPEN_CONFIRMATION_PAYLOAD, packet)
+    def msg_channel_open_confirmation(self, pkt):
+        data, offset = ssh_packet.unpack_payload_get_offset(SSH_MSG_CHANNEL_OPEN_CONFIRMATION_PAYLOAD, pkt)
         msg, recipient_channel, sender_channel, window_size, max_packet_size = data
-        self.transport.debug.write(ssh.util.debug.DEBUG_1, 'channel %i open confirmation sender_channel=%i window_size=%i max_packet_size=%i', (recipient_channel, sender_channel, window_size, max_packet_size))
+        self.transport.debug.write(ssh_debug.DEBUG_1, 'channel %i open confirmation sender_channel=%i window_size=%i max_packet_size=%i', (recipient_channel, sender_channel, window_size, max_packet_size))
         channel = self.local_channels[recipient_channel]
         # XXX: Assert that the channel is not already open?
         channel.closed = 0
@@ -159,11 +159,11 @@ class Connection_Service(ssh.transport.SSH_Service):
         channel.remote_channel.window_size = window_size
         channel.remote_channel.window_data_left = window_size
         channel.remote_channel.max_packet_size = max_packet_size
-        additional_data = ssh.util.packet.unpack_payload(channel.additional_packet_data_types, packet, offset)
+        additional_data = ssh_packet.unpack_payload(channel.additional_packet_data_types, pkt, offset)
         channel.channel_open_success(additional_data)
 
-    def msg_channel_open_failure(self, packet):
-        msg, channel_id, reason_code, reason_text, language = ssh.util.packet.unpack_payload(SSH_MSG_CHANNEL_OPEN_FAILURE_PAYLOAD, packet)
+    def msg_channel_open_failure(self, pkt):
+        msg, channel_id, reason_code, reason_text, language = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_OPEN_FAILURE_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         # XXX: Assert that the channel is not already open?
         channel.channel_open_failure(reason_code, reason_text, language)

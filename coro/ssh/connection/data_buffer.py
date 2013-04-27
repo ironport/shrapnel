@@ -22,17 +22,15 @@
 # ssh.connection.data_buffer
 #
 # This implements a simple buffer class that works like a FIFO.
-# It is time-effecient since it tries to avoid string copies whenever
+# It is time-efficient since it tries to avoid string copies whenever
 # possible.
 
-__version__ = '$Revision: #1 $'
-
-import coro_fifo
+import coro
 
 class Buffer:
 
     def __init__(self):
-        self.fifo = coro_fifo.circular_fifo()
+        self.fifo = coro.fifo()
 
     def __len__(self):
         return len(self.fifo)
@@ -41,13 +39,13 @@ class Buffer:
         """write(self, data) -> None
         Writes data to the buffer.
         """
-        self.fifo.enqueue(data)
+        self.fifo.push(data)
 
     def pop(self):
         """pop(self) -> str
         Pops the first string from the buffer.
         """
-        return self.fifo.dequeue()
+        return self.fifo.pop()
 
     def read_at_most(self, bytes):
         """read_at_most(self, bytes) -> str
@@ -57,7 +55,7 @@ class Buffer:
         """
         while 1:
             try:
-                data = self.fifo.peek()
+                data = self.fifo.top()
             except IndexError:
                 # Buffer empty.
                 self.fifo.cv.wait()
@@ -66,8 +64,9 @@ class Buffer:
         if not data:
             raise EOFError
         if len(data) > bytes:
-            result = data[:bytes]
-            self.fifo.poke(data[bytes:])
+            result, left = data[:bytes], data[bytes:]
+            self.fifo.pop()
+            self.fifo.push_front (left)
             return result
         else:
-            return self.fifo.dequeue()
+            return self.fifo.pop()

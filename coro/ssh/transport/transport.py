@@ -33,23 +33,24 @@ __version__ = '$Revision: #1 $'
 import coro
 import struct
 import sys
-import ssh.util.debug
-import ssh.util.packet
-import ssh.util.random
-import ssh.util
-import ssh.transport
-from ssh.transport.constants import *
-from ssh.key_exchange.diffie_hellman import Diffie_Hellman_Group1_SHA1
-from ssh.keys.dss import SSH_DSS
-from ssh.keys.rsa import SSH_RSA
-from ssh.cipher.des3_cbc import Triple_DES_CBC
-from ssh.cipher.blowfish_cbc import Blowfish_CBC
-from ssh.mac.hmac_sha1 import HMAC_SHA1
-from ssh.mac.hmac_md5 import HMAC_MD5
-from ssh.mac.none import MAC_None
-from ssh.cipher.none import Cipher_None
-from ssh.compression.none import Compression_None
-from ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
+
+from coro.ssh.util import random, pick_from_list
+from coro.ssh.util import debug as ssh_debug
+from coro.ssh.util import packet as ssh_packet
+from coro.ssh.transport import SSH_Protocol_Error
+
+from coro.ssh.transport.constants import *
+from coro.ssh.key_exchange.diffie_hellman import Diffie_Hellman_Group1_SHA1
+from coro.ssh.keys.dss import SSH_DSS
+from coro.ssh.keys.rsa import SSH_RSA
+from coro.ssh.cipher.des3_cbc import Triple_DES_CBC
+from coro.ssh.cipher.blowfish_cbc import Blowfish_CBC
+from coro.ssh.mac.hmac_sha1 import HMAC_SHA1
+from coro.ssh.mac.hmac_md5 import HMAC_MD5
+from coro.ssh.mac.none import MAC_None
+from coro.ssh.cipher.none import Cipher_None
+from coro.ssh.compression.none import Compression_None
+from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
 
 class SSH_Transport:
 
@@ -102,7 +103,7 @@ class SSH_Transport:
         self.message_callbacks = {}
 
         if debug is None:
-            self.debug = ssh.util.debug.Debug()
+            self.debug = ssh_debug.Debug()
         else:
             self.debug = debug
         if client_transport is None:
@@ -149,7 +150,7 @@ class SSH_Transport:
         SSH_MSG_KEX_DH_GEX_GROUP and SSH_MSG_KEXDH_REPLY both are the
         number 31.
         """
-        self.debug.write(ssh.util.debug.DEBUG_3, 'register_callbacks(module_name=%s, callback_dict=...)', (module_name,))
+        self.debug.write(ssh_debug.DEBUG_3, 'register_callbacks(module_name=%s, callback_dict=...)', (module_name,))
         self.message_callback_registry[module_name] = callback_dict
         self._recompile_callback_registry()
 
@@ -173,19 +174,20 @@ class SSH_Transport:
     def send_disconnect(self, reason_code, description):
         """send_disconnect(self, reason_code, description) -> None
         """
-        self.debug.write(ssh.util.debug.DEBUG_3, 'send_disconnect(reason_code=%r, description=%r)', (reason_code, description))
-        # Langauge tag currently set to the empty string.
+        self.debug.write(ssh_debug.DEBUG_3, 'send_disconnect(reason_code=%r, description=%r)', (reason_code, description))
+        # Language tag currently set to the empty string.
         language_tag = ''
         self.send_packet(
-            ssh.util.packet.pack_payload(ssh.util.packet.PAYLOAD_MSG_DISCONNECT,
-                                        (SSH_MSG_DISCONNECT,
-                                         reason_code,
-                                         description,
-                                         language_tag)
-                                   )
-                        )
+            ssh_packet.pack_payload (
+                ssh_packet.PAYLOAD_MSG_DISCONNECT,
+                  (SSH_MSG_DISCONNECT,
+                    reason_code,
+                    description,
+                    language_tag)
+                )
+            )
         self.disconnect()
-        raise ssh.transport.SSH_Protocol_Error, (reason_code, description)
+        raise SSH_Protocol_Error, (reason_code, description)
 
     def send_packet(self, data):
         """send_packet(self, data) -> None
@@ -210,7 +212,7 @@ class SSH_Transport:
         # byte[n1] payload
         # byte[n2] random padding
         # byte[m] MAC
-        self.debug.write(ssh.util.debug.DEBUG_3, 'send_packet( len(data)=%i )', (len(data),))
+        self.debug.write(ssh_debug.DEBUG_3, 'send_packet( len(data)=%i )', (len(data),))
         data = self.self2remote.compression.compress(data)
 
         # packet_len + padding_length + payload + random_padding
@@ -223,7 +225,7 @@ class SSH_Transport:
         base_size = 5 + len(data) + padding_length
         minimum_size = max(16, block_size)
         if base_size < minimum_size:
-            self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: base size too small')
+            self.debug.write(ssh_debug.DEBUG_2, 'send_packet: base size too small')
             # Add enough padding to make it big enough.
             # Make a first guess of the padding length.
             padding_length_guess = minimum_size - base_size
@@ -232,23 +234,23 @@ class SSH_Transport:
             additional_padding_length = block_size - ((5 + len(data) + padding_length_guess) % block_size)
             padding_length = padding_length_guess + additional_padding_length
 
-        self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: padding_length=%i', (padding_length,))
-        self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: cipher=%s', (self.self2remote.cipher.name,))
+        self.debug.write(ssh_debug.DEBUG_2, 'send_packet: padding_length=%i', (padding_length,))
+        self.debug.write(ssh_debug.DEBUG_2, 'send_packet: cipher=%s', (self.self2remote.cipher.name,))
 
         packet_length = 1 + len(data) + padding_length
-        self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: packet_length=%i', (packet_length,))
+        self.debug.write(ssh_debug.DEBUG_2, 'send_packet: packet_length=%i', (packet_length,))
 
-        random_padding = ssh.util.random.get_random_data(padding_length)
+        random_padding = random.get_random_data(padding_length)
         chunk = struct.pack('>Ic', packet_length, chr(padding_length)) + data + random_padding
-        self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: chunk_length=%i', (len(chunk),))
+        self.debug.write(ssh_debug.DEBUG_2, 'send_packet: chunk_length=%i', (len(chunk),))
 
         mac = self.self2remote.mac.digest(self.self2remote.packet_sequence_number, chunk)
         self.self2remote.inc_packet_sequence_number()
-        self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: mac=%r', (mac,))
+        self.debug.write(ssh_debug.DEBUG_2, 'send_packet: mac=%r', (mac,))
 
-        #self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: chunk=%r', (chunk,))
+        #self.debug.write(ssh_debug.DEBUG_2, 'send_packet: chunk=%r', (chunk,))
         encrypted_chunk = self.self2remote.cipher.encrypt(chunk)
-        #self.debug.write(ssh.util.debug.DEBUG_2, 'send_packet: encrypted_chunk=%r', (encrypted_chunk,))
+        #self.debug.write(ssh_debug.DEBUG_2, 'send_packet: encrypted_chunk=%r', (encrypted_chunk,))
 
         self.transport.write(encrypted_chunk + mac)
 
@@ -259,7 +261,7 @@ class SSH_Transport:
         <wait_till>: List of message types that you are looking for.
         """
         if not self._receive_thread:
-            raise ssh.transport.SSH_Protocol_Error, 'receive thread not running'
+            raise SSH_Protocol_Error, 'receive thread not running'
         self.tmc.add(coro.current(), wait_till)
         try:
             return coro._yield()
@@ -303,12 +305,12 @@ class SSH_Transport:
                 # connection, so we don't need to worry about multiple
                 # threads since there can be only 1.
                 assert(len(self.tmc.processing_threads)<=1)
-                self.debug.write(ssh.util.debug.DEBUG_1, 'receive_thread: ignoring first packet')
+                self.debug.write(ssh_debug.DEBUG_1, 'receive_thread: ignoring first packet')
                 self.ignore_first_packet = False
                 continue
 
             message_type = ord(packet[0])
-            self.debug.write(ssh.util.debug.DEBUG_2, 'receive_thread: message_type=%i', (message_type,))
+            self.debug.write(ssh_debug.DEBUG_2, 'receive_thread: message_type=%i', (message_type,))
             try:
                 self._handle_packet(message_type, packet, sequence_number)
             except Stop_Receiving_Exception:
@@ -325,7 +327,7 @@ class SSH_Transport:
             if self.tmc.processing_messages.has_key(message_type):
                 thread = self.tmc.processing_messages[message_type]
                 try:
-                    self.debug.write(ssh.util.debug.DEBUG_2, 'receive_thread: waiting thread waking up')
+                    self.debug.write(ssh_debug.DEBUG_2, 'receive_thread: waiting thread waking up')
                     coro.schedule(thread, (message_type, packet))
                 except coro.ScheduleError:
                     # Coro already scheduled.
@@ -335,7 +337,7 @@ class SSH_Transport:
         self.transport.close()
         self._receive_thread = None
         if exc_data is None:
-            exc_data = ssh.transport.SSH_Protocol_Error('Receive thread shut down.')
+            exc_data = SSH_Protocol_Error('Receive thread shut down.')
 
         # Wake up anyone still waiting for messages.
         for thread in self.tmc.processing_messages.values():
@@ -351,10 +353,10 @@ class SSH_Transport:
         if not self.tmc.processing_messages.has_key(message_type):
             if self.message_callbacks.has_key(message_type):
                 f = self.message_callbacks[message_type]
-                self.debug.write(ssh.util.debug.DEBUG_2, 'receive_thread: calling registered function %s', (f.__name__,))
+                self.debug.write(ssh_debug.DEBUG_2, 'receive_thread: calling registered function %s', (f.__name__,))
                 f(packet)
             else:
-                self.debug.write(ssh.util.debug.DEBUG_2, 'receive_thread: unimplemented message type (%i)', (message_type,))
+                self.debug.write(ssh_debug.DEBUG_2, 'receive_thread: unimplemented message type (%i)', (message_type,))
                 self.send_unimplemented(sequence_number)
 
     def prepare_keys(self):
@@ -366,15 +368,15 @@ class SSH_Transport:
         self.s2c.mac.set_key(self.key_exchange.get_encryption_key('F', self.s2c.mac.key_size))
 
     def send_newkeys(self):
-        self.debug.write(ssh.util.debug.DEBUG_3, 'send_newkeys()')
-        packet = ssh.util.packet.pack_payload(ssh.util.packet.PAYLOAD_MSG_NEWKEYS, (SSH_MSG_NEWKEYS,))
+        self.debug.write(ssh_debug.DEBUG_3, 'send_newkeys()')
+        packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_NEWKEYS, (SSH_MSG_NEWKEYS,))
         self.send_packet(packet)
         # XXX: Unlock key exchange lockdown for self2remote.
 
     def send_unimplemented(self, sequence_number):
-        self.debug.write(ssh.util.debug.DEBUG_3, 'send_unimplemented(sequence_number=%i)', (sequence_number,))
+        self.debug.write(ssh_debug.DEBUG_3, 'send_unimplemented(sequence_number=%i)', (sequence_number,))
         self.send_packet(
-            ssh.util.packet.pack_payload(ssh.util.packet.PAYLOAD_MSG_UNIMPLEMENTED,
+            ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_UNIMPLEMENTED,
                                         (SSH_MSG_UNIMPLEMENTED,
                                         sequence_number)
                                     )
@@ -384,24 +386,24 @@ class SSH_Transport:
         """_receive_packet(self) -> payload, sequence_number
         Reads a packet off the l4 transport.
         """
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet()')
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet()')
         first_chunk = self.transport.read(max(8, self.remote2self.cipher.block_size))
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: first_chunk=%r', (first_chunk,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: first_chunk=%r', (first_chunk,))
         first_chunk = self.remote2self.cipher.decrypt(first_chunk)
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: post decrypt: %r', (first_chunk,))
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: cipher=%s', (self.remote2self.cipher.name,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: post decrypt: %r', (first_chunk,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: cipher=%s', (self.remote2self.cipher.name,))
 
         packet_length = struct.unpack('>I', first_chunk[:4])[0]
         min_packet_length = max(16, self.remote2self.cipher.block_size)
         # +4 to include the length field.
         if packet_length+4 < min_packet_length:
-            self.debug.write(ssh.util.debug.WARNING, 'receive_packet: packet length too small (len=%i)', (packet_length+4,))
+            self.debug.write(ssh_debug.WARNING, 'receive_packet: packet length too small (len=%i)', (packet_length+4,))
             self.send_disconnect(SSH_DISCONNECT_PROTOCOL_ERROR, 'packet length too small: %i' % packet_length)
         if packet_length+4 > 1048576: # 1 megabyte
-            self.debug.write(ssh.util.debug.WARNING, 'receive_packet: packet length too big (len=%i)', (packet_length+4,))
+            self.debug.write(ssh_debug.WARNING, 'receive_packet: packet length too big (len=%i)', (packet_length+4,))
             self.send_disconnect(SSH_DISCONNECT_PROTOCOL_ERROR, 'packet length too big: %i' % packet_length)
 
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: reading rest of packet (packet_length=%i)', (packet_length,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: reading rest of packet (packet_length=%i)', (packet_length,))
         rest_of_packet = self.transport.read(packet_length - len(first_chunk) + 4 + self.remote2self.mac.digest_size)
         if self.remote2self.mac.digest_size == 0:
             mac = ''
@@ -412,43 +414,41 @@ class SSH_Transport:
         packet = first_chunk + rest_of_packet
 
         padding_len = ord(packet[4])
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: padding_length=%i', (padding_len,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: padding_length=%i', (padding_len,))
         payload = packet[5:packet_length+4-padding_len]
 
         packet_sequence_number = self.remote2self.packet_sequence_number
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: packet=%r', (packet,))
-        self.debug.write(ssh.util.debug.DEBUG_3, 'receive_packet: packet_sequence_number=%i', (packet_sequence_number,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: packet=%r', (packet,))
+        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: packet_sequence_number=%i', (packet_sequence_number,))
         computed_mac = self.remote2self.mac.digest(packet_sequence_number, packet)
         self.remote2self.inc_packet_sequence_number()
 
         if computed_mac != mac:
-            self.debug.write(ssh.util.debug.WARNING, 'receive_packet: mac did not match: computed=%r actual=%r', (computed_mac, mac))
+            self.debug.write(ssh_debug.WARNING, 'receive_packet: mac did not match: computed=%r actual=%r', (computed_mac, mac))
             self.send_disconnect(SSH_DISCONNECT_MAC_ERROR, 'mac did not match')
 
         return payload, packet_sequence_number
 
     def msg_disconnect(self, packet):
-        msg, reason_code, description, language = ssh.util.packet.unpack_payload(
-                ssh.util.packet.PAYLOAD_MSG_DISCONNECT, packet)
+        msg, reason_code, description, language = ssh_packet.unpack_payload (ssh_packet.PAYLOAD_MSG_DISCONNECT, packet)
         self.disconnect()
-        raise ssh.transport.SSH_Protocol_Error, (reason_code, description)
+        raise SSH_Protocol_Error, (reason_code, description)
 
     def msg_ignore(self, packet):
-        #msg, data = ssh.util.packet.unpack_payload(ssh.util.packet.PAYLOAD_MSG_IGNORE, packet)
+        #msg, data = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_IGNORE, packet)
         pass
 
     def msg_debug(self, packet):
-        msg, always_display, message, language = ssh.util.packet.unpack_payload(
-                ssh.util.packet.PAYLOAD_MSG_DEBUG, packet)
-        self.debug.write(ssh.util.debug.DEBUG_1, 'SSH_MSG_DEBUG: %s', message)
+        msg, always_display, message, language = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_DEBUG, packet)
+        self.debug.write(ssh_debug.DEBUG_1, 'SSH_MSG_DEBUG: %s', message)
 
     def msg_kexinit(self, packet):
         self.remote2self.kexinit_packet = packet
         msg, cookie, kex_algorithms, server_host_key_algorithms, encryption_algorithms_c2s, \
             encryption_algorithms_s2c, mac_algorithms_c2s, mac_algorithms_s2c, \
             compression_algorithms_c2s, compression_algorithms_s2c, \
-            languages_c2s, languages_s2c, first_kex_packet_follows, pad = ssh.util.packet.unpack_payload(
-                ssh.util.packet.PAYLOAD_MSG_KEXINIT, packet)
+            languages_c2s, languages_s2c, first_kex_packet_follows, pad = ssh_packet.unpack_payload(
+                ssh_packet.PAYLOAD_MSG_KEXINIT, packet)
 
         self.remote2self.proactive_kex = first_kex_packet_follows
 
@@ -485,7 +485,7 @@ class SSH_Transport:
             self.self2remote.key_exchange.name != self.key_exchange.name:
             # We sent an invalid initial kex packet.
             # Resend proper kex packet.
-            self.debug.write(ssh.util.debug.DEBUG_1, 'msg_kexinit: Resending initial kex packet due to incorrect guess')
+            self.debug.write(ssh_debug.DEBUG_1, 'msg_kexinit: Resending initial kex packet due to incorrect guess')
             if self.is_server:
                 packet = self.key_exchange.get_initial_server_kex_packet()
             else:
@@ -544,7 +544,7 @@ class SSH_Transport:
             #    found, the connection fails, and both sides MUST
             #    disconnect.
             for client_kex_algorithm in self.c2s.supported_key_exchanges:
-                server_kex_algorithm = ssh.util.pick_from_list(client_kex_algorithm.name, self.s2c.supported_key_exchanges)
+                server_kex_algorithm = pick_from_list(client_kex_algorithm.name, self.s2c.supported_key_exchanges)
                 if server_kex_algorithm is not None:
                     # We both support this kex algorithm.
                     # See if we both have key types that match the requirements of this kex algorithm.
@@ -572,7 +572,7 @@ class SSH_Transport:
             if self.remote2self.server_key.name != self.self2remote.server_key.name:
                 # See if we share a server host key type that also works with our chosen kex algorithm.
                 for client_server_key_type in self.c2s.supported_server_keys:
-                    server_server_key_type = ssh.util.pick_from_list(client_server_key_type.name, self.s2c.supported_server_keys)
+                    server_server_key_type = pick_from_list(client_server_key_type.name, self.s2c.supported_server_keys)
                     if server_server_key_type is not None:
                         # We both support this server key algorithm.
                         # See if it matches our kex algorithm requirements.
@@ -601,10 +601,10 @@ class SSH_Transport:
                          The key_exchange algorithm MUST support this type
                          of key.
         """
-        kex = ssh.util.pick_from_list(key_exchange, self.self2remote.supported_key_exchanges)
+        kex = pick_from_list(key_exchange, self.self2remote.supported_key_exchanges)
         if kex is None:
             raise ValueError, 'Unknown key exchange algorithm: %s' % key_exchange
-        key = ssh.util.pick_from_list(server_host_key_type, self.self2remote.supported_server_keys)
+        key = pick_from_list(server_host_key_type, self.self2remote.supported_server_keys)
         if key is None:
             raise ValueError, 'Unknown server key type: %s' % server_host_key_type
         self.key_exchange = kex
@@ -626,7 +626,7 @@ class SSH_Transport:
         Start the key exchange.
         """
         # Tell the remote side what features we support.
-        self.debug.write(ssh.util.debug.DEBUG_3, 'send_kexinit()')
+        self.debug.write(ssh_debug.DEBUG_3, 'send_kexinit()')
         packet = self._send_kexinit()
         self.send_packet(packet)
 
@@ -635,8 +635,8 @@ class SSH_Transport:
         Sets self2remote.kexinit_packet.
         Separate function to help with unittests.
         """
-        cookie = ssh.util.random.get_random_data(16)
-        packet = ssh.util.packet.pack_payload(ssh.util.packet.PAYLOAD_MSG_KEXINIT,
+        cookie = random.get_random_data(16)
+        packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_KEXINIT,
                                     (SSH_MSG_KEXINIT,
                                      cookie,
                                      [x.name for x in self.self2remote.supported_key_exchanges],
@@ -657,13 +657,13 @@ class SSH_Transport:
         return packet
 
     def msg_newkeys(self, packet):
-        self.debug.write(ssh.util.debug.DEBUG_3, 'msg_newkeys(packet=...)')
+        self.debug.write(ssh_debug.DEBUG_3, 'msg_newkeys(packet=...)')
         # Switch to using new algorithms.
         self.remote2self.set_preferred()
         self.self2remote.set_preferred()
         # Set the keys to use for encryption and MAC.
         self.prepare_keys()
-        self.debug.write(ssh.util.debug.DEBUG_3, 'msg_newkeys: keys have been prepared')
+        self.debug.write(ssh_debug.DEBUG_3, 'msg_newkeys: keys have been prepared')
 
 class One_Way_SSH_Transport:
 
@@ -677,7 +677,7 @@ class One_Way_SSH_Transport:
     language = None
 
     protocol_version = '2.0'
-    software_version = 'IronPort_1.0'
+    software_version = 'Shrapnel_1.0'
     comments = ''
     version_string = ''
     kexinit_packet = ''
@@ -722,7 +722,7 @@ class One_Way_SSH_Transport:
         self.key_exchange = None
         self.server_key = None
         self.compression = Compression_None()
-        self.cipher = ssh.cipher.none.Cipher_None()
+        self.cipher = Cipher_None()
         self.mac = MAC_None()
         self.language = None
 

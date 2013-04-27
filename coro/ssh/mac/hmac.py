@@ -26,11 +26,11 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.mac
-import ssh.util
+from coro.ssh.mac import SSH_MAC_Method
+from coro.ssh.util import str_xor
 import struct
 
-class SSH_HMAC(ssh.mac.SSH_MAC_Method):
+class SSH_HMAC(SSH_MAC_Method):
     """SSH_HMac
 
     Base class of other HMAC algorithms.
@@ -60,8 +60,8 @@ class SSH_HMAC(ssh.mac.SSH_MAC_Method):
         opad = '\x5C' * self.block_size
         padded_key = self.key + '\0' * (self.block_size-len(self.key))
 
-        self._enc_ipad = ssh.util.str_xor(padded_key, ipad)
-        self._enc_opad = ssh.util.str_xor(padded_key, opad)
+        self._enc_ipad = str_xor(padded_key, ipad)
+        self._enc_opad = str_xor(padded_key, opad)
 
     def digest(self, sequence_number, data):
         sequence_number = struct.pack('>L', sequence_number)

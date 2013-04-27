@@ -26,17 +26,16 @@
 
 __version__ = '$Revision: #1 $'
 
-import coro
-import ssh.util.debug
-import ssh.util.packet
-import ssh.transport.transport
-import ssh.keys.key_storage
-from ssh.transport.constants import *
+from coro.ssh.util import debug
+from coro.ssh.util import packet as ssh_packet
+from coro.ssh.transport import transport
+from coro.ssh.keys import key_storage
+from coro.ssh.transport.constants import *
 
-class SSH_Client_Transport(ssh.transport.transport.SSH_Transport):
+class SSH_Client_Transport(transport.SSH_Transport):
 
     def __init__(self, client_transport=None, server_transport=None, debug=None):
-        ssh.transport.transport.SSH_Transport.__init__(self, client_transport, server_transport, debug)
+        transport.SSH_Transport.__init__(self, client_transport, server_transport, debug)
         self.self2remote = self.c2s
         self.remote2self = self.s2c
 
@@ -84,11 +83,11 @@ class SSH_Client_Transport(ssh.transport.transport.SSH_Transport):
                 # Break up the identification string into its parts.
                 parts = line.split('-')
                 if len(parts) != 3:
-                    self.send_disconnect(ssh.transport.transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'server identification invalid: %r' % line)
+                    self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'server identification invalid: %r' % line)
                 self.s2c.protocol_version = parts[1]
                 self.s2c.software_version = parts[2]
                 if self.s2c.protocol_version not in ('1.99', '2.0'):
-                    self.send_disconnect(ssh.transport.transport.SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED, 'protocol version not supported: %r' % self.s2c.protocol_version)
+                    self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED, 'protocol version not supported: %r' % self.s2c.protocol_version)
                 break
 
         self.send_kexinit()
@@ -108,7 +107,7 @@ class SSH_Client_Transport(ssh.transport.transport.SSH_Transport):
         self.start_receive_thread()
         # Receive server kexinit
         self._process_kexinit()
-        self.debug.write(ssh.util.debug.DEBUG_3, 'key exchange: got kexinit')
+        self.debug.write(debug.DEBUG_3, 'key exchange: got kexinit')
         if not self.self2remote.proactive_kex:
             packet = self.key_exchange.get_initial_client_kex_packet()
             if packet:
@@ -131,18 +130,18 @@ class SSH_Client_Transport(ssh.transport.transport.SSH_Transport):
                         authenticating.  Typically 'ssh-connection'.
         """
         # Ask the remote side if it is OK to use this authentication service.
-        self.debug.write(ssh.util.debug.DEBUG_3, 'authenticate: sending service request (%s)', (authentication_method.name,))
-        service_request_packet = ssh.util.packet.pack_payload(ssh.util.packet.PAYLOAD_MSG_SERVICE_REQUEST,
-                                                (ssh.transport.transport.SSH_MSG_SERVICE_REQUEST,
+        self.debug.write(debug.DEBUG_3, 'authenticate: sending service request (%s)', (authentication_method.name,))
+        service_request_packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_SERVICE_REQUEST,
+                                                (transport.SSH_MSG_SERVICE_REQUEST,
                                                 authentication_method.name))
         self.send_packet(service_request_packet)
         # Server will disconnect if it doesn't like our service request.
-        self.debug.write(ssh.util.debug.DEBUG_3, 'authenticate: waiting for SERVICE_ACCEPT')
-        message_type, packet = self.receive_message((ssh.transport.transport.SSH_MSG_SERVICE_ACCEPT,))
-        msg, accepted_service_name = ssh.util.packet.unpack_payload(ssh.util.packet.PAYLOAD_MSG_SERVICE_ACCEPT, packet)
-        self.debug.write(ssh.util.debug.DEBUG_3, 'authenticate: got SERVICE_ACCEPT')
+        self.debug.write(debug.DEBUG_3, 'authenticate: waiting for SERVICE_ACCEPT')
+        message_type, packet = self.receive_message((transport.SSH_MSG_SERVICE_ACCEPT,))
+        msg, accepted_service_name = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_SERVICE_ACCEPT, packet)
+        self.debug.write(debug.DEBUG_3, 'authenticate: got SERVICE_ACCEPT')
         if accepted_service_name != authentication_method.name:
-            self.send_disconnect(ssh.transport.transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'accepted service does not match requested service "%s"!="%s"' % (authentication_method.name, accepted_service_name))
+            self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'accepted service does not match requested service "%s"!="%s"' % (authentication_method.name, accepted_service_name))
         # This authetnication service is OK, try to authenticate.
         authentication_method.authenticate(service_name)
 
@@ -170,4 +169,4 @@ class SSH_Client_Transport(ssh.transport.transport.SSH_Transport):
         for storage in self.supported_key_storages:
             if storage.verify(host_id, self.c2s.supported_server_keys, public_host_key, username):
                 return
-        raise ssh.keys.key_storage.Invalid_Server_Public_Host_Key(host_id, public_host_key)
+        raise key_storage.Invalid_Server_Public_Host_Key(host_id, public_host_key)

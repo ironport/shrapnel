@@ -21,24 +21,32 @@
 # NOTE: THIS DOES NOT WORK.
 # There is a problem with reading from stdin via kqueue.
 # I'm not sure (yet) what exactly is wrong.
+#
+# SMR 2013: seems to kinda work on OSX
 
-import ssh.transport.client
-import ssh.connection.connect
-import ssh.l4_transport.coro_socket_transport
-import ssh.auth.userauth
-import ssh.connection.interactive_session
+import coro.ssh.transport.client
+import coro.ssh.connection.connect
+import coro.ssh.l4_transport.coro_socket_transport
+import coro.ssh.auth.userauth
+import coro.ssh.connection.interactive_session
 import getopt
 import sys
 import termios
 import fcntl
 import os
-import ssh.util.debug
-import inet_utils
+import coro.ssh.util.debug
 import socket
 import coro
 
 def usage():
-    print 'test_coro_client [-l login_name] hostname | user@hostname'
+    print 'test_coro_client [-l login_name] [-p port] hostname | user@hostname'
+
+import re
+is_ip_re = re.compile ('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')
+
+# cheap emulation of inet_utils.is_ip()
+def is_ip (s):
+    return is_ip_re.match (s)    
 
 oldterm = None
 oldflags = None
@@ -55,30 +63,35 @@ def set_stdin_unbuffered():
     fcntl.fcntl(0, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
 
 def input_thread(channel):
-
     stdin = coro.fd_sock(0)
-
     while 1:
         data = stdin.recv(100)
         channel.send(data)
 
 def transport_thread(channel):
-
+    stdout = coro.fd_sock (1)
     while not channel.eof and not channel.closed:
-        data = channel.read(1024)
-        if data:
-            os.write(1, data)
+        try:
+            data = channel.read(1024)
+            if data:
+                stdout.send (data)
+                #os.write(1, data)
+        except EOFError:
+            break
+    coro.set_exit()
 
-def doit(ip):
-    debug = ssh.util.debug.Debug()
-    #debug.level = ssh.util.debug.DEBUG_3
-    client = ssh.transport.client.SSH_Client_Transport(debug=debug)
-    transport = ssh.l4_transport.coro_socket_transport.coro_socket_transport(ip)
+def doit (ip, port):
+    if not is_ip (ip):
+        ip = coro.get_resolver().resolve_ipv4 (ip)
+    debug = coro.ssh.util.debug.Debug()
+    debug.level = coro.ssh.util.debug.DEBUG_1
+    client = coro.ssh.transport.client.SSH_Client_Transport(debug=debug)
+    transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(ip, port=port)
     client.connect(transport)
-    auth_method = ssh.auth.userauth.Userauth(client)
-    service = ssh.connection.connect.Connection_Service(client)
+    auth_method = coro.ssh.auth.userauth.Userauth(client)
+    service = coro.ssh.connection.connect.Connection_Service(client)
     client.authenticate(auth_method, service.name)
-    channel = ssh.connection.interactive_session.Interactive_Session_Client(service)
+    channel = coro.ssh.connection.interactive_session.Interactive_Session_Client(service)
     channel.open()
     channel.open_pty()
     channel.open_shell()
@@ -90,17 +103,20 @@ def main():
 
     login_username = None
     ip = None
+    port = 22
 
     try:
-        optlist, args = getopt.getopt(sys.argv[1:], 'l:')
+        optlist, args = getopt.getopt(sys.argv[1:], 'l:p:')
     except getopt.GetoptError, why:
         print str(why)
         usage()
         sys.exit(1)
 
     for option, value in optlist:
-        if option=='l':
+        if option=='-l':
             login_username = value
+        elif option=='-p':
+            port = int (value)
 
     if len(args) != 1:
         usage()
@@ -109,10 +125,8 @@ def main():
     ip = args[0]
     if '@' in ip:
         login_username, ip = ip.split('@', 1)
-    if not inet_utils.is_ip(ip):
-        ip = socket.gethostbyname(ip)
 
-    coro.spawn(doit, ip)
+    coro.spawn(doit, ip, port)
     try:
         coro.event_loop()
     finally:

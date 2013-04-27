@@ -26,9 +26,9 @@ connections.
 
 __version__ = '$Revision: #1 $'
 
-import ssh.scp.core
+from coro.ssh.scp.core import SCP
 
-class Client(ssh.scp.core.SCP):
+class Client(SCP):
 
     def main(self, preserve, recursive, verbose, pathnames):
         raise NotImplementedError

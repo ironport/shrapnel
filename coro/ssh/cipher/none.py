@@ -26,9 +26,9 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.cipher
+from coro.ssh.cipher import SSH_Cipher_Method
 
-class Cipher_None(ssh.cipher.SSH_Cipher_Method):
+class Cipher_None(SSH_Cipher_Method):
 
     def encrypt(self, data):
         return data

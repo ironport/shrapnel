@@ -27,7 +27,7 @@
 __version__ = '$Revision: #1 $'
 
 import channel
-import ssh.util.packet
+from coro.ssh.util import packet as ssh_packet
 from connect import *
 
 class Interactive_Session(channel.Channel):
@@ -63,35 +63,35 @@ class Interactive_Session_Server(Interactive_Session):
             f(want_reply, type_specific_packet_data)
         else:
             if want_reply:
-                packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD, (self.remote_channel.channel_id,))
+                packet = ssh_packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD, (self.remote_channel.channel_id,))
                 self.transport.send_packet(packet)
 
 
     def handle_pty_request(self, want_reply, type_specific_packet_data):
-        term, width_char, height_char, width_pixels, height_pixels, modes = ssh.util.packet.unpack_payload(PTY_CHANNEL_REQUEST_PAYLOAD, type_specific_packet_data)
+        term, width_char, height_char, width_pixels, height_pixels, modes = ssh_packet.unpack_payload(PTY_CHANNEL_REQUEST_PAYLOAD, type_specific_packet_data)
         # XXX: NOT FINISHED
 
     def handle_x11_request(self, want_reply, type_specific_packet_data):
-        single_connection, auth_protocol, auth_cookie, screen_number = ssh.util.packet.unpack_payload(X11_CHANNEL_REQUEST_PAYLOAD, type_specific_packet_data)
+        single_connection, auth_protocol, auth_cookie, screen_number = ssh_packet.unpack_payload(X11_CHANNEL_REQUEST_PAYLOAD, type_specific_packet_data)
         # XXX: NOT FINISHED
 
     request_handlers = {'pty-req':  handle_pty_request,
                         'x11-req':  handle_x11_request,
                        }
 
-PTY_CHANNEL_REQUEST_PAYLOAD = (ssh.util.packet.STRING,   # TERM environment variable value (e.g., vt100)
-                               ssh.util.packet.UINT32,   # terminal width, characters (e.g., 80)
-                               ssh.util.packet.UINT32,   # terminal height, rows (e.g., 24)
-                               ssh.util.packet.UINT32,   # terminal width, pixels (e.g., 640)
-                               ssh.util.packet.UINT32,   # terminal height, pixels (e.g., 480)
-                               ssh.util.packet.STRING)   # encoded terminal modes
+PTY_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,   # TERM environment variable value (e.g., vt100)
+                               ssh_packet.UINT32,   # terminal width, characters (e.g., 80)
+                               ssh_packet.UINT32,   # terminal height, rows (e.g., 24)
+                               ssh_packet.UINT32,   # terminal width, pixels (e.g., 640)
+                               ssh_packet.UINT32,   # terminal height, pixels (e.g., 480)
+                               ssh_packet.STRING)   # encoded terminal modes
 
-X11_CHANNEL_REQUEST_PAYLOAD = (ssh.util.packet.BOOLEAN,  # single connection
-                               ssh.util.packet.STRING,   # x11 authentication protocol
-                               ssh.util.packet.STRING,   # x11 authentication cookie
-                               ssh.util.packet.UINT32)   # x11 screen number
+X11_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.BOOLEAN,  # single connection
+                               ssh_packet.STRING,   # x11 authentication protocol
+                               ssh_packet.STRING,   # x11 authentication cookie
+                               ssh_packet.UINT32)   # x11 screen number
 
-ENV_CHANNEL_REQUEST_PAYLOAD = (ssh.util.packet.STRING,   # variable name
-                               ssh.util.packet.STRING)   # variable value
+ENV_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,   # variable name
+                               ssh_packet.STRING)   # variable value
 
-EXEC_CHANNEL_REQUEST_PAYLOAD = (ssh.util.packet.STRING,) # command
+EXEC_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,) # command

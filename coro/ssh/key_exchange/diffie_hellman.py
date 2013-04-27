@@ -27,11 +27,14 @@
 __version__ = '$Revision: #1 $'
 
 import hashlib
-import ssh.util.debug
-import ssh.util.packet
-import ssh.util.random
-import ssh.key_exchange
-import ssh.transport.constants
+
+from coro.ssh.util import packet as ssh_packet
+from coro.ssh.util import debug as ssh_debug
+from coro.ssh.util import random as ssh_random
+
+from coro.ssh.key_exchange import SSH_Key_Exchange
+from coro.ssh.transport import constants
+from coro.ssh.keys import parse_public_key
 
 # 2**1024 - 2**960 - 1 + 2**64 * floor( 2**894 Pi + 129093 )
 DH_PRIME = 179769313486231590770839156793787453197860296048756011706444423684197180216158519368947833795864925541502180565485980503646440548199239100050792877003355816639229553136239076508735759914822574862575007425302077447712589550957937778424442426617334727629299387668709205606050270810842907692932019128194467627007L
@@ -40,7 +43,7 @@ DH_GENERATOR = 2L
 SSH_MSG_KEXDH_INIT      = 30
 SSH_MSG_KEXDH_REPLY     = 31
 
-class Diffie_Hellman_Group1_SHA1(ssh.key_exchange.SSH_Key_Exchange):
+class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
 
     name = 'diffie-hellman-group1-sha1'
 
@@ -53,15 +56,15 @@ class Diffie_Hellman_Group1_SHA1(ssh.key_exchange.SSH_Key_Exchange):
     server_public_host_key = None # k_s
 
     def get_initial_client_kex_packet(self):
-        self.transport.debug.write(ssh.util.debug.DEBUG_3, 'get_initial_kex_packet()')
+        self.transport.debug.write(ssh_debug.DEBUG_3, 'get_initial_kex_packet()')
         # Send initial key.
         # This is x.
-        self.client_random_value = ssh.util.random.get_random_number(512)
+        self.client_random_value = ssh_random.get_random_number(512)
         # p is large safe prime (DH_PRIME)
         # g is a generator for a subgroup of GF(p) (DH_GENERATOR)
         # compute e=g**x mod p
         self.client_exchange_value = pow(DH_GENERATOR, self.client_random_value, DH_PRIME)
-        return ssh.util.packet.pack_payload(KEXDH_INIT_PAYLOAD,
+        return ssh_packet.pack_payload(KEXDH_INIT_PAYLOAD,
                                             (SSH_MSG_KEXDH_INIT,
                                              self.client_exchange_value)
                                            )
@@ -86,17 +89,17 @@ class Diffie_Hellman_Group1_SHA1(ssh.key_exchange.SSH_Key_Exchange):
         # string    server public host key and certificates (K_S)
         # mpint     f
         # string    signature of H
-        msg, public_host_key, server_exchange_value, signature_of_h = ssh.util.packet.unpack_payload(KEXDH_REPLY_PAYLOAD, packet)
+        msg, public_host_key, server_exchange_value, signature_of_h = ssh_packet.unpack_payload(KEXDH_REPLY_PAYLOAD, packet)
 
         # Create a SSH_Public_Private_Key instance from the packed string.
-        self.server_public_host_key = ssh.keys.parse_public_key(public_host_key)
+        self.server_public_host_key = parse_public_key(public_host_key)
 
         # Verify that this is a known host key.
         self.transport.verify_public_host_key(self.server_public_host_key)
 
         # Make sure f is a valid number
         if server_exchange_value <= 1 or server_exchange_value >= DH_PRIME-1:
-            self.transport.send_disconnect(ssh.transport.constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed: Server exchange value not valid.')
+            self.transport.send_disconnect(constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed: Server exchange value not valid.')
 
         # K = f**x mod p
         self.shared_secret = pow(server_exchange_value, self.client_random_value, DH_PRIME)
@@ -109,7 +112,7 @@ class Diffie_Hellman_Group1_SHA1(ssh.key_exchange.SSH_Key_Exchange):
         # mpint     e, exchange value sent by the client
         # mpint     f, exchange value sent by the server
         # mpint     K, the shared secret
-        H = ssh.util.packet.pack_payload(KEXDH_HASH_PAYLOAD,
+        H = ssh_packet.pack_payload(KEXDH_HASH_PAYLOAD,
                                  (self.c2s_version_string,
                                  self.s2c_version_string,
                                  self.c2s_kexinit_packet,
@@ -126,27 +129,27 @@ class Diffie_Hellman_Group1_SHA1(ssh.key_exchange.SSH_Key_Exchange):
             self.session_id = self.exchange_hash
 
         if not self.server_public_host_key.verify(self.exchange_hash, signature_of_h):
-            self.transport.send_disconnect(ssh.transport.constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed:  Signature did not match.')
+            self.transport.send_disconnect(constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed:  Signature did not match.')
 
         # Finished...
         self.transport.send_newkeys()
 
-KEXDH_REPLY_PAYLOAD = (ssh.util.packet.BYTE,
-                       ssh.util.packet.STRING,      # public host key and certificates (K_S)
-                       ssh.util.packet.MPINT,       # f
-                       ssh.util.packet.STRING       # signature of H
+KEXDH_REPLY_PAYLOAD = (ssh_packet.BYTE,
+                       ssh_packet.STRING,      # public host key and certificates (K_S)
+                       ssh_packet.MPINT,       # f
+                       ssh_packet.STRING       # signature of H
                       )
 
-KEXDH_INIT_PAYLOAD = (ssh.util.packet.BYTE,
-                      ssh.util.packet.MPINT    # e
+KEXDH_INIT_PAYLOAD = (ssh_packet.BYTE,
+                      ssh_packet.MPINT    # e
                      )
 
-KEXDH_HASH_PAYLOAD = (ssh.util.packet.STRING, # V_C, the client's version string (CR and NL excluded)
-                      ssh.util.packet.STRING, # V_S, the server's version string (CR and NL excluded)
-                      ssh.util.packet.STRING, # I_C, the payload of the client's SSH_MSG_KEXINIT
-                      ssh.util.packet.STRING, # I_S, the payload of the server's SSH_MSG_KEXINIT
-                      ssh.util.packet.STRING, # K_S, the host key
-                      ssh.util.packet.MPINT,  # e, exchange value sent by the client
-                      ssh.util.packet.MPINT,  # f, exchange value sent by the server
-                      ssh.util.packet.MPINT   # K, the shared secret
+KEXDH_HASH_PAYLOAD = (ssh_packet.STRING, # V_C, the client's version string (CR and NL excluded)
+                      ssh_packet.STRING, # V_S, the server's version string (CR and NL excluded)
+                      ssh_packet.STRING, # I_C, the payload of the client's SSH_MSG_KEXINIT
+                      ssh_packet.STRING, # I_S, the payload of the server's SSH_MSG_KEXINIT
+                      ssh_packet.STRING, # K_S, the host key
+                      ssh_packet.MPINT,  # e, exchange value sent by the client
+                      ssh_packet.MPINT,  # f, exchange value sent by the server
+                      ssh_packet.MPINT   # K, the shared secret
                      )

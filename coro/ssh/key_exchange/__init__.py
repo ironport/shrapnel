@@ -28,8 +28,8 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.util.packet
-import ssh.util.debug
+from coro.ssh.util import packet as ssh_packet
+from coro.ssh.util import debug as ssh_debug
 
 class SSH_Key_Exchange:
     """SSH_Key_Exchange
@@ -118,7 +118,7 @@ class SSH_Key_Exchange:
         Computes an encryption key with the given letter.
         <required_size> is the length of the key that you require (in bytes).
         """
-        shared_secret = ssh.util.packet.pack_payload((ssh.util.packet.MPINT,), (self.shared_secret,))
+        shared_secret = ssh_packet.pack_payload((ssh_packet.MPINT,), (self.shared_secret,))
         key = self.get_hash_object(
                 shared_secret,
                 self.exchange_hash,
@@ -134,7 +134,7 @@ class SSH_Key_Exchange:
             # K3 = HASH(K || H || K1 || K2)
             # ...
             # key = K1 || K2 || K3 || ...
-            self.transport.debug.write(ssh.util.debug.DEBUG_2, 'get_encryption_key: computed key is too small len(key)=%i required_size=%i', (len(key), required_size))
+            self.transport.debug.write(ssh_debug.DEBUG_2, 'get_encryption_key: computed key is too small len(key)=%i required_size=%i', (len(key), required_size))
             key_data = [key]
             key_data_len = len(key)
             while key_data_len < required_size:
@@ -155,7 +155,7 @@ class SSH_Key_Exchange:
         self.supported_server_keys = supported_server_keys
 
     def get_key_algorithm(self, key):
-        name = ssh.util.packet.unpack_payload( (ssh.util.packet.STRING,), key)[0]
+        name = ssh_packet.unpack_payload( (ssh_packet.STRING,), key)[0]
         for key_alg in self.supported_server_keys:
             if key_alg.name == name:
                 return key_alg

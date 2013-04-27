@@ -24,9 +24,9 @@
 # This handles the various types of authentication systems.
 #
 
-import ssh.transport
+from coro.ssh import transport
 
-class Authentication_System(ssh.transport.SSH_Service):
+class Authentication_System(transport.SSH_Service):
 
     def authenticate(self, service_name):
         """authenticate(self, service_name) -> None

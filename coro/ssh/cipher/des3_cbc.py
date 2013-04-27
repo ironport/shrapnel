@@ -26,10 +26,10 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.cipher
+from coro.ssh.cipher import SSH_Cipher_Method
 from Crypto.Cipher import DES3
 
-class Triple_DES_CBC(ssh.cipher.SSH_Cipher_Method):
+class Triple_DES_CBC(SSH_Cipher_Method):
 
     name = '3des-cbc'
     block_size = 8

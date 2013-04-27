@@ -27,12 +27,12 @@
 
 import dnsqr
 import inet_utils
-import ssh.transport.client
-import ssh.connection.connect
-import ssh.l4_transport.coro_socket_transport
-import ssh.auth.userauth
-import ssh.connection.interactive_session
-import ssh.util.debug
+import coro.ssh.transport.client
+import coro.ssh.connection.connect
+import coro.ssh.l4_transport.coro_socket_transport
+import coro.ssh.auth.userauth
+import coro.ssh.connection.interactive_session
+import coro.ssh.util.debug
 
 DISABLE_PASSWORD = '__DISABLE_PASSWORD__'
 
@@ -46,8 +46,8 @@ class Coro_Interactive_SSH_Wrapper:
     def __init__(self):
         pass
 
-    def connect(self, username, remote_address, remote_port=22, password=None, command=None, debug_level=ssh.util.debug.WARNING):
-        """connect(self, username, remote_address, remote_port=22, password=None, command=None, debug_level=ssh.util.debug.WARNING) -> None
+    def connect(self, username, remote_address, remote_port=22, password=None, command=None, debug_level=coro.ssh.util.debug.WARNING):
+        """connect(self, username, remote_address, remote_port=22, password=None, command=None, debug_level=coro.ssh.util.debug.WARNING) -> None
         The opens a connection to the remote side and authenticates.
 
         <username> - The remote username to log into.
@@ -62,7 +62,7 @@ class Coro_Interactive_SSH_Wrapper:
         <debug_level> - Level a debuging to print to stderr.
         """
 
-        self.client = ssh.transport.client.SSH_Client_Transport()
+        self.client = coro.ssh.transport.client.SSH_Client_Transport()
         if inet_utils.is_ip(remote_address):
             remote_ip = remote_address
             hostname = None
@@ -70,14 +70,14 @@ class Coro_Interactive_SSH_Wrapper:
             dns_query_result = dnsqr.query(remote_address, 'A')
             remote_ip = dns_query_result[0][-1]
             hostname = remote_address
-        coro_socket_transport = ssh.l4_transport.coro_socket_transport
+        coro_socket_transport = coro.ssh.l4_transport.coro_socket_transport
         self.transport = coro_socket_transport.coro_socket_transport(
             remote_ip, remote_port, hostname=hostname)
         self.client.connect(self.transport)
         self.client.debug.level = debug_level
-        self.service = ssh.connection.connect.Connection_Service(self.client)
+        self.service = coro.ssh.connection.connect.Connection_Service(self.client)
         self._authenticate(username, password)
-        self.channel = ssh.connection.interactive_session.Interactive_Session_Client(self.service)
+        self.channel = coro.ssh.connection.interactive_session.Interactive_Session_Client(self.service)
         self.channel.open()
         if command is not None:
             self.channel.exec_command(command)
@@ -86,7 +86,7 @@ class Coro_Interactive_SSH_Wrapper:
             self.channel.open_shell()
 
     def _authenticate(self, username, password=None):
-        auth_method = ssh.auth.userauth.Userauth(self.client)
+        auth_method = coro.ssh.auth.userauth.Userauth(self.client)
         auth_method.username = username
         if password is not None:
             for x in xrange(len(auth_method.methods)):
@@ -124,7 +124,7 @@ class Coro_Interactive_SSH_Wrapper:
 
     send = write
 
-class Fixed_Password_Auth(ssh.auth.userauth.Password):
+class Fixed_Password_Auth(coro.ssh.auth.userauth.Password):
 
     password = None
 

@@ -27,9 +27,9 @@
 
 __version__ = '$Revision: #1 $'
 
-import ssh.compression
+from coro.ssh.compression import SSH_Compression_Method
 
-class Compression_None(ssh.compression.SSH_Compression_Method):
+class Compression_None(SSH_Compression_Method):
 
     def compress(self, data):
         return data

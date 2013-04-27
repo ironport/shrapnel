@@ -141,40 +141,50 @@ def pack_payload(format, values):
     return ''.join(packet)
 
 # Packet format definitions.
-PAYLOAD_MSG_DISCONNECT = (BYTE,
-                          UINT32,   # reason code
-                          STRING,   # description
-                          STRING)   # language tag
-PAYLOAD_MSG_IGNORE = (BYTE,
-                      STRING)   # data
-PAYLOAD_MSG_UNIMPLEMENTED = (BYTE,
-                             UINT32)    # packet sequence number of rejected message
-PAYLOAD_MSG_DEBUG = (BYTE,
-                 BOOLEAN,   # always_display
-                 STRING,    # message
-                 STRING)    # language tag
+PAYLOAD_MSG_DISCONNECT = (
+    BYTE,
+    UINT32,   # reason code
+    STRING,   # description
+    STRING    # language tag
+    )
 
-PAYLOAD_MSG_KEXINIT = (BYTE,
-                 (FIXED_STRING, 16),# cookie
-                  NAME_LIST,        # kex_algorithms
-                  NAME_LIST,        # server_host_key_algorithms
-                  NAME_LIST,        # encryption_algorithms_client_to_server
-                  NAME_LIST,        # encryption_algorithms_server_to_client
-                  NAME_LIST,        # mac_algorithms_client_to_server
-                  NAME_LIST,        # mac_algorithms_server_to_client
-                  NAME_LIST,        # compression_algorithms_client_to_server
-                  NAME_LIST,        # compression_algorithms_server_to_client
-                  NAME_LIST,        # languages_client_to_server
-                  NAME_LIST,        # languages_server_to_client
-                  BOOLEAN,          # first_kex_packet_follows
-                  UINT32)           # 0 (reserved for future extension)
+PAYLOAD_MSG_IGNORE = (
+    BYTE,
+    STRING    # data
+    )
+
+PAYLOAD_MSG_UNIMPLEMENTED = (
+    BYTE,
+    UINT32     # packet sequence number of rejected message
+    )
+
+PAYLOAD_MSG_DEBUG = (
+    BYTE,
+    BOOLEAN,   # always_display
+    STRING,    # message
+    STRING     # language tag
+    )
+
+PAYLOAD_MSG_KEXINIT = (
+    BYTE,
+    (FIXED_STRING, 16),# cookie
+    NAME_LIST,        # kex_algorithms
+    NAME_LIST,        # server_host_key_algorithms
+    NAME_LIST,        # encryption_algorithms_client_to_server
+    NAME_LIST,        # encryption_algorithms_server_to_client
+    NAME_LIST,        # mac_algorithms_client_to_server
+    NAME_LIST,        # mac_algorithms_server_to_client
+    NAME_LIST,        # compression_algorithms_client_to_server
+    NAME_LIST,        # compression_algorithms_server_to_client
+    NAME_LIST,        # languages_client_to_server
+    NAME_LIST,        # languages_server_to_client
+    BOOLEAN,          # first_kex_packet_follows
+    UINT32            # 0 (reserved for future extension)
+    )
+
 PAYLOAD_MSG_NEWKEYS = (BYTE,)
-
-PAYLOAD_MSG_SERVICE_REQUEST = (BYTE,
-                    STRING)     # service name
-
-PAYLOAD_MSG_SERVICE_ACCEPT = (BYTE,
-                    STRING)     # service_name
+PAYLOAD_MSG_SERVICE_REQUEST = (BYTE, STRING)     # service name
+PAYLOAD_MSG_SERVICE_ACCEPT = (BYTE, STRING)     # service_name
 
 import unittest
 

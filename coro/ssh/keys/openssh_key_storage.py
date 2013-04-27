@@ -37,9 +37,11 @@ import rebuild
 import ber
 import dss
 import rsa
-import ssh.util
-import ssh.util.password
-import ssh.keys.openssh_key_formats
+
+from coro.ssh.keys import openssh_key_formats
+from coro.ssh.util import str_xor
+from coro.ssh.util.password import get_password
+
 from Crypto.Cipher import DES
 import openssh_known_hosts
 import remote_host
@@ -277,7 +279,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
     parse_private_key = classmethod(parse_private_key)
 
     def ask_for_passphrase():
-        return ssh.util.password.get_password('Enter passphrase> ')
+        return get_password('Enter passphrase> ')
 
     ask_for_passphrase = staticmethod(ask_for_passphrase)
 
@@ -295,7 +297,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
             value = key1.decrypt(
                     key2.encrypt(
                     key3.decrypt(block)))
-            result.append(ssh.util.str_xor(prev, value))
+            result.append(str_xor(prev, value))
             prev = block
 
         return ''.join(result)
@@ -311,7 +313,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
         """
         # Format:
         # keytype SPACE+ base64_string [ SPACE+ comment ]
-        key_match = ssh.keys.openssh_key_formats.ssh2_key.match(public_key)
+        key_match = openssh_key_formats.ssh2_key.match(public_key)
         if not key_match:
             return None
         keytype = key_match.group('keytype')

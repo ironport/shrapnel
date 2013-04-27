@@ -24,10 +24,10 @@
 # Implements the Blowfish cipher in CBC mode.
 #
 
-import ssh.cipher
+from coro.ssh.cipher import SSH_Cipher_Method
 from Crypto.Cipher import Blowfish
 
-class Blowfish_CBC(ssh.cipher.SSH_Cipher_Method):
+class Blowfish_CBC(SSH_Cipher_Method):
 
     name = 'blowfish-cbc'
     block_size = 8

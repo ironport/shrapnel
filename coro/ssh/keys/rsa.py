@@ -27,8 +27,7 @@ __version__ = '$Revision: #1 $'
 
 import hashlib
 import public_private_key
-import ssh.util.packet
-import ssh.util.random
+from coro.ssh.util import packet
 from Crypto.PublicKey import RSA
 from Crypto.Util import number
 
@@ -45,26 +44,26 @@ class SSH_RSA(public_private_key.SSH_Public_Private_Key):
     public_key = (0L, 0L)       # e, n
 
     def set_public_key(self, public_key):
-        rsa, e, n = ssh.util.packet.unpack_payload(RSA_PUBLIC_KEY_PAYLOAD, public_key)
+        rsa, e, n = packet.unpack_payload(RSA_PUBLIC_KEY_PAYLOAD, public_key)
         if rsa != 'ssh-rsa':
             raise ValueError, rsa
         self.public_key = (e, n)
 
     def set_private_key(self, private_key):
-        rsa, n, e, d, p, q = ssh.util.packet.unpack_payload(RSA_PRIVATE_KEY_PAYLOAD, private_key)
+        rsa, n, e, d, p, q = packet.unpack_payload(RSA_PRIVATE_KEY_PAYLOAD, private_key)
         if rsa != 'ssh-rsa':
             raise ValueError, rsa
         self.public_key = (n, e, d, p, q)
 
     def get_public_key_blob(self):
         e, n = self.public_key
-        return ssh.util.packet.pack_payload(RSA_PUBLIC_KEY_PAYLOAD,
+        return packet.pack_payload(RSA_PUBLIC_KEY_PAYLOAD,
                         ('ssh-rsa',
                          e, n))
 
     def get_private_key_blob(self):
         n, e, d, p, q = self.public_key
-        return ssh.util.packet.pack_payload(RSA_PRIVATE_KEY_PAYLOAD,
+        return packet.pack_payload(RSA_PRIVATE_KEY_PAYLOAD,
                         ('ssh-rsa',
                          n, e, d, p, q))
 
@@ -92,13 +91,13 @@ class SSH_RSA(public_private_key.SSH_Public_Private_Key):
         encoded_message = self.emsa_pkcs1_v1_5_encode(message, modulus_n_length_in_octets)
         signature = rsa_obj.sign(encoded_message, '')[0]    # Returns tuple of 1 element.
         signature = number.long_to_bytes(signature)
-        return ssh.util.packet.pack_payload(RSA_SIG_PAYLOAD,
+        return packet.pack_payload(RSA_SIG_PAYLOAD,
                                 ('ssh-rsa',
                                  signature))
 
     def verify(self, message, signature):
         e, n = self.public_key
-        rsa, blob = ssh.util.packet.unpack_payload(RSA_SIG_PAYLOAD, signature)
+        rsa, blob = packet.unpack_payload(RSA_SIG_PAYLOAD, signature)
         if rsa != 'ssh-rsa':
             raise ValueError, rsa
         s = number.bytes_to_long(blob)
@@ -107,19 +106,19 @@ class SSH_RSA(public_private_key.SSH_Public_Private_Key):
         encoded_message = self.emsa_pkcs1_v1_5_encode(message, modulus_n_length_in_octets)
         return rsa_obj.verify(encoded_message, (s,))
 
-RSA_PUBLIC_KEY_PAYLOAD = (ssh.util.packet.STRING,  # "ssh-rsa"
-                          ssh.util.packet.MPINT,   # e
-                          ssh.util.packet.MPINT    # n
+RSA_PUBLIC_KEY_PAYLOAD = (packet.STRING,  # "ssh-rsa"
+                          packet.MPINT,   # e
+                          packet.MPINT    # n
                          )
 
-RSA_PRIVATE_KEY_PAYLOAD = (ssh.util.packet.STRING,  # "ssh-rsa"
-                           ssh.util.packet.MPINT,   # n
-                           ssh.util.packet.MPINT,   # e
-                           ssh.util.packet.MPINT,   # d
-                           ssh.util.packet.MPINT,   # p
-                           ssh.util.packet.MPINT,   # q
+RSA_PRIVATE_KEY_PAYLOAD = (packet.STRING,  # "ssh-rsa"
+                           packet.MPINT,   # n
+                           packet.MPINT,   # e
+                           packet.MPINT,   # d
+                           packet.MPINT,   # p
+                           packet.MPINT,   # q
                           )
 
-RSA_SIG_PAYLOAD = (ssh.util.packet.STRING,  # "ssh-rsa"
-                   ssh.util.packet.STRING   # signature_key_blob
+RSA_SIG_PAYLOAD = (packet.STRING,  # "ssh-rsa"
+                   packet.STRING   # signature_key_blob
                   )

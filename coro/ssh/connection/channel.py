@@ -28,10 +28,10 @@
 __version__ = '$Revision: #1 $'
 
 import coro
-import ssh.connection.data_buffer
-import ssh.util.packet
-import ssh.util.debug
-from ssh.connection.constants import *
+
+from coro.ssh.connection.data_buffer import Buffer
+from coro.ssh.connection.constants import *
+from coro.ssh.util import packet, debug
 
 class Channel_Request_Failure(Exception):
     pass
@@ -116,7 +116,7 @@ class Channel:
         self.connection_service = connection_service
         # Local reference for convenience.
         self.transport = connection_service.transport
-        self.recv_buffer = ssh.connection.data_buffer.Buffer()
+        self.recv_buffer = Buffer()
         self.extended_recv_buffer = {}
         self.remote_channel = Remote_Channel()
         self.window_data_added_cv = coro.condition_variable()
@@ -164,13 +164,13 @@ class Channel:
         #      not allowed?
         if self.remote_channel.closed:
             raise Channel_Closed_Error
-        packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_REQUEST_PAYLOAD,
+        pkt = packet.pack_payload(SSH_MSG_CHANNEL_REQUEST_PAYLOAD,
                                             (SSH_MSG_CHANNEL_REQUEST,
                                              self.remote_channel.channel_id,
                                              request_type,
                                              int(want_reply)))
-        packet_data = ssh.util.packet.pack_payload(payload, data)
-        self.transport.send_packet(packet + packet_data)
+        pkt_data = packet.pack_payload(payload, data)
+        self.transport.send_packet(pkt + pkt_data)
         if want_reply and default_reply_handler:
             # Wait for response.
             assert len(self.channel_request_cv)==0, 'Concurrent channel requests not supported!'
@@ -195,7 +195,7 @@ class Channel:
                 if self.extended_recv_buffer.has_key(data_type_code):
                     self.extended_recv_buffer[data_type_code].write(data)
                 else:
-                    b = ssh.connection.data_buffer.Buffer()
+                    b = Buffer()
                     b.write(data)
                     self.extended_recv_buffer[data_type_code] = b
 
@@ -211,10 +211,10 @@ class Channel:
     def handle_request(self, request_type, want_reply, type_specific_packet_data):
         # Default is always to fail.  Specific channel types override this method.
         if want_reply:
-            packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD,
+            pkt = packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD,
                                                         (SSH_MSG_CHANNEL_FAILURE,
                                                          self.remote_channel.channel_id,))
-            self.transport.send_packet(packet)
+            self.transport.send_packet(pkt)
 
     def open(self):
         """open(self) -> None
@@ -222,7 +222,7 @@ class Channel:
         """
         assert self.closed
         self.connection_service.register_channel(self)
-        self.transport.debug.write(ssh.util.debug.DEBUG_2, 'sending channel open request channel ID %i', (self.channel_id,))
+        self.transport.debug.write(debug.DEBUG_2, 'sending channel open request channel ID %i', (self.channel_id,))
 
         # Send the open request.
         additional_data = self.get_additional_open_data()
@@ -232,8 +232,8 @@ class Channel:
                              self.channel_id,
                              self.window_size,
                              self.max_packet_size) + additional_data
-        packet = ssh.util.packet.pack_payload(packet_payload, packet_data)
-        self.transport.send_packet(packet)
+        pkt = packet.pack_payload(packet_payload, packet_data)
+        self.transport.send_packet(pkt)
         success, data = self.channel_open_cv.wait()
         if success:
             self.set_additional_open_data(data)
@@ -249,10 +249,10 @@ class Channel:
         """
         if not self.remote_channel.closed:
             self.remote_channel.closed = 1
-            packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_CLOSE_PAYLOAD,
+            pkt = packet.pack_payload(SSH_MSG_CHANNEL_CLOSE_PAYLOAD,
                                                 (SSH_MSG_CHANNEL_CLOSE,
                                                  self.remote_channel.channel_id))
-            self.transport.send_packet(packet)
+            self.transport.send_packet(pkt)
 
             # We need to cause any threads that were trying to write on
             # this channel to stop trying to write. If they were asleep
@@ -266,12 +266,12 @@ class Channel:
                                                    None)))
 
     def send_window_adjustment(self, bytes_to_add):
-        self.transport.debug.write(ssh.util.debug.DEBUG_2, 'sending window adjustment to add %i bytes', (bytes_to_add,))
-        packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD,
+        self.transport.debug.write(debug.DEBUG_2, 'sending window adjustment to add %i bytes', (bytes_to_add,))
+        pkt = packet.pack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD,
                                                 (SSH_MSG_CHANNEL_WINDOW_ADJUST,
                                                  self.remote_channel.channel_id,
                                                  bytes_to_add))
-        self.transport.send_packet(packet)
+        self.transport.send_packet(pkt)
         self.window_data_left += bytes_to_add
 
     def has_data_to_read(self, extended=None):
@@ -310,7 +310,7 @@ class Channel:
         """
         if extended is not None:
             if not self.extended_recv_buffer.has_key(extended):
-                self.extended_recv_buffer[extended] = ssh.connection.data_buffer.Buffer()
+                self.extended_recv_buffer[extended] = Buffer()
             b = self.extended_recv_buffer[extended]
         else:
             b = self.recv_buffer
@@ -332,7 +332,7 @@ class Channel:
         """
         if extended is not None:
             if not self.extended_recv_buffer.has_key(extended):
-                self.extended_recv_buffer[extended] = ssh.connection.data_buffer.Buffer()
+                self.extended_recv_buffer[extended] = Buffer()
             b = self.extended_recv_buffer[extended]
         else:
             b = self.recv_buffer
@@ -376,13 +376,13 @@ class Channel:
             data_to_send = data[data_start:data_start+max_size]
             data_start += max_size
 
-            packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_DATA_PAYLOAD,
+            pkt = packet.pack_payload(SSH_MSG_CHANNEL_DATA_PAYLOAD,
                                                 (SSH_MSG_CHANNEL_DATA,
                                                  self.remote_channel.channel_id,
                                                  data_to_send))
-            self.transport.debug.write(ssh.util.debug.DEBUG_3, 'channel %i window lowered by %i to %i', (self.remote_channel.channel_id, len(data_to_send), self.remote_channel.window_data_left))
+            self.transport.debug.write(debug.DEBUG_3, 'channel %i window lowered by %i to %i', (self.remote_channel.channel_id, len(data_to_send), self.remote_channel.window_data_left))
             self.remote_channel.window_data_left -= len(data_to_send)
-            self.transport.send_packet(packet)
+            self.transport.send_packet(pkt)
 
     def send_extended(self, data, data_type_code):
         """send_extended(self, data, data_type_code) -> None
@@ -406,13 +406,13 @@ class Channel:
             data_to_send = data[data_start:data_start+max_size]
             data_start += max_size
 
-            packet = ssh.util.packet.pack_payload(SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD,
+            pkt = packet.pack_payload(SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD,
                                                 (SSH_MSG_CHANNEL_EXTENDED_DATA,
                                                  self.remote_channel.channel_id,
                                                  data_type_code,
                                                  data_to_send))
             self.remote_channel.window_data_left -= len(data_to_send)
-            self.transport.send_packet(packet)
+            self.transport.send_packet(pkt)
 
     def channel_request_success(self):
         """channel_request_success(self) -> None
