@@ -1,0 +1,12 @@
+        # if y < 1024, openssh will reject us: "bad server public DH value".
+        # y<1024 means f will be short, and of the form 2^y, so an observer
+        # could trivially derive our secret y from f. Openssh detects this
+        # and complains, so avoid creating such values by requiring y to be
+        # larger than ln2(self.p)
+
+        # TODO: we should also look at the value they send to us and reject
+        # insecure values of f (if g==2 and f has a single '1' bit while the
+        # rest are '0's, then they must have used a small y also).
+
+        # TODO: This could be computed when self.p is set up
+        #  or do as openssh does and scan f for a single '1' bit instead
