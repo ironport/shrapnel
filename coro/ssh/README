@@ -14,19 +14,20 @@ It uses Andrew Kuchling's pycrypto library (version 1.9a6).
 
 This implementation is based on the following revisions of the IETF drafts.  Future revisions may change certain parts of the protocol, but that is unlikely.
 
-draft-ietf-secsh-architecture-15.txt
-draft-ietf-secsh-assignednumbers-05.txt
-draft-ietf-secsh-auth-kbdinteract-05.txt
-draft-ietf-secsh-connect-18.txt
-draft-ietf-secsh-dh-group-exchange-04.txt
-draft-ietf-secsh-filexfer-04.txt
-draft-ietf-secsh-fingerprint-01.txt
-draft-ietf-secsh-gsskeyex-07.txt
-draft-ietf-secsh-newmodes-00.txt
-draft-ietf-secsh-newmodes-01.txt
-draft-ietf-secsh-publickeyfile-04.txt
-draft-ietf-secsh-transport-17.txt
-draft-ietf-secsh-userauth-18.txt
+---------- draft -------------------------          --- became RFC ---
+
+draft-ietf-secsh-architecture-15.txt                     RFC 4251
+draft-ietf-secsh-assignednumbers-05.txt                  RFC 4250
+draft-ietf-secsh-auth-kbdinteract-05.txt                 RFC 4256
+draft-ietf-secsh-connect-18.txt                          RFC 4254
+draft-ietf-secsh-dh-group-exchange-04.txt                RFC 4419
+draft-ietf-secsh-filexfer-04.txt                        [draft 13]
+draft-ietf-secsh-fingerprint-01.txt                          ?
+draft-ietf-secsh-gsskeyex-07.txt                         RFC 4462
+draft-ietf-secsh-newmodes-00.txt                         RFC 4344
+draft-ietf-secsh-publickeyfile-04.txt                    RFC 4716
+draft-ietf-secsh-transport-17.txt                        RFC 4253
+draft-ietf-secsh-userauth-18.txt                         RFC 4252
 
 Overview
 --------
