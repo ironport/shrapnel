@@ -267,7 +267,7 @@ class dns_cache:
                 stype = coro.SOCK.STREAM
             else:
                 stype = coro.SOCK.DGRAM
-            s = coro.make_socket (stype, sfamily)
+            s = coro.make_socket (sfamily, stype)
         except OSError, why:
             self.log ('COMMON.APP_FAILURE', tb.traceback_string() + ' why: ' + str(why))
             raise DNS_Soft_Error, (qname, qtype, ip, str(why))
