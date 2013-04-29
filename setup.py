@@ -70,7 +70,7 @@ import sys
 # statically link is a bit tricky
 # Note: be sure to remove coro/ssl/openssl.c if you change this, see NPN probe below.
 #ossl_base = '/Users/rushing/src/openssl-1.0.1c'
-ossl_base = '/usr/'
+ossl_base = '/usr'
 
 def O (path):
     return os.path.join (ossl_base, path)
@@ -88,11 +88,11 @@ OpenSSL_Extension = Extension (
     ['coro/ssl/openssl.pyx'],
     depends=['coro/ssl/openssl.pxi'],
     # manual static link
-    extra_link_args = [ O('libcrypto.a'), O('libssl.a') ],
+    #extra_link_args = [ O('libcrypto.a'), O('libssl.a') ],
     # link to an absolute location
     #extra_link_args = [ '-L %s -lcrypto -lssl' % (ossl_base,) ]
     # 'normal' link
-    #libraries = ['crypto', 'ssl'],
+    libraries = ['crypto', 'ssl'],
     include_dirs = [ O('include') ],
     cython_compile_time_env = {'NPN' : USE_NPN},
     )
