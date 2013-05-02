@@ -39,18 +39,20 @@ class coro_socket_transport(l4_transport.Transport):
     # The socket
     s = None
 
-    def __init__(self, ip, port=22, bind_ip=None, hostname=None):
+    def __init__(self, ip=None, port=22, bind_ip=None, hostname=None, sock=None):
         self.ip = ip
         self.port = port
         self.bind_ip = bind_ip
         self.hostname = hostname
-        self.s = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
+        if sock is None:
+            self.s = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
+        else:
+            self.s = sock
 
     def connect(self):
         if self.bind_ip is not None:
             self.s.bind((self.bind_ip, 0))
 
-        coro.write_stderr ('connecting to %s port %s\n' % (self.ip, self.port))
         self.s.connect((self.ip, self.port))
 
     def read(self, bytes):

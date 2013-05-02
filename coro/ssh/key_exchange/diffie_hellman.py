@@ -28,6 +28,8 @@ __version__ = '$Revision: #1 $'
 
 import hashlib
 
+from coro import write_stderr as W
+
 from coro.ssh.util import packet as ssh_packet
 from coro.ssh.util import debug as ssh_debug
 from coro.ssh.util import random as ssh_random
@@ -55,6 +57,9 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
     client_exchange_value = 0L  # e
     server_public_host_key = None # k_s
 
+    server_random_value = ''    # y
+    server_exchange_value = 0L  # f
+
     def get_initial_client_kex_packet(self):
         self.transport.debug.write(ssh_debug.DEBUG_3, 'get_initial_kex_packet()')
         # Send initial key.
@@ -70,7 +75,7 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
                                            )
 
     def get_initial_server_kex_packet(self):
-        raise NotImplementedError
+        return None
 
     def _get_hash_object(self):
         """_get_hash_object(self) -> hash_object
@@ -83,7 +88,56 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         self.transport.register_callbacks(self.name, callbacks)
 
     def register_server_callbacks(self):
-        raise NotImplementedError
+        callbacks = {SSH_MSG_KEXDH_INIT: self.msg_kexdh_init}
+        self.transport.register_callbacks(self.name, callbacks)
+
+    def msg_kexdh_init (self, packet):
+        msg, self.client_exchange_value = ssh_packet.unpack_payload (KEXDH_INIT_PAYLOAD, packet)
+        # XXX make sure e is a valid number
+        W ('kexdh: self.client_exchange_value=%r\n' % (self.client_exchange_value,))
+        # This is y.
+        self.server_random_value = ssh_random.get_random_number(512)
+        # p is large safe prime (DH_PRIME)
+        # g is a generator for a subgroup of GF(p) (DH_GENERATOR)
+        # compute f=g**y mod p
+        self.server_exchange_value = pow(DH_GENERATOR, self.server_random_value, DH_PRIME)
+        self.shared_secret = pow (self.server_exchange_value, self.client_exchange_value, DH_PRIME)
+        # find my public key
+        for key in self.transport.server_keys:
+            if key.name == 'ssh-dss':
+                K_S = key.get_public_key_blob()
+                break
+        else:
+            raise ValueError ("no dss key?")
+        W ('kexdh: K_S=%r\n' % (K_S,))
+        H = ssh_packet.pack_payload (
+            KEXDH_HASH_PAYLOAD, (
+                self.c2s_version_string,
+                self.s2c_version_string,
+                self.c2s_kexinit_packet,
+                self.s2c_kexinit_packet,
+                K_S,
+                self.client_exchange_value,
+                self.server_exchange_value,
+                self.shared_secret
+                )
+            )
+        self.exchange_hash = hashlib.sha1(H).digest()
+        if self.session_id is None:
+            # The session id is the first exchange hash.
+            self.session_id = self.exchange_hash
+        H_sig = key.sign (self.exchange_hash)
+        W ('kexdh: sending KEXDH_REPLY\n')
+        self.transport.send_packet (
+            ssh_packet.pack_payload (
+                KEXDH_REPLY_PAYLOAD, (
+                    SSH_MSG_KEXDH_REPLY,
+                    K_S,
+                    self.server_exchange_value,
+                    H_sig
+                    )
+                )
+            )
 
     def msg_kexdh_reply(self, packet):
         # string    server public host key and certificates (K_S)
@@ -91,6 +145,7 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         # string    signature of H
         msg, public_host_key, server_exchange_value, signature_of_h = ssh_packet.unpack_payload(KEXDH_REPLY_PAYLOAD, packet)
 
+        W ('kexdh: KEXDH_REPLY public host blob = %r\n' % (public_host_key,))
         # Create a SSH_Public_Private_Key instance from the packed string.
         self.server_public_host_key = parse_public_key(public_host_key)
 
