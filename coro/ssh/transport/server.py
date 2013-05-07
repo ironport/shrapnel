@@ -12,16 +12,16 @@ from coro.ssh.transport import transport
 from coro.ssh.keys import key_storage
 from coro.ssh.transport.constants import *
 
+from coro import write_stderr as W
+
 class SSH_Server_Transport (transport.SSH_Transport):
 
-    def __init__(self, client_transport=None, server_transport=None, debug=None):
+    def __init__(self, server_key, client_transport=None, server_transport=None, debug=None):
         transport.SSH_Transport.__init__(self, client_transport, server_transport, debug)
         self.self2remote = self.s2c
         self.remote2self = self.c2s
         self.is_server = True
-        self.server_keys = []
-        for storage in self.supported_key_storages:
-            self.server_keys.extend (storage.load_keys())
+        self.s2c.supported_server_keys = [server_key]
 
     def connect (self, transport):
         """connect(self, transport) -> None
@@ -38,6 +38,7 @@ class SSH_Server_Transport (transport.SSH_Transport):
         # transport is already connected
         # Send identification string.
         self.transport = transport
+        W ('_connect(): server_key=%r\n' % (self.server_key,))
         if self.s2c.comments:
             comments = ' ' + self.s2c.comments
         else:
@@ -49,23 +50,26 @@ class SSH_Server_Transport (transport.SSH_Transport):
             line = transport.read_line()
             if line.startswith('SSH-'):
                 # Got the identification string.
-                self.s2c.version_string = line
+                self.c2s.version_string = line
                 # See if there are any optional comments.
                 i = line.find(' ')
                 if i!=-1:
-                    self.s2c.comments = line[i+1:]
+                    self.c2s.comments = line[i+1:]
                     line = line[:i]
                 # Break up the identification string into its parts.
                 parts = line.split('-')
                 if len(parts) != 3:
                     self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'server identification invalid: %r' % line)
-                self.s2c.protocol_version = parts[1]
-                self.s2c.software_version = parts[2]
-                if self.s2c.protocol_version not in ('1.99', '2.0'):
+                self.c2s.protocol_version = parts[1]
+                self.c2s.software_version = parts[2]
+                if self.c2s.protocol_version not in ('1.99', '2.0'):
                     self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED, 'protocol version not supported: %r' % self.c2s.protocol_version)
                 break
 
         self.send_kexinit()
+        self.s2c.set_preferred('key_exchange')
+        #self.s2c.set_preferred('server_key')
+
         if self.self2remote.proactive_kex:
             # Go ahead and send our kex packet with our preferred algorithm.
             # This will assume the client side supports the algorithm.
@@ -80,6 +84,7 @@ class SSH_Server_Transport (transport.SSH_Transport):
         # Receive server kexinit
         self._process_kexinit()
         self.debug.write(debug.DEBUG_3, 'key exchange: got kexinit')
+        self.debug.write(debug.DEBUG_3, 'key exchange: self.server_key=%r' % (self.server_key,))
         if not self.self2remote.proactive_kex:
             self.debug.write(debug.DEBUG_3, 'key exchange: sending initial server kex packet')
             packet = self.key_exchange.get_initial_server_kex_packet()
