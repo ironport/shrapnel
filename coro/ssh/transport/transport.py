@@ -52,6 +52,8 @@ from coro.ssh.cipher.none import Cipher_None
 from coro.ssh.compression.none import Compression_None
 from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
 
+from coro import write_stderr as W
+
 class SSH_Transport:
 
     # The low-level OS transport abstraction.
@@ -119,8 +121,9 @@ class SSH_Transport:
                 {SSH_MSG_IGNORE: self.msg_ignore,
                  SSH_MSG_DEBUG: self.msg_debug,
                  SSH_MSG_DISCONNECT:self.msg_disconnect,
+                 SSH_MSG_UNIMPLEMENTED:self.msg_unimplemented,
                  #SSH_MSG_KEXINIT:self.msg_kexinit,
-                 #SSH_MSG_NEWKEYS:self.msg_newkeys,
+                 SSH_MSG_NEWKEYS:self.msg_newkeys,
                 }
                 )
 
@@ -442,6 +445,10 @@ class SSH_Transport:
         msg, always_display, message, language = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_DEBUG, packet)
         self.debug.write(ssh_debug.DEBUG_1, 'SSH_MSG_DEBUG: %s', message)
 
+    def msg_unimplemented(self, packet):
+        msg, seq_number = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_UNIMPLEMENTED, packet)
+        self.debug.write(ssh_debug.DEBUG_1, 'SSH_MSG_UNIMPLEMENTED: %i', seq_number)
+
     def msg_kexinit(self, packet):
         self.remote2self.kexinit_packet = packet
         msg, cookie, kex_algorithms, server_host_key_algorithms, encryption_algorithms_c2s, \
@@ -569,6 +576,7 @@ class SSH_Transport:
         else:
             # We have agreement on the kex algorithm to use.
             # See if we have agreement on the server host key type.
+            self.debug.write (ssh_debug.DEBUG_3, 'msg_kexinit: agreement on %r' % (self.self2remote.key_exchange.name,))
             if self.remote2self.server_key.name != self.self2remote.server_key.name:
                 # See if we share a server host key type that also works with our chosen kex algorithm.
                 for client_server_key_type in self.c2s.supported_server_keys:
@@ -586,6 +594,7 @@ class SSH_Transport:
                 else:
                     # None of the server key types worked.
                     self.send_disconnect(SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Could not find matching server key type for %s key exchange.' % self.remote2self.key_exchange.name)
+            self.debug.write (ssh_debug.DEBUG_3, 'msg_kexinit: set_key_exchange: %r' % (self.remote2self.server_key.name,))
             self.set_key_exchange(self.remote2self.key_exchange.name, self.remote2self.server_key.name)
 
     def set_key_exchange(self, key_exchange=None, server_host_key_type=None):
@@ -657,6 +666,7 @@ class SSH_Transport:
         return packet
 
     def msg_newkeys(self, packet):
+        self.send_newkeys()
         self.debug.write(ssh_debug.DEBUG_3, 'msg_newkeys(packet=...)')
         # Switch to using new algorithms.
         self.remote2self.set_preferred()
