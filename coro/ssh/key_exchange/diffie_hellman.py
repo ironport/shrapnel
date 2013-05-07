@@ -38,12 +38,24 @@ from coro.ssh.key_exchange import SSH_Key_Exchange
 from coro.ssh.transport import constants
 from coro.ssh.keys import parse_public_key
 
+from coro.ssh.util.mpint import pack_mpint
+
 # 2**1024 - 2**960 - 1 + 2**64 * floor( 2**894 Pi + 129093 )
 DH_PRIME = 179769313486231590770839156793787453197860296048756011706444423684197180216158519368947833795864925541502180565485980503646440548199239100050792877003355816639229553136239076508735759914822574862575007425302077447712589550957937778424442426617334727629299387668709205606050270810842907692932019128194467627007L
 DH_GENERATOR = 2L
 
 SSH_MSG_KEXDH_INIT      = 30
 SSH_MSG_KEXDH_REPLY     = 31
+
+def hexdump(src, length=16):
+    FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
+    lines = []
+    for c in xrange(0, len(src), length):
+        chars = src[c:c+length]
+        hex = ' '.join(["%02x" % ord(x) for x in chars])
+        printable = ''.join(["%s" % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
+        lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
+    return ''.join(lines)
 
 class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
 
@@ -92,52 +104,42 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         self.transport.register_callbacks(self.name, callbacks)
 
     def msg_kexdh_init (self, packet):
+        # mpint     e
         msg, self.client_exchange_value = ssh_packet.unpack_payload (KEXDH_INIT_PAYLOAD, packet)
         # XXX make sure e is a valid number
-        W ('kexdh: self.client_exchange_value=%r\n' % (self.client_exchange_value,))
         # This is y.
         self.server_random_value = ssh_random.get_random_number(512)
         # p is large safe prime (DH_PRIME)
         # g is a generator for a subgroup of GF(p) (DH_GENERATOR)
         # compute f=g**y mod p
         self.server_exchange_value = pow(DH_GENERATOR, self.server_random_value, DH_PRIME)
-        self.shared_secret = pow (self.server_exchange_value, self.client_exchange_value, DH_PRIME)
-        # find my public key
-        for key in self.transport.server_keys:
-            if key.name == 'ssh-dss':
-                K_S = key.get_public_key_blob()
-                break
-        else:
-            raise ValueError ("no dss key?")
-        W ('kexdh: K_S=%r\n' % (K_S,))
-        H = ssh_packet.pack_payload (
-            KEXDH_HASH_PAYLOAD, (
-                self.c2s_version_string,
-                self.s2c_version_string,
-                self.c2s_kexinit_packet,
-                self.s2c_kexinit_packet,
-                K_S,
-                self.client_exchange_value,
-                self.server_exchange_value,
-                self.shared_secret
-                )
+        self.shared_secret = pow (self.client_exchange_value, self.server_random_value, DH_PRIME)
+        K_S = self.transport.server_key.get_public_key_blob()
+        payload_inputs = (
+            self.c2s_version_string,
+            self.s2c_version_string,
+            self.c2s_kexinit_packet,
+            self.s2c_kexinit_packet,
+            K_S,
+            self.client_exchange_value,
+            self.server_exchange_value,
+            self.shared_secret
             )
+        H = ssh_packet.pack_payload (KEXDH_HASH_PAYLOAD, payload_inputs)
         self.exchange_hash = hashlib.sha1(H).digest()
         if self.session_id is None:
             # The session id is the first exchange hash.
             self.session_id = self.exchange_hash
-        H_sig = key.sign (self.exchange_hash)
-        W ('kexdh: sending KEXDH_REPLY\n')
-        self.transport.send_packet (
-            ssh_packet.pack_payload (
-                KEXDH_REPLY_PAYLOAD, (
-                    SSH_MSG_KEXDH_REPLY,
-                    K_S,
-                    self.server_exchange_value,
-                    H_sig
-                    )
+        H_sig = self.transport.server_key.sign (self.exchange_hash)
+        packet = ssh_packet.pack_payload (
+            KEXDH_REPLY_PAYLOAD, (
+                SSH_MSG_KEXDH_REPLY,
+                K_S,
+                self.server_exchange_value,
+                H_sig
                 )
             )
+        self.transport.send_packet (packet)
 
     def msg_kexdh_reply(self, packet):
         # string    server public host key and certificates (K_S)
