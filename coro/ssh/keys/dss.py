@@ -37,6 +37,7 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
     supports_signature = 1
     supports_encryption = 0
     name = 'ssh-dss'
+    # why not store these as attributes?
     # p, q, g, y
     private_key = (0L, 0L, 0L, 0L, 0L)
     # p, q, g, y, x
@@ -59,7 +60,10 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
     set_private_key.__doc__ = public_private_key.SSH_Public_Private_Key.set_private_key.__doc__
 
     def get_public_key_blob(self):
-        p, q, g, y = self.public_key
+        if self.public_key != (0, 0, 0, 0):
+            p, q, g, y = self.public_key
+        else:
+            p, q, g, y, x = self.private_key
         return packet.pack_payload(DSS_PUBLIC_KEY_PAYLOAD,
                         ('ssh-dss',
                          p, q, g, y))
@@ -67,12 +71,17 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
     get_public_key_blob.__doc__ = public_private_key.SSH_Public_Private_Key.get_public_key_blob.__doc__
 
     def get_private_key_blob(self):
-        p, q, g, y, x = self.public_key
+        p, q, g, y, x = self.private_key
         return packet.pack_payload(DSS_PRIVATE_KEY_PAYLOAD,
                         ('ssh-dss',
                          p, q, g, y, x))
 
     get_private_key_blob.__doc__ = public_private_key.SSH_Public_Private_Key.get_private_key_blob.__doc__
+
+    def create (self, size=1024):
+        key = DSA.generate (size)
+        self.private_key = (key.p, key.q, key.g, key.y, key.x)
+        self.public_key = (key.p, key.q, key.g, key.y)
 
     def sign(self, message):
         p, q, g, y, x = self.private_key
