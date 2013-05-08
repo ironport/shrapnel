@@ -117,6 +117,9 @@ class SSH_Transport:
         else:
             self.s2c = server_transport
         self.supported_key_storages = [OpenSSH_Key_Storage()]
+        # XXX who/what sets self.is_server?  can we use self.is_server
+        #     to decide which callbacks to register?  Or should that be done
+        #     by the subclass?
         self.register_callbacks('__base__',
                 {SSH_MSG_IGNORE: self.msg_ignore,
                  SSH_MSG_DEBUG: self.msg_debug,
@@ -191,6 +194,9 @@ class SSH_Transport:
             )
         self.disconnect()
         raise SSH_Protocol_Error, (reason_code, description)
+
+    def send (self, format, values):
+        self.send_packet (ssh_packet.pack_payload (format, values))
 
     def send_packet(self, data):
         """send_packet(self, data) -> None
