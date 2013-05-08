@@ -25,11 +25,13 @@
 
 import os
 
-from coro.ssh.util import packet as ssh_packet
+from coro.ssh.util.packet import unpack_payload, pack_payload, BYTE, STRING, BOOLEAN, NAME_LIST
 from coro.ssh.util import debug as ssh_debug
 from coro.ssh.util.password import get_password
 from coro.ssh.util import safe_string
 from coro.ssh.auth import Authentication_Error, Authentication_System
+
+from coro import write_stderr as W
 
 class Userauth_Method_Not_Allowed_Error(Exception):
     """Userauth_Method_Not_Allowed_Error
@@ -50,8 +52,8 @@ class Userauth_Authentication_Method:
 
     name = ''
 
-    def __init__(self, ssh_transport):
-        self.ssh_transport = ssh_transport
+    def __init__(self, transport):
+        self.transport = transport
 
     def authenticate(self, username, service_name):
         """authenticate(self, username, service_name) -> None
@@ -62,11 +64,11 @@ class Userauth_Authentication_Method:
         raise NotImplementedError
 
     def msg_userauth_failure(self, packet):
-        self.ssh_transport.debug.write(ssh_debug.DEBUG_1, '%s Auth: Userauth failure.', (self.name,))
-        msg, auths_that_can_continue, partial_success = ssh_packet.unpack_payload(PAYLOAD_MSG_USERAUTH_FAILURE, packet)
+        self.transport.debug.write(ssh_debug.DEBUG_1, '%s Auth: Userauth failure.', (self.name,))
+        msg, auths_that_can_continue, partial_success = unpack_payload(PAYLOAD_MSG_USERAUTH_FAILURE, packet)
         # XXX: How to handle partial_success?
         if self.name not in auths_that_can_continue:
-            self.ssh_transport.debug.write(ssh_debug.DEBUG_1, '%s Auth: Not in the list of auths that can continue', (self.name,))
+            self.transport.debug.write(ssh_debug.DEBUG_1, '%s Auth: Not in the list of auths that can continue', (self.name,))
             raise Userauth_Method_Not_Allowed_Error(auths_that_can_continue)
 
 class Publickey(Userauth_Authentication_Method):
@@ -74,14 +76,14 @@ class Publickey(Userauth_Authentication_Method):
 
     def authenticate(self, username, service_name):
         local_username = os.getlogin()
-        for key_storage in self.ssh_transport.supported_key_storages:
-            self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Trying to load keytype "%s" for user "%s".', (key_storage.__class__.__name__, local_username))
+        for key_storage in self.transport.supported_key_storages:
+            self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Trying to load keytype "%s" for user "%s".', (key_storage.__class__.__name__, local_username))
             loaded_keys = key_storage.load_keys(username=local_username)
             if loaded_keys:
                 for loaded_key in loaded_keys:
                     # Test this key type.
-                    self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Sending PK test for keytype "%s".', (loaded_key.name,))
-                    packet = ssh_packet.pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_PK_TEST,
+                    self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Sending PK test for keytype "%s".', (loaded_key.name,))
+                    packet = pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_PK_TEST,
                                         (SSH_MSG_USERAUTH_REQUEST,
                                          username,
                                          service_name,
@@ -90,8 +92,8 @@ class Publickey(Userauth_Authentication_Method):
                                          loaded_key.name,
                                          loaded_key.get_public_key_blob()
                                          ))
-                    self.ssh_transport.send_packet(packet)
-                    message_type, packet = self.ssh_transport.receive_message((SSH_MSG_USERAUTH_PK_OK,
+                    self.transport.send_packet(packet)
+                    message_type, packet = self.transport.receive_message((SSH_MSG_USERAUTH_PK_OK,
                                                                                SSH_MSG_USERAUTH_FAILURE,
                                                                                ))
                     if message_type == SSH_MSG_USERAUTH_PK_OK:
@@ -112,22 +114,22 @@ class Publickey(Userauth_Authentication_Method):
                         # Should never happen.
                         raise ValueError, message_type
                 else:
-                    self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: No more key storage types left.')
+                    self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: No more key storage types left.')
             else:
-                self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: No keys found of this key storage type.')
+                self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: No keys found of this key storage type.')
         else:
-            self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: No more storage key types left to try.')
+            self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: No more storage key types left to try.')
             raise Authentication_Error
 
     def _try_auth(self, packet, loaded_key, username, service_name):
-        self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Got OK for this key type.')
-        msg, key_algorithm_name, key_blob = ssh_packet.unpack_payload(PAYLOAD_MSG_USERAUTH_PK_OK, packet)
+        self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Got OK for this key type.')
+        msg, key_algorithm_name, key_blob = unpack_payload(PAYLOAD_MSG_USERAUTH_PK_OK, packet)
         assert (key_algorithm_name == loaded_key.name)
         # XXX: Check key_blob, too?
         # Send the actual request.
         # Compute signature.
-        session_id = self.ssh_transport.key_exchange.session_id
-        sig_data = ssh_packet.pack_payload(PAYLOAD_USERAUTH_REQUEST_PK_SIGNATURE,
+        session_id = self.transport.key_exchange.session_id
+        sig_data = pack_payload(PAYLOAD_USERAUTH_REQUEST_PK_SIGNATURE,
                                     (session_id,
                                      SSH_MSG_USERAUTH_REQUEST,
                                      username,
@@ -139,8 +141,8 @@ class Publickey(Userauth_Authentication_Method):
                                      ))
         signature = loaded_key.sign(sig_data)
 
-        self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Sending userauth request.')
-        packet = ssh_packet.pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_PK,
+        self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Sending userauth request.')
+        packet = pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_PK,
                                 (SSH_MSG_USERAUTH_REQUEST,
                                  username,
                                  service_name,
@@ -149,8 +151,8 @@ class Publickey(Userauth_Authentication_Method):
                                  loaded_key.name,
                                  loaded_key.get_public_key_blob(),
                                  signature))
-        self.ssh_transport.send_packet(packet)
-        message_type, packet = self.ssh_transport.receive_message((SSH_MSG_USERAUTH_SUCCESS,
+        self.transport.send_packet(packet)
+        message_type, packet = self.transport.receive_message((SSH_MSG_USERAUTH_SUCCESS,
                                                                    SSH_MSG_USERAUTH_FAILURE))
         if message_type == SSH_MSG_USERAUTH_SUCCESS:
             # Success.
@@ -167,7 +169,7 @@ class Password(Userauth_Authentication_Method):
 
     def authenticate(self, username, service_name):
         password = self.get_password(username)
-        packet = ssh_packet.pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_PASSWORD,
+        packet = pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_PASSWORD,
                                 (SSH_MSG_USERAUTH_REQUEST,
                                  username,
                                  service_name,
@@ -175,11 +177,11 @@ class Password(Userauth_Authentication_Method):
                                  0,
                                  password
                                  ))
-        self.ssh_transport.send_packet(packet)
+        self.transport.send_packet(packet)
         # While loop in case we get a CHANGEREQ packet.
         while 1:
             try:
-                message_type, packet = self.ssh_transport.receive_message(( \
+                message_type, packet = self.transport.receive_message(( \
                         SSH_MSG_USERAUTH_SUCCESS,SSH_MSG_USERAUTH_FAILURE,\
                         SSH_MSG_USERAUTH_PASSWD_CHANGEREQ))
             except EOFError:
@@ -207,7 +209,7 @@ class Password(Userauth_Authentication_Method):
 
     def msg_userauth_passwd_changereq(self, packet, username, service_name):
         # User's password has expired.  Allow the user to enter a new password.
-        msg, prompt, language = ssh_packet.unpack_payload(PAYLOAD_MSG_USERAUTH_PASSWD_CHANGEREQ, packet)
+        msg, prompt, language = unpack_payload(PAYLOAD_MSG_USERAUTH_PASSWD_CHANGEREQ, packet)
         print safe_string(prompt)
         old_password = self.get_password('%s\'s old password> ' % username)
         while 1:
@@ -217,7 +219,7 @@ class Password(Userauth_Authentication_Method):
                 print 'Passwords did not match!  Try again.'
             else:
                 break
-        packet = ssh_packet.pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_CHANGE_PASSWD,
+        packet = pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_CHANGE_PASSWD,
                                 (SSH_MSG_USERAUTH_REQUEST,
                                  username,
                                  service_name,
@@ -225,8 +227,7 @@ class Password(Userauth_Authentication_Method):
                                  1,
                                  old_password,
                                  new_password))
-        self.ssh_transport.send_packet(packet)
-
+        self.transport.send_packet(packet)
 
 # Not implemented, yet.
 #class Hostbased(Userauth_Authentication_Method):
@@ -240,12 +241,12 @@ class Userauth(Authentication_System):
     name = 'ssh-userauth'
     methods = None
 
-    def __init__(self, ssh_transport):
+    def __init__(self, transport):
         # Default...You can change.
         self.username = os.getlogin()
-        self.ssh_transport = ssh_transport
+        self.transport = transport
         # Instantiate methods.
-        self.methods = [Publickey(ssh_transport), Password(ssh_transport)]
+        self.methods = [Publickey(transport), Password(transport)]
 
     def authenticate(self, service_name):
         """authenticate(self, service_name) -> None
@@ -265,15 +266,15 @@ class Userauth(Authentication_System):
         # ever receive an error.
         auths_that_can_continue = [ method.name for method in self.methods ]
         callbacks = {SSH_MSG_USERAUTH_BANNER:  self.msg_userauth_banner}
-        self.ssh_transport.register_callbacks(self.name, callbacks)
+        self.transport.register_callbacks(self.name, callbacks)
         try:
             for method in self.methods:
                 if method.name in auths_that_can_continue:
-                    self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Trying authentication method "%s".', (method.name,))
+                    self.transport.debug.write(ssh_debug.DEBUG_1, 'Trying authentication method "%s".', (method.name,))
                     try:
                         method.authenticate(self.username, service_name)
                     except Authentication_Error:
-                        self.ssh_transport.debug.write(ssh_debug.DEBUG_1, 'Authentication method "%s" failed.', (method.name,))
+                        self.transport.debug.write(ssh_debug.DEBUG_1, 'Authentication method "%s" failed.', (method.name,))
                     except Userauth_Method_Not_Allowed_Error, why:
                         auths_that_can_continue = why.auths_that_can_continue
                     else:
@@ -282,11 +283,88 @@ class Userauth(Authentication_System):
             else:
                 raise Authentication_Error
         finally:
-            self.ssh_transport.unregister_callbacks(self.name)
+            self.transport.unregister_callbacks(self.name)
 
     def msg_userauth_banner(self, packet):
-        msg, message, language = ssh_packet.unpack_payload(PAYLOAD_MSG_USERAUTH_BANNER, packet)
+        msg, message, language = unpack_payload(PAYLOAD_MSG_USERAUTH_BANNER, packet)
         print safe_string(message)
+
+# ----------------------------------------------------------------------------------------------------
+# server side authentication
+# ----------------------------------------------------------------------------------------------------
+
+class Authenticator:
+
+    def __init__ (self, transport, methods):
+        self.transport = transport
+        self.methods = methods
+        # XXX this assumes only one of each method type?  Might a user wants multiple entries under 'publickey'?
+        self.by_name = { method.name : method for method in self.methods }
+
+    def send (self, format, values):
+        self.transport.send_packet (pack_payload (format, values))
+
+    def send_failure (self):
+        self.send (PAYLOAD_MSG_USERAUTH_FAILURE, (SSH_MSG_USERAUTH_FAILURE, self.by_name.keys(), 0))
+
+    def authenticate (self, service_name):
+        session_id = self.transport.key_exchange.session_id
+        while 1:
+            # this is relatively stateless, because the RFC says the client can send requests without bothering
+            #  to see if the server even wants them.
+            # XXX allow each method to be tried, then removed from the list of possibles? [think about combinations of service/user/etc... though]
+            message_type, packet = self.transport.receive_message ((SSH_MSG_USERAUTH_REQUEST,))
+            msg, username, service, method = unpack_payload (PAYLOAD_MSG_USERAUTH_REQUEST, packet)
+            if method == 'none':
+                self.send_failure()
+            elif method == 'publickey':
+                mprobe = self.by_name.get ('publickey')
+                if not mprobe:
+                    self.send_failure()
+                else:
+                    (_, _, _, _, btest, alg, blob) = unpack_payload (PAYLOAD_MSG_USERAUTH_REQUEST_PK_TEST, packet)
+                    if not btest:
+                        # XXX: ask method if it's ok with serv+user+alg+blob
+                        self.send (PAYLOAD_MSG_USERAUTH_PK_OK, (SSH_MSG_USERAUTH_PK_OK, alg, blob))
+                    else:
+                        (_, _, _, _, _, _, key, sig) = unpack_payload (PAYLOAD_MSG_USERAUTH_REQUEST_PK, packet)
+                        self.transport.debug.write (ssh_debug.DEBUG_1, 'Trying Authentication: %r' % ((service, username, alg),))
+                        if mprobe.authenticate (session_id, service, username, alg, key, sig):
+                            self.send (PAYLOAD_MSG_USERAUTH_SUCCESS, (SSH_MSG_USERAUTH_SUCCESS,))
+                            return True
+                        else:
+                            self.send_failure()
+            elif method == 'password':
+                self.send_failure()
+            else:
+                self.send_failure()
+
+class Public_Key_Authenticator:
+
+    name = 'publickey'
+
+    # { <user> : { <service>: [key0, key1, ...], ...}, ... }
+
+    def __init__ (self, keys):
+        self.keys = keys
+
+    def authenticate (self, session_id, serv, user, alg, blob, sig):
+        # build the signable data
+        to_sign = pack_payload (
+            PAYLOAD_USERAUTH_REQUEST_PK_SIGNATURE, (
+                session_id, SSH_MSG_USERAUTH_REQUEST, user, serv, 'publickey', 1, alg, blob
+                )
+            )
+        try:
+            keys = self.keys[user][serv]
+            for key in keys:
+                if key.name == alg and key.get_public_key_blob() == blob and key.verify (to_sign, sig):
+                    return True
+            return False
+        except KeyError:
+            return False
+
+# ----------------------------------------------------------------------------------------------------
 
 SSH_MSG_USERAUTH_REQUEST    = 50
 SSH_MSG_USERAUTH_FAILURE    = 51
@@ -296,81 +374,89 @@ SSH_MSG_USERAUTH_BANNER     = 53
 SSH_MSG_USERAUTH_PK_OK      = 60
 SSH_MSG_USERAUTH_PASSWD_CHANGEREQ = 60
 
-PAYLOAD_MSG_USERAUTH_FAILURE = (ssh_packet.BYTE,      # SSH_MSG_USERAUTH_FAILURE
-                                ssh_packet.NAME_LIST, # authentications that can continue
-                                ssh_packet.BOOLEAN)   # partial success
+# this is the 'generic header' of all auth requests
+PAYLOAD_MSG_USERAUTH_REQUEST = (
+    BYTE,    # SSH_MSG_USERAUTH_REQUEST
+    STRING,  # username
+    STRING,  # service
+    STRING,  # method
+    )
 
-PAYLOAD_MSG_USERAUTH_SUCCESS = (ssh_packet.BYTE,)   # SSH_MSG_USERAUTH_SUCCESS
+PAYLOAD_MSG_USERAUTH_FAILURE = (BYTE,      # SSH_MSG_USERAUTH_FAILURE
+                                NAME_LIST, # authentications that can continue
+                                BOOLEAN)   # partial success
 
-PAYLOAD_MSG_USERAUTH_BANNER = (ssh_packet.BYTE,     # SSH_MSG_USERAUTH_BANNER
-                               ssh_packet.STRING,   # message
-                               ssh_packet.STRING)   # language tag
+PAYLOAD_MSG_USERAUTH_SUCCESS = (BYTE,)   # SSH_MSG_USERAUTH_SUCCESS
 
-PAYLOAD_MSG_USERAUTH_REQUEST_PK_TEST = (ssh_packet.BYTE,    # SSH_MSG_USERAUTH_REQUEST
-                                        ssh_packet.STRING,  # username
-                                        ssh_packet.STRING,  # service
-                                        ssh_packet.STRING,  # "publickey"
-                                        ssh_packet.BOOLEAN, # FALSE
-                                        ssh_packet.STRING,  # public key algorithm name
-                                        ssh_packet.STRING)  # public key blob
+PAYLOAD_MSG_USERAUTH_BANNER = (BYTE,     # SSH_MSG_USERAUTH_BANNER
+                               STRING,   # message
+                               STRING)   # language tag
 
-PAYLOAD_MSG_USERAUTH_REQUEST_PK = (ssh_packet.BYTE,    # SSH_MSG_USERAUTH_REQUEST
-                                   ssh_packet.STRING,  # username
-                                   ssh_packet.STRING,  # service
-                                   ssh_packet.STRING,  # "publickey"
-                                   ssh_packet.BOOLEAN, # TRUE
-                                   ssh_packet.STRING,  # public key algorithm name
-                                   ssh_packet.STRING,  # public key blob
-                                   ssh_packet.STRING)  # signature
+PAYLOAD_MSG_USERAUTH_REQUEST_PK_TEST = (BYTE,    # SSH_MSG_USERAUTH_REQUEST
+                                        STRING,  # username
+                                        STRING,  # service
+                                        STRING,  # "publickey"
+                                        BOOLEAN, # FALSE
+                                        STRING,  # public key algorithm name
+                                        STRING)  # public key blob
 
-PAYLOAD_USERAUTH_REQUEST_PK_SIGNATURE = (ssh_packet.STRING,  # session identifier
-                                         ssh_packet.BYTE,    # SSH_MSG_USERAUTH_REQUEST
-                                         ssh_packet.STRING,  # username
-                                         ssh_packet.STRING,  # service
-                                         ssh_packet.STRING,  # "publickey"
-                                         ssh_packet.BOOLEAN, # TRUE
-                                         ssh_packet.STRING,  # public key algorithm name
-                                         ssh_packet.STRING)  # public key to be used for authentication
+PAYLOAD_MSG_USERAUTH_REQUEST_PK = (BYTE,    # SSH_MSG_USERAUTH_REQUEST
+                                   STRING,  # username
+                                   STRING,  # service
+                                   STRING,  # "publickey"
+                                   BOOLEAN, # TRUE
+                                   STRING,  # public key algorithm name
+                                   STRING,  # public key blob
+                                   STRING)  # signature
 
-PAYLOAD_MSG_USERAUTH_PK_OK = (ssh_packet.BYTE,      # SSH_MSG_USERAUTH_PK_OK
-                              ssh_packet.STRING,    # public key algorithm name from the request
-                              ssh_packet.STRING)    # public key blob from the request
+PAYLOAD_USERAUTH_REQUEST_PK_SIGNATURE = (STRING,  # session identifier
+                                         BYTE,    # SSH_MSG_USERAUTH_REQUEST
+                                         STRING,  # username
+                                         STRING,  # service
+                                         STRING,  # "publickey"
+                                         BOOLEAN, # TRUE
+                                         STRING,  # public key algorithm name
+                                         STRING)  # public key to be used for authentication
 
-PAYLOAD_MSG_USERAUTH_REQUEST_PASSWORD = (ssh_packet.BYTE,   # SSH_MSG_USERAUTH_REQUEST
-                                         ssh_packet.STRING, # username
-                                         ssh_packet.STRING, # service
-                                         ssh_packet.STRING, # "password"
-                                         ssh_packet.BOOLEAN,# FALSE
-                                         ssh_packet.STRING) # plaintext password
+PAYLOAD_MSG_USERAUTH_PK_OK = (BYTE,      # SSH_MSG_USERAUTH_PK_OK
+                              STRING,    # public key algorithm name from the request
+                              STRING)    # public key blob from the request
 
-PAYLOAD_MSG_USERAUTH_PASSWD_CHANGEREQ = (ssh_packet.BYTE,   # SSH_MSG_USERAUTH_PASSWD_CHANGEREQ
-                                         ssh_packet.STRING, # prompt
-                                         ssh_packet.STRING) # language tag
+PAYLOAD_MSG_USERAUTH_REQUEST_PASSWORD = (BYTE,   # SSH_MSG_USERAUTH_REQUEST
+                                         STRING, # username
+                                         STRING, # service
+                                         STRING, # "password"
+                                         BOOLEAN,# FALSE
+                                         STRING) # plaintext password
 
-PAYLOAD_MSG_USERAUTH_REQUEST_CHANGE_PASSWD = (ssh_packet.BYTE,      # SSH_MSG_USERAUTH_REQUEST
-                                              ssh_packet.STRING,    # username
-                                              ssh_packet.STRING,    # service
-                                              ssh_packet.STRING,    # "password"
-                                              ssh_packet.BOOLEAN,   # TRUE
-                                              ssh_packet.STRING,    # plaintext old password
-                                              ssh_packet.STRING)    # plaintext new password
+PAYLOAD_MSG_USERAUTH_PASSWD_CHANGEREQ = (BYTE,   # SSH_MSG_USERAUTH_PASSWD_CHANGEREQ
+                                         STRING, # prompt
+                                         STRING) # language tag
 
-PAYLOAD_MSG_USERAUTH_REQUEST_HOSTBASED = (ssh_packet.BYTE,      # SSH_MSG_USERAUTH_REQUEST
-                                          ssh_packet.STRING,    # username
-                                          ssh_packet.STRING,    # service
-                                          ssh_packet.STRING,    # "hostbased"
-                                          ssh_packet.STRING,    # public key algorithm for host key
-                                          ssh_packet.STRING,    # public host key and certificates for client host
-                                          ssh_packet.STRING,    # client host name
-                                          ssh_packet.STRING,    # username on the client host
-                                          ssh_packet.STRING)    # signature
+PAYLOAD_MSG_USERAUTH_REQUEST_CHANGE_PASSWD = (BYTE,      # SSH_MSG_USERAUTH_REQUEST
+                                              STRING,    # username
+                                              STRING,    # service
+                                              STRING,    # "password"
+                                              BOOLEAN,   # TRUE
+                                              STRING,    # plaintext old password
+                                              STRING)    # plaintext new password
 
-PAYLOAD_USERAUTH_REQUEST_HOSTBASED_SIGNATURE = (ssh_packet.STRING,  # session identifier
-                                                ssh_packet.BYTE,    # SSH_MSG_USERAUTH_REQUEST
-                                                ssh_packet.STRING,  # username
-                                                ssh_packet.STRING,  # service
-                                                ssh_packet.STRING,  # "hostbased"
-                                                ssh_packet.STRING,  # public key algorithm for host key
-                                                ssh_packet.STRING,  # public host key and certificates for client host
-                                                ssh_packet.STRING,  # client host name
-                                                ssh_packet.STRING)  # username on the client host
+PAYLOAD_MSG_USERAUTH_REQUEST_HOSTBASED = (BYTE,      # SSH_MSG_USERAUTH_REQUEST
+                                          STRING,    # username
+                                          STRING,    # service
+                                          STRING,    # "hostbased"
+                                          STRING,    # public key algorithm for host key
+                                          STRING,    # public host key and certificates for client host
+                                          STRING,    # client host name
+                                          STRING,    # username on the client host
+                                          STRING)    # signature
+
+PAYLOAD_USERAUTH_REQUEST_HOSTBASED_SIGNATURE = (STRING,  # session identifier
+                                                BYTE,    # SSH_MSG_USERAUTH_REQUEST
+                                                STRING,  # username
+                                                STRING,  # service
+                                                STRING,  # "hostbased"
+                                                STRING,  # public key algorithm for host key
+                                                STRING,  # public host key and certificates for client host
+                                                STRING,  # client host name
+                                                STRING)  # username on the client host
