@@ -96,7 +96,7 @@ SSH_EXTENDED_DATA_STDERR = 1
 SSH_MSG_CHANNEL_EOF_PAYLOAD = (packet.BYTE,     # SSH_MSG_CHANNEL_EOF
                                packet.UINT32)   # recipient channel
 
-# This may contain addition request-specific data.
+# This may contain additional request-specific data.
 SSH_MSG_CHANNEL_REQUEST_PAYLOAD = (packet.BYTE,     # SSH_MSG_CHANNEL_REQUEST
                                    packet.UINT32,   # recipient_channel
                                    packet.STRING,   # request type
