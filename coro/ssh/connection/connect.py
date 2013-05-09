@@ -32,6 +32,7 @@ __version__ = '$Revision: #1 $'
 from coro.ssh.transport import SSH_Service
 from coro.ssh.util import packet as ssh_packet
 from coro.ssh.util import debug as ssh_debug
+from coro.ssh.connection.channel import Channel
 from constants import *
 
 class Connection_Service(SSH_Service):
@@ -47,10 +48,11 @@ class Connection_Service(SSH_Service):
     # The key is the remote channel ID, the value is a Remote_Channel object.
     remote_channels = None
 
-    def __init__(self, transport):
+    def __init__(self, transport, new_channel_class=None):
         self.transport = transport
         self.local_channels = {}
         self.remote_channels = {}
+        self.new_channel_class = new_channel_class
 
         callbacks = {SSH_MSG_GLOBAL_REQUEST: self.msg_global_request,
                      SSH_MSG_CHANNEL_WINDOW_ADJUST: self.msg_channel_window_adjust,
@@ -63,6 +65,8 @@ class Connection_Service(SSH_Service):
                      SSH_MSG_CHANNEL_FAILURE: self.msg_channel_failure,
                      SSH_MSG_CHANNEL_OPEN_CONFIRMATION: self.msg_channel_open_confirmation,
                      SSH_MSG_CHANNEL_OPEN_FAILURE: self.msg_channel_open_failure,
+                     # server side
+                     SSH_MSG_CHANNEL_OPEN: self.msg_channel_open,
                     }
         self.transport.register_callbacks('ssh-connection', callbacks)
 
@@ -167,3 +171,28 @@ class Connection_Service(SSH_Service):
         channel = self.local_channels[channel_id]
         # XXX: Assert that the channel is not already open?
         channel.channel_open_failure(reason_code, reason_text, language)
+
+    # --------------------------------------------------------------------------------
+    # server side
+    # --------------------------------------------------------------------------------
+    def msg_channel_open (self, pkt):
+        _, channel_type, remote_id, initial_window, max_packet_size = ssh_packet.unpack_payload (SSH_MSG_CHANNEL_OPEN_PAYLOAD, pkt)
+        channel = self.new_channel_class (self)
+        self.register_channel (channel)
+        channel.remote_channel.closed = 0
+        self.transport.send (
+            SSH_MSG_CHANNEL_OPEN_CONFIRMATION_PAYLOAD, (
+                SSH_MSG_CHANNEL_OPEN_CONFIRMATION,
+                remote_id,
+                channel.channel_id,
+                initial_window,
+                max_packet_size,
+                )
+            )
+        self.transport.debug.write (
+            ssh_debug.DEBUG_1,
+            'channel %i open confirmation sender_channel=%i window_size=%i max_packet_size=%i', (
+                remote_id, channel.channel_id, initial_window, max_packet_size
+                )
+            )
+        
