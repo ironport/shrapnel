@@ -67,7 +67,21 @@ def serve (port):
         conn, addr = s.accept()
         coro.spawn (go, conn, addr)
 
+class echo_server (coro.ssh.connection.interactive_session.Interactive_Session_Server):
+    def __init__ (self, connection_service):
+        coro.ssh.connection.interactive_session.Interactive_Session_Server.__init__ (self, connection_service)
+        coro.spawn (self.go)
+    def go (self):
+        while 1:
+            try:
+                block = self.read (1000)
+                self.send (block)
+            except EOFError:
+                break
+        self.close()
+
 def go (conn, addr):
+    global service, transport
     debug = coro.ssh.util.debug.Debug()
     debug.level = coro.ssh.util.debug.DEBUG_3
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(sock=conn)
@@ -75,7 +89,7 @@ def go (conn, addr):
     pubkey_auth = coro.ssh.auth.userauth.Public_Key_Authenticator ({'rushing': { 'ssh-connection' : [user_key_ob]}})
     authenticator = coro.ssh.auth.userauth.Authenticator (server, [pubkey_auth])
     server.connect (transport, authenticator)
-    service = coro.ssh.connection.connect.Connection_Service (server)
+    service = coro.ssh.connection.connect.Connection_Service (server, echo_server)
     W ('sleeping...\n')
     coro.sleep_relative (1000)
 
