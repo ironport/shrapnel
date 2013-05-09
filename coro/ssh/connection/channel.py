@@ -420,11 +420,17 @@ class Channel:
         """
         self.channel_request_cv.wake_one(args=True)
 
+    def send_channel_request_success (self):
+        self.transport.send (SSH_MSG_CHANNEL_SUCCESS_PAYLOAD, (SSH_MSG_CHANNEL_SUCCESS, self.remote_channel.channel_id))
+
     def channel_request_failure(self):
         """channel_request_success(self) -> None
         This is called whenever a CHANNEL_FAILURE message is received.
         """
         self.channel_request_cv.wake_one(args=False)
+
+    def send_channel_request_failure (self):
+        self.transport.send (SSH_MSG_CHANNEL_FAILURE_PAYLOAD, (SSH_MSG_CHANNEL_FAILURE, self.remote_channel.channel_id))
 
     def channel_open_success(self, data):
         """channel_open_success(self, data) -> None
@@ -454,3 +460,7 @@ class Remote_Channel:
 
     closed = 1
     eof = 1
+
+    def __init__ (self):
+        self.channel_id = Remote_Channel.channel_id
+        Remote_Channel.channel_id += 1
