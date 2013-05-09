@@ -41,24 +41,6 @@ user_key_ob = ks.parse_public_key (user_key_pub)
 def usage():
     print 'test_coro_server [-p port]'
 
-def input_thread(channel):
-    stdin = coro.fd_sock(0)
-    while 1:
-        data = stdin.recv(100)
-        channel.send(data)
-
-def transport_thread(channel):
-    stdout = coro.fd_sock (1)
-    while not channel.eof and not channel.closed:
-        try:
-            data = channel.read(1024)
-            if data:
-                stdout.send (data)
-                #os.write(1, data)
-        except EOFError:
-            break
-    coro.set_exit()
-
 def serve (port):
     s = coro.tcp_sock()
     s.bind (('', port))
@@ -81,7 +63,6 @@ class echo_server (coro.ssh.connection.interactive_session.Interactive_Session_S
         self.close()
 
 def go (conn, addr):
-    global service, transport
     debug = coro.ssh.util.debug.Debug()
     debug.level = coro.ssh.util.debug.DEBUG_3
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(sock=conn)
@@ -90,8 +71,6 @@ def go (conn, addr):
     authenticator = coro.ssh.auth.userauth.Authenticator (server, [pubkey_auth])
     server.connect (transport, authenticator)
     service = coro.ssh.connection.connect.Connection_Service (server, echo_server)
-    W ('sleeping...\n')
-    coro.sleep_relative (1000)
 
 def main():
 
