@@ -30,6 +30,8 @@ import channel
 from coro.ssh.util import packet as ssh_packet
 from connect import *
 
+from coro import write_stderr as W
+
 class Interactive_Session(channel.Channel):
     name = 'session'
 
@@ -58,26 +60,35 @@ class Interactive_Session_Client(Interactive_Session):
 class Interactive_Session_Server(Interactive_Session):
 
     def handle_request(self, request_type, want_reply, type_specific_packet_data):
+        W ('interactive_session_server: handle_request %r %r %r\n' % (request_type, want_reply, type_specific_packet_data))
         if self.request_handlers.has_key(request_type):
-            f = self.request_handlers[request_type]
-            f(want_reply, type_specific_packet_data)
+            self.request_handlers[request_type] (self, want_reply, type_specific_packet_data)
         else:
             if want_reply:
                 packet = ssh_packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD, (self.remote_channel.channel_id,))
                 self.transport.send_packet(packet)
 
-
     def handle_pty_request(self, want_reply, type_specific_packet_data):
         term, width_char, height_char, width_pixels, height_pixels, modes = ssh_packet.unpack_payload(PTY_CHANNEL_REQUEST_PAYLOAD, type_specific_packet_data)
-        # XXX: NOT FINISHED
+        # XXX do some PTY crap here
+        self.send_channel_request_failure()
 
     def handle_x11_request(self, want_reply, type_specific_packet_data):
         single_connection, auth_protocol, auth_cookie, screen_number = ssh_packet.unpack_payload(X11_CHANNEL_REQUEST_PAYLOAD, type_specific_packet_data)
-        # XXX: NOT FINISHED
+        # XXX fantasize about doing X11 forwarding here?  I think not.
+        self.send_channel_request_failure()
 
-    request_handlers = {'pty-req':  handle_pty_request,
-                        'x11-req':  handle_x11_request,
-                       }
+    def handle_shell_request(self, want_reply, type_specific_packet_data):
+        # XXX whatever, sure, it worked.
+        self.send_channel_request_success()
+        
+    request_handlers = {
+        'pty-req':  handle_pty_request,
+        'x11-req':  handle_x11_request,
+        'shell' : handle_shell_request,
+        # exec : 
+        # subsystem : 
+    }
 
 PTY_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,   # TERM environment variable value (e.g., vt100)
                                ssh_packet.UINT32,   # terminal width, characters (e.g., 80)
