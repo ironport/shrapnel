@@ -31,7 +31,7 @@ from coro.ssh.util.password import get_password
 from coro.ssh.util import safe_string
 from coro.ssh.auth import Authentication_Error, Authentication_System
 
-from coro import write_stderr as W
+import coro
 
 class Userauth_Method_Not_Allowed_Error(Exception):
     """Userauth_Method_Not_Allowed_Error
@@ -295,10 +295,15 @@ class Userauth(Authentication_System):
 
 class Authenticator:
 
+    # maximum number of auth attempts per session
+    max_tries = 5
+    # amount of time to pause between attempts
+    sleep_time = 0.1
+
     def __init__ (self, transport, methods):
         self.transport = transport
         self.methods = methods
-        # XXX this assumes only one of each method type?  Might a user wants multiple entries under 'publickey'?
+        # XXX this assumes only one of each method type?  e,g, might a user want multiple entries under 'publickey'?
         self.by_name = { method.name : method for method in self.methods }
 
     def send (self, format, values):
@@ -309,7 +314,8 @@ class Authenticator:
 
     def authenticate (self, service_name):
         session_id = self.transport.key_exchange.session_id
-        while 1:
+        tries = self.max_tries
+        while tries:
             # this is relatively stateless, because the RFC says the client can send requests without bothering
             #  to see if the server even wants them.
             # XXX allow each method to be tried, then removed from the list of possibles? [think about combinations of service/user/etc... though]
@@ -328,15 +334,34 @@ class Authenticator:
                         self.send (PAYLOAD_MSG_USERAUTH_PK_OK, (SSH_MSG_USERAUTH_PK_OK, alg, blob))
                     else:
                         (_, _, _, _, _, _, key, sig) = unpack_payload (PAYLOAD_MSG_USERAUTH_REQUEST_PK, packet)
-                        self.transport.debug.write (ssh_debug.DEBUG_1, 'Trying Authentication: %r' % ((service, username, alg),))
+                        self.transport.debug.write (ssh_debug.DEBUG_1, 'Trying Public Key Authentication: %r' % ((service, username, alg),))
                         if mprobe.authenticate (session_id, service, username, alg, key, sig):
                             self.send (PAYLOAD_MSG_USERAUTH_SUCCESS, (SSH_MSG_USERAUTH_SUCCESS,))
                             return True
                         else:
+                            tries -= 1
+                            coro.sleep_relative (self.sleep_time)
                             self.send_failure()
             elif method == 'password':
-                self.send_failure()
+                mprobe = self.by_name.get ('password')
+                if not mprobe:
+                    self.send_failure()
+                else:
+                    (_, _, _, _, btest, password) = unpack_payload (PAYLOAD_MSG_USERAUTH_REQUEST_PASSWORD, packet)
+                    self.transport.debug.write (ssh_debug.DEBUG_1, 'Trying Password Authentication: %r' % ((service, username,),))
+                    if btest:
+                        self.transport.debug.write (ssh_debug.DEBUG_1, 'Client side trying to change password: Not Yet Implemented')
+                        return send_failure()
+                    elif mprobe.authenticate (service, username, password):
+                        self.send (PAYLOAD_MSG_USERAUTH_SUCCESS, (SSH_MSG_USERAUTH_SUCCESS,))
+                        return True
+                    else:
+                        tries -= 1
+                        coro.sleep_relative (self.sleep_time)
+                        self.send_failure()
             else:
+                tries -= 1
+                coro.sleep_relative (self.sleep_time)
                 self.send_failure()
 
 class Public_Key_Authenticator:
@@ -361,6 +386,21 @@ class Public_Key_Authenticator:
                 if key.name == alg and key.get_public_key_blob() == blob and key.verify (to_sign, sig):
                     return True
             return False
+        except KeyError:
+            return False
+
+class Password_Authenticator:
+
+    name = 'password'
+
+    # { <user> : { <service>: <pwd>, ...}, ... }
+
+    def __init__ (self, pwds):
+        self.pwds = pwds
+
+    def authenticate (self, service, username, password):
+        try:
+            return self.pwds[username][service] == password
         except KeyError:
             return False
 
