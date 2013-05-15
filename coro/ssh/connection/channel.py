@@ -460,7 +460,3 @@ class Remote_Channel:
 
     closed = 1
     eof = 1
-
-    def __init__ (self):
-        self.channel_id = Remote_Channel.channel_id
-        Remote_Channel.channel_id += 1
