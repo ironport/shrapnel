@@ -38,6 +38,8 @@ class coro_socket_transport(l4_transport.Transport):
 
     # The socket
     s = None
+    # peer
+    peer = None
 
     def __init__(self, ip=None, port=22, bind_ip=None, hostname=None, sock=None):
         self.ip = ip
@@ -48,6 +50,7 @@ class coro_socket_transport(l4_transport.Transport):
             self.s = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
             self.s = sock
+            self.peer = self.s.getpeername()
 
     def connect(self):
         if self.bind_ip is not None:
