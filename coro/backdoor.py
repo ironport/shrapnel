@@ -236,7 +236,7 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
     s.listen (1024)
     while 1:
         conn, addr = s.accept()
-        coro.print_stderr ('incoming connection from %r\n' % (conn.getsockname(),))
+        coro.print_stderr ('incoming backdoor connection from %r\n' % (conn.getpeername(),))
         thread = coro.spawn (client_class, conn, addr, welcome_message, global_dict)
         thread.set_name('backdoor session')
 
@@ -258,6 +258,7 @@ class ssh_repl (coro.ssh.connection.interactive_session.Interactive_Session_Serv
         coro.sleep_relative (0.1)
         b.read_eval_print_loop()
         self.close()
+        coro.print_stderr ('closed ssh backdoor from: %r\n' % (self.transport.transport.peer,))
 
 # see coro/ssh/demo/backdoor.py for instructions on setting up an ssh backdoor server.
 class ssh_server:
