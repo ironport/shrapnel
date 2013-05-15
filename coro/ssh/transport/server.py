@@ -23,12 +23,8 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
         self.self2remote = self.s2c
         self.remote2self = self.c2s
         self.is_server = True
+        # XXX should accept a list of keys...
         self.s2c.supported_server_keys = [server_key]
-        ## self.register_callbacks (
-        ##     'server', {
-        ##         SSH_MSG_SERVICE_REQUEST : self.msg_service_request,
-        ##         }
-        ##     )
 
     def connect (self, transport, authenticator):
         """connect(self, transport) -> None
