@@ -54,6 +54,7 @@ class echo_server (coro.ssh.connection.interactive_session.Interactive_Session_S
         coro.ssh.connection.interactive_session.Interactive_Session_Server.__init__ (self, connection_service)
         coro.spawn (self.go)
     def go (self):
+        self.send ('Welcome to the echo server.\n')
         while 1:
             try:
                 block = self.read (1000)
@@ -68,7 +69,8 @@ def go (conn, addr):
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(sock=conn)
     server = coro.ssh.transport.server.SSH_Server_Transport (server_key_ob, debug=debug)
     pubkey_auth = coro.ssh.auth.userauth.Public_Key_Authenticator ({'rushing': { 'ssh-connection' : [user_key_ob]}})
-    authenticator = coro.ssh.auth.userauth.Authenticator (server, [pubkey_auth])
+    pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo' : { 'ssh-connection' : 'bar' } })
+    authenticator = coro.ssh.auth.userauth.Authenticator (server, [pubkey_auth, pwd_auth])
     server.connect (transport, authenticator)
     service = coro.ssh.connection.connect.Connection_Service (server, echo_server)
 
