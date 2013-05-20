@@ -59,9 +59,9 @@ class handler:
 
     magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-    def __init__ (self, path, handler):
+    def __init__ (self, path, factory):
         self.path = path
-        self.handler = handler
+        self.factory = factory
                   
     def match (self, request):
         # try to catch both versions of the protocol
@@ -122,7 +122,7 @@ class handler:
             conn.send (all)
             protocol = 'hixie_76'
         # pass this websocket off to its new life...
-        coro.spawn (self.handler, protocol, request, self)
+        self.factory (protocol, request, self)
         raise HTTP_Upgrade
 
 class websocket:
@@ -205,7 +205,7 @@ class websocket:
         try:
             while 1:
                 try:
-                    close_it = coro.with_timeout (30, self.read_packet_hixie_76)
+                    close_it = self.read_packet_hixie_76()
                 except coro.ClosedError:
                     break
                 if close_it:
