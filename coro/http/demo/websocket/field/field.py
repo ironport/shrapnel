@@ -175,7 +175,10 @@ class field_conn (websocket, quadtree.ob):
         r = ['F']
         self.draw_qt (r, self.field.Q_back)
         self.draw_qt (r, self.field.Q_obs)
-        self.send_text ('|'.join (r))
+        try:
+            self.send_text ('|'.join (r))
+        except coro.ClosedError:
+            self.handle_close()
 
     def send_text (self, payload):
         with self.send_mutex:
