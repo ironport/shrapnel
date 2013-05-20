@@ -7,7 +7,17 @@ function message (msg) {
 }
 
 if (window["WebSocket"]) {
-    connection = new WebSocket("ws://dark.nightmare.com:9001/sketch")
+
+    // build the websocket uri from this document's location.
+    var loc = window.location, ws_uri;
+    if (loc.protocol === "https:") {
+	ws_uri = "wss:";
+    } else {
+	ws_uri = "ws:";
+    }
+    ws_uri += "//" + loc.host;
+
+    connection = new WebSocket(ws_uri + "/sketch");
 
     connection.onopen = function () {
 	message ('connected')
