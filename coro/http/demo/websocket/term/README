@@ -5,10 +5,7 @@ reasons), but this approach will work in a pinch.  Back door
 interfaces are invaluable during development/debugging.
 
 I recommend this code be run over a 'wss' socket (i.e., websocket+TLS)
-for obvious reasons.  If for whatever reason you want to avoid TLS,
-you will need to change the server class in term.py, *and* change the
-'wss:' in term.js to 'ws:'.  The latter is easy to forget and
-confusing to diagnose.
+for obvious reasons.
 
 The 'terminal' aspect of the javascript is rather clunky, and could
 use some improvement - donations from javascript jockeys are
