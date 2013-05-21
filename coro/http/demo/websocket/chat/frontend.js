@@ -82,7 +82,7 @@ $(function () {
     };
 
     /**
-     * Send mesage when user presses Enter key
+     * Send message when user presses Enter key
      */
     input.keydown(function(e) {
         if (e.keyCode === 13) {
@@ -112,8 +112,9 @@ $(function () {
     setInterval(function() {
         if (connection.readyState !== 1) {
             status.text('Error');
-            input.attr('disabled', 'disabled').val('Unable to comminucate '
-                                                 + 'with the WebSocket server.');
+            input.attr('disabled', 'disabled').val(
+		'Unable to communicate with the WebSocket server.'
+	    );
         }
     }, 3000);
 
