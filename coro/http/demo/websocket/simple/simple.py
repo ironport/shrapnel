@@ -24,8 +24,8 @@ class server:
         if len (all):
             self.set_drawing (all[0])
 
-    def new_session (self, proto, http_request):
-        client = sketch_conn (self, proto, http_request)
+    def new_session (self, *args, **kwargs):
+        client = sketch_conn (self, *args, **kwargs)
         self.clients.add (client)
         for payload in self.drawing:
             client.send_text (payload)
