@@ -21,8 +21,8 @@ class server:
         self.color_index += 1
         return r
 
-    def new_session (self, proto, http_request, conn):
-        self.clients.add (connection (self, proto, http_request))
+    def new_session (self, *args, **kwargs):
+        self.clients.add (connection (self, *args, **kwargs))
 
     def broadcast (self, name, color, payload):
         to_remove = set()
@@ -35,11 +35,11 @@ class server:
 
 class connection (websocket):
 
-    def __init__ (self, server, proto, req):
+    def __init__ (self, server, *args, **kwargs):
+        websocket.__init__ (self, *args, **kwargs)
         self.server = server
         self.color = server.next_color()
         self.name = None
-        websocket.__init__ (self, proto, req)
 
     def handle_packet (self, p):
         payload = p.unpack()

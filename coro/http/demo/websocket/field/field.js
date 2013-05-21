@@ -1,15 +1,22 @@
 var connection;
 var msgs_div = document.getElementById ('msgs')
 var draw_cmds = [];
-var host = "127.0.0.1";
-var port = "9001";
 
 function message (msg) {
     msgs_div.innerHTML = msg;
 }
 
 if (window["WebSocket"]) {
-    connection = new WebSocket("ws://" + host + ":" + port + "/field")
+
+    var loc = window.location, new_uri;
+    if (loc.protocol === "https:") {
+	ws_uri = "wss:";
+    } else {
+	ws_uri = "ws:";
+    }
+    ws_uri += "//" + loc.host;
+
+    connection = new WebSocket(ws_uri + "/field");
 
     connection.onopen = function () {
 	message ('connected')

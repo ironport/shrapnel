@@ -126,7 +126,11 @@ class sock (coro.sock):
         return _sum
 
     def shutdown (self, how=None):
-        return self._non_blocking_retry (self.ssl.shutdown)
+        try:
+            return self._non_blocking_retry (self.ssl.shutdown)
+        except OSError:
+            # common with an impolite disconnect
+            pass
 
     def close (self):
         try:

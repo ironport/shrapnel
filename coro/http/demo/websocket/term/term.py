@@ -99,6 +99,7 @@ class repl (backdoor):
     def read_line (self):
         line = self.inlines.pop()
         if line is None:
+            self.sock.send_text ('D' + escape ('goodbye!\n'))
             self.sock.conn.close()
         else:
             return line
@@ -119,11 +120,18 @@ if __name__ == '__main__':
     fh = coro.http.handlers.file_handler (os.getcwd())
     handlers = [th, ih, sh, fh]
     #server = coro.http.server()
-    server = coro.http.tlslite_server (
-        # should point to the test cert in coro/http/cert/
-        '../../../cert/server.crt',
-        '../../../cert/server.key',
+    #server = coro.http.tlslite_server (
+    #    # should point to the test cert in coro/http/cert/
+    #    '../../../cert/server.crt',
+    #    '../../../cert/server.key',
+    #    )
+    import coro.ssl
+    from coro.ssl import openssl
+    ctx = coro.ssl.new_ctx (
+        cert = openssl.x509 (open('../../../cert/server.crt').read()),
+        key  = openssl.pkey (open('../../../cert/server.key').read(), private=True),
         )
+    server = coro.http.openssl_server (ctx)
     for h in handlers:
         server.push_handler (h)
     #coro.spawn (server.start)
