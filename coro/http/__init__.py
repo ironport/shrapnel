@@ -6,3 +6,4 @@ import coro
 from coro import read_stream
 import http_date
 import session_handler
+import spdy

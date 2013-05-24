@@ -62,13 +62,13 @@ class request_stream:
 
 class connection:
 
-    def __init__ (self, server):
+    def __init__ (self, server, conn, addr):
         self.server = server
         self.stream = None
-
-    def run (self, conn, peer):
         self.conn = conn
-        self.peer = peer
+        self.peer = addr
+
+    def run (self):
         self.stream = read_stream.sock_stream (self.conn)
         upgrade = False
         try:
@@ -101,6 +101,9 @@ class connection:
         finally:
             if not upgrade:
                 self.conn.close()
+
+    def log (self, msg):
+        self.server.log (msg)
 
     def pick_handler (self, request):
         for handler in self.server.handlers:
@@ -139,7 +142,7 @@ class http_request:
         self.request_headers = headers
         self.client = client
         self.server = client.server
-        self.tstart = time.time()
+        self.tstart = time.time() # XXX use coro.now
         self.peer = client.peer
         self.output = buffered_output (self.client.conn)
         self.done_cv = latch()
@@ -491,8 +494,8 @@ class server:
         while not self.shutdown_flag:
             try:
                conn, addr = self.accept()
-               client = self.create_connection()
-               c = coro.spawn (client.run, conn, addr)
+               client = self.create_connection (conn, addr)
+               c = coro.spawn (client.run)
                c.set_name ('%s connection on %r' % (self.__class__.__name__, addr,))
             except coro.Shutdown:
                 break
@@ -513,8 +516,8 @@ class server:
         else:
             return coro.tcp_sock()
 
-    def create_connection (self):
-        return connection (self)
+    def create_connection (self, conn, addr):
+        return connection (self, conn, addr)
 
     def shutdown (self):
         self.shutdown_flag = 1
@@ -530,15 +533,15 @@ class tlslite_server (server):
     "https server using the tlslite package"
 
     def __init__ (self, cert_path, key_path, **handshake_args):
-	server.__init__ (self)
+        server.__init__ (self)
         self.handshake_args = handshake_args
         self.cert_path = cert_path
-	self.key_path = key_path
+        self.key_path = key_path
         self.read_chain()
-	self.read_private()
+        self.read_private()
 
     def accept (self):
-	import tlslite
+        import tlslite
         while 1:
             conn0, addr = server.accept (self)
             conn = tlslite.TLSConnection (conn0)
@@ -547,22 +550,22 @@ class tlslite_server (server):
             return conn, addr
 
     def read_chain (self):
-	"cert chain is all in one file, in LEAF -> ROOT order"
-	import tlslite
-	delim = '-----END CERTIFICATE-----\n'
-	data = open (self.cert_path).read()
+        "cert chain is all in one file, in LEAF -> ROOT order"
+        import tlslite
+        delim = '-----END CERTIFICATE-----\n'
+        data = open (self.cert_path).read()
         certs = data.split (delim)
-	chain = []
+        chain = []
         for cert in certs:
-	    if cert:
-	        x = tlslite.X509()
-		x.parse (cert + delim)
+            if cert:
+                x = tlslite.X509()
+                x.parse (cert + delim)
                 chain.append (x)
-	self.chain = tlslite.X509CertChain (chain)
+        self.chain = tlslite.X509CertChain (chain)
 
     def read_private (self):
         import tlslite
-	self.private = tlslite.parsePEMKey (
+        self.private = tlslite.parsePEMKey (
             open (self.key_path).read(),
             private=True
             )
