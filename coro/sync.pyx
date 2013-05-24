@@ -25,8 +25,6 @@ __sync_version__ = "$Id: //prod/main/ap/shrapnel/coro/sync.pyx#29 $"
 
 # Note: this file is included by <coro.pyx>
 
-from cpython.list cimport PyList_New
-
 # ================================================================================
 #                      synchronization primitives
 # ================================================================================
@@ -709,6 +707,8 @@ cdef class condition_variable:
 #                         fifo
 # ===========================================================================
 
+# XXX why not inherit from _fifo?
+
 cdef class fifo:
 
     """
@@ -721,7 +721,7 @@ cdef class fifo:
     """
 
     cdef _fifo fifo
-    cdef condition_variable cv
+    cdef readonly condition_variable cv
 
     def __init__ (self):
         self.fifo = _fifo()
@@ -768,3 +768,18 @@ cdef class fifo:
             result[i] = self.fifo._pop()
             i = i + 1
         return result
+
+    def top (self):
+        """Return the top object from FIFO, or raise IndexError
+
+        :returns: The first object from the FIFO.
+        """
+        return self.fifo._top()
+
+    def push_front (self, thing):
+        """Push an object to the front of the FIFO.
+
+        :param thing: The thing to add.
+        """
+        self.fifo.push_front (thing)
+        self.cv.wake_one()

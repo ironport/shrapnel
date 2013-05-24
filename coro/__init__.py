@@ -298,6 +298,9 @@ now_usec = get_usec()
 #                           non-coro compatibility
 # ============================================================================
 
+# XXX 2013 SMR: there's a problem with this hack - if you use this form of import:
+#    "from coro import sleep_relative" you'll get the non-coro one.  This is why
+#    we don't like monkey-patching!
 _original_with_timeout = with_timeout
 with_timeout = optional.with_timeout
 _original_sleep_relative = sleep_relative

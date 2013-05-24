@@ -7,7 +7,7 @@ import os
 
 from distribute_setup import use_setuptools
 use_setuptools()
-from setuptools import setup
+from setuptools import setup, find_packages
 
 try:
     from Cython.Distutils import build_ext
@@ -166,16 +166,7 @@ setup (
         # the pre-computed openssl extension from above
         OpenSSL_Extension,
         ],
-    packages=[
-        'coro', 'coro.clocks', 'coro.http', 'coro.dns', 'coro.ssl',
-        'coro.emulation', 'coro.db', 'coro.asn1', 'coro.db.postgres'
-        ],
-    package_dir = {
-        'coro': 'coro',
-        'coro.clocks': 'coro/clocks',
-        'coro.dns': 'coro/dns',
-        'coro.emulation': 'coro/emulation',
-    },
+    packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest',],
     download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
     install_requires = ['Cython>=0.12.1', 'distribute>=0.6.16'],

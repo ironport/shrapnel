@@ -1,0 +1,54 @@
+TODO
+====
+
+Important
+---------
+- more docstrings
+- Make sure _fastmath and friends are getting installed.
+- Add simple_client?  See test_client.py.
+- Go over every sentence in every spec to make sure this code adheres to it.
+- Keys: Add debuging to keys.
+- Diffie Hellman: When generating y, make sure that y > ln2(p)   (or y > 1024)
+- Diffie Hellman: Reject insecure values of f (if g==2 and f has a single '1' bit, then they must have used a small y also)
+- Diffie Hellman: Make sure generation of f is good (no single 1 bit)
+- CORO: There are problems reading from stdin with coro.  test_coro_client doesn't work very well due to this fact.
+- connect: I think there are some serious logic problems in the connect code.  In some places it manually calls process_messages waiting for a specifc response to a specific message.  However, this may cause it to miss other messages that are in the pipeline because there is no registry entry for them.  I think to fix the main problem is to change the core process_messages() in the connect class to permanently register its messages.
+- finish Remote_To_Local_Forward
+- Files in test directory are out of date and broken.
+- Update with latest specs (need to see what has changed).
+
+Should Do
+---------
+- Handle new key exchange (after every gigabyte or every hour)
+- More unittests.
+- DH Group Exchange
+- formalize exceptions with arguments
+- exception handling (bad packets, etc.)
+- Stir the random pool (see ssh.util.random.py)
+- Userauth: Add more debugging.
+- Compression support.
+- Document how to extend the various components of this library.
+- Finish README high-level documentation.
+- Test proactive stuff (both successful guess and failures)
+- In the userauth module, inspect auths_that_can_continue when getting an authentication failure so that we don't try subsequent authentication methods that we know will not work.
+- Figure out what partial_success means in the userauth module.
+- Check for invalid channel id's in the connect.py code when looking at self.local_channels.
+- Change module definition at top of file to be a triple quoted string instead of a comment.  This is the correct docstyle.
+- Connect: No way to match channel requests with their response.  Need to check latest specs.
+
+Would Be Nice
+-------------
+- Write a server
+- I18N of error messages.
+- Handle SSH1.x protocol.
+- Userauth: Support pipelining (sending multiple userauth requests without waiting for the server to respond).
+- Userauth: Mechanism to remember which auth method succeeds on a per-host basis.  Thus in future attempts to connect to the remote host, it can attempt the correct method first.
+- BER: Make a complete ASN.1 decoder.
+- BER: Break out the BER encodeder into a separate non-SSH specific module.
+- BER: Add an encoder.
+- Keys: Add key generator.
+- Optimize...haven't yet done any performance testing.
+
+Bugs
+----
+- Fix memory leaks (circular references)

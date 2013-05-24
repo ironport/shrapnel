@@ -1,0 +1,74 @@
+
+Note: This SSH implementation was written by Eric Huss, probably around 2005-2006.
+It has been modified so as to integrate it into the shrapnel/coro package directly.
+
+python implementation of SSH2
+
+Eric's Python SSH Library
+=========================
+
+Introduction
+------------
+This is a python implementation of the SSH2 protocol.  No effort was made to support SSH1.
+It uses Andrew Kuchling's pycrypto library (version 1.9a6).
+
+This implementation is based on the following revisions of the IETF drafts.  Future revisions may change certain parts of the protocol, but that is unlikely.
+
+---------- draft -------------------------          --- became RFC ---
+
+draft-ietf-secsh-architecture-15.txt                     RFC 4251
+draft-ietf-secsh-assignednumbers-05.txt                  RFC 4250
+draft-ietf-secsh-auth-kbdinteract-05.txt                 RFC 4256
+draft-ietf-secsh-connect-18.txt                          RFC 4254
+draft-ietf-secsh-dh-group-exchange-04.txt                RFC 4419
+draft-ietf-secsh-filexfer-04.txt                        [draft 13]
+draft-ietf-secsh-fingerprint-01.txt                          ?
+draft-ietf-secsh-gsskeyex-07.txt                         RFC 4462
+draft-ietf-secsh-newmodes-00.txt                         RFC 4344
+draft-ietf-secsh-publickeyfile-04.txt                    RFC 4716
+draft-ietf-secsh-transport-17.txt                        RFC 4253
+draft-ietf-secsh-userauth-18.txt                         RFC 4252
+
+Overview
+--------
+This is a very simple overview of the SSH protocol and how it maps to this library's source tree.  The IETF secsh architecture document describes the basic architecture of the protocol.
+
+The base-level protocol is called the "transport".  You will find its implementation in ssh/transport/transport.py.  A subclass of the transport is made to implement either a server or a client (currently only the client is implemented).
+
+The transport is responsible for protocol negotiation, key exchange, encryption, compression, and message authenticity.
+
+The transport may use any type of low-level transmission transports as long as they guarantee in-order delivery.  TCP is a perfect example.  To support different types of transmission types, the functionality is abstracted in the l4_transport directory (L4 meaning the 4th layer of the OSI network model).  You may then use different socket libraries (select vs. poll) or even transmit over other media such as a serial cable (though serial does not offer guaranteed transmission, so it may be a poor choice).
+
+The transport-layer features are abstracted in their respective directories:
+cipher - Implements encryption/decryption.
+compression - Implements compression.
+keys - Formatting and handling of various key types.
+key_exchange - The key exchange algorithm (only diffie-hellman).
+mac - Message authentication codes.
+
+Services
+--------
+The SSH transport layer supports different "services".  Currently there are two services, "userauth" and "connection".  Userauth provides the mechanism to authenticate a user.  Connection is the service through which most data transfer is done.  On the transport layer you send a message to ask if it is ok to use a service, and if so go ahead.
+
+Userauth
+--------
+Userauth is a generic mechanism for authentication.  It supports various different authentication mechanisms.  Currently this library supports publickey and password.  Host-based authentication could be trivially added if needed.
+
+Connection
+----------
+The connection layer is a generic mechanism to have various different "channels".  You can multiplex multiple channels over a single connection.  The connection layer is also flow-controlled with finite sized windows.
+
+Currently the only channel written is the interactive session channel.  It executes the user's shell on the remote end.
+
+Debugging
+---------
+There is a debugging facility to capture messages and selectively display them to the user.  A transport instance has 1 instance of the debug class.  The debug class receives messages and determines if the user wants to see them.  You can subclass the debug class and change how the information is presented.
+
+Naming Convention
+-----------------
+Any method that is used to handle incoming packets has the prefix 'msg_'.
+
+All modules and methods are in lowercase_with_underscores.
+
+All classes are in Capitalized_Words_With_Underscores.   This is not a standard naming convention, and actually labelled as "ugly!" in the Python style guide.  However, I've never liked CapitalizedWords without underscores because it is hard to read.  Java style mixedCase has the exact same problem.  I like using capitalized words because it is distinguished.  I have never done this before, so this is an experiment with this library.
+

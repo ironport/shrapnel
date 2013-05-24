@@ -83,14 +83,14 @@ class backdoor:
             return l
         else:
             while not self.lines:
-                block = self.sock.recv (8192)
+                block = self.sock.recv (8100)
                 if not block:
                     return None
                 elif block == '\004':
                     self.sock.close()
                     return None
                 else:
-                    self.buffer = self.buffer + block
+                    self.buffer += block
                     lines = self.buffer.split (self.line_separator)
                     for l in lines[:-1]:
                         self.lines.append (l)
@@ -98,8 +98,8 @@ class backdoor:
             return self.read_line()
 
     def send_welcome_message(self):
-        self.send ('Python ' + sys.version + self.line_separator)
-        self.send (sys.copyright + self.line_separator)
+        self.send ('Python ' + sys.version.replace ('\n', '\r\n') + self.line_separator)
+        self.send (sys.copyright.replace ('\n', '\r\n') + self.line_separator)
         if self.welcome_message is not None:
             # make '\n' into the right line separator and terminate with
             # a line separator
@@ -123,7 +123,10 @@ class backdoor:
 
         while 1:
             self.prompt()
-            line = self.read_line()
+            try:
+                line = self.read_line()
+            except EOFError:
+                break
             if line is None:
                 break
             elif self.multilines:
@@ -176,7 +179,7 @@ def client (conn, addr, welcome_message=None, global_dict=None):
     b = backdoor (conn, welcome_message=welcome_message, global_dict=global_dict)
     b.read_eval_print_loop()
 
-def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=None):
+def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=None, client_class=None):
     """Backdoor server function.
 
     This function will listen on the backdoor socket and spawn new threads for
@@ -224,15 +227,59 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
         else:
             raise Exception, "couldn't bind a port (try not specifying a port)"
 
+    if client_class is None:
+        client_class = client
+
     flags = fcntl.fcntl(s.fileno(), fcntl.F_GETFD)
     fcntl.fcntl(s.fileno(), fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
 
     s.listen (1024)
     while 1:
         conn, addr = s.accept()
-        coro.print_stderr ('incoming connection from %r\n' % (conn.getsockname(),))
-        thread = coro.spawn (client, conn, addr, welcome_message, global_dict)
+        coro.print_stderr ('incoming backdoor connection from %r\n' % (conn.getpeername(),))
+        thread = coro.spawn (client_class, conn, addr, welcome_message, global_dict)
         thread.set_name('backdoor session')
+
+import coro.ssh.transport.server
+import coro.ssh.connection.connect
+import coro.ssh.l4_transport.coro_socket_transport
+import coro.ssh.auth.userauth
+import coro.ssh.connection.interactive_session
+
+class ssh_repl (coro.ssh.connection.interactive_session.Interactive_Session_Server):
+
+    def __init__ (self, connection_service):
+        coro.ssh.connection.interactive_session.Interactive_Session_Server.__init__ (self, connection_service)
+        coro.spawn (self.go)
+
+    def go (self):
+        b = backdoor (self, line_separator='\n')
+        # this is to avoid getting the banner/copyright/etc mixed in with ssh client pty/x11 warnings
+        coro.sleep_relative (0.1)
+        b.read_eval_print_loop()
+        self.close()
+        coro.print_stderr ('closed ssh backdoor from: %r\n' % (self.transport.transport.peer,))
+
+# see coro/ssh/demo/backdoor.py for instructions on setting up an ssh backdoor server.
+class ssh_server:
+    def __init__ (self, port, addr, server_key, authenticators):
+        self.port = port
+        self.addr = addr
+        self.server_key = server_key
+        self.authenticators = authenticators
+        coro.spawn (self.serve)
+        
+    def serve (self):
+        serve (self.port, self.addr, client_class=self.new_connection)
+        
+    def new_connection (self, conn, addr, welcome_message, global_dict):
+        #debug = coro.ssh.util.debug.Debug()
+        #debug.level = coro.ssh.util.debug.DEBUG_3
+        transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(sock=conn)
+        server = coro.ssh.transport.server.SSH_Server_Transport (self.server_key) #, debug=debug)
+        authenticator = coro.ssh.auth.userauth.Authenticator (server, self.authenticators)
+        server.connect (transport, authenticator)
+        service = coro.ssh.connection.connect.Connection_Service (server, ssh_repl)
 
 if __name__ == '__main__':
     thread = coro.spawn (serve, welcome_message='Testing backdoor.py')
