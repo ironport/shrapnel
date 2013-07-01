@@ -234,7 +234,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 return flag
         else:
             s = PyBytes_FromStringAndSize (NULL, buflen)
-            r = getsockopt (self.fd, level, optname, <void*>s, &buflen)
+            r = getsockopt (self.fd, level, optname, <void*>PyBytes_AsString (s), &buflen)
             if r == -1:
                 raise_oserror()
             else:
