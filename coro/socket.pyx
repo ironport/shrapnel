@@ -34,7 +34,7 @@ DEF KQUEUE = (UNAME_SYSNAME == "FreeBSD" or UNAME_SYSNAME == "Darwin")
 import socket as __socketmodule
 
 from cpython.int cimport PyInt_Check
-from cpython.bytes cimport PyBytes_Size
+from cpython.bytes cimport PyBytes_Size, PyBytes_AsString
 from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM, PyTuple_GET_ITEM
 
 from libc cimport errno
@@ -256,7 +256,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
             r = setsockopt (self.fd, level, optname, <void*>&flag, sizeof (flag))
         else:
             optlen = PyBytes_Size (value) # does typecheck
-            r = setsockopt (self.fd, level, optname, <void*>value, optlen)
+            r = setsockopt (self.fd, level, optname, <void*>PyBytes_AsString (value), optlen)
         if r == -1:
             raise_oserror()
 
