@@ -1062,7 +1062,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef coro me
         cdef list result
         count = 0
-        result = PyList_New(max)
+        result = []
         if max == 0:
             upper_limit = 0x7ffffffe
         else:
@@ -1075,19 +1075,16 @@ cdef public class sock [ object sock_object, type sock_type ]:
             r = accept (self.fd, <sockaddr *>&sa, &addr_len)
             if r == -1:
                 if errno.errno == errno.EAGAIN:
-                    return result[:count]
+                    return result
                 elif errno.errno == errno.ECONNABORTED:
                     pass
                 else:
                     raise_oserror()
             else:
-                element = (sock (self.domain, fd=r),
-                           self.unparse_address (&sa, addr_len)
-                          )
-                if max == 0:
-                    result.append (element)
-                else:
-                    result[count] = element
+                result.append ((
+                    sock (self.domain, fd=r),
+                    self.unparse_address (&sa, addr_len)
+                ))
                 count = count + 1
         return result
 
