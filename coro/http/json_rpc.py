@@ -38,7 +38,7 @@ class proxy:
         self.name = name
 
     def __call__ (self, *args, **kwargs):
-        return self.remote.invoke (self.name, *args, **kwargs)
+        return self.remote.invoke (self.name, args, kwargs)
 
 class json_rpc_remote:
 
@@ -52,9 +52,11 @@ class json_rpc_remote:
             self.auth = base64.b64encode ('%s:%s' % auth_info)
         else:
             self.auth = None
+        self.conn = None
 
     def invoke (self, name, *args, **kwargs):
-        c = http_client (self.url_ob.hostname, self.url_ob.port)
+        if self.conn is None:
+            self.conn = http_client (self.url_ob.hostname, self.url_ob.port)
         if kwargs:
             assert (not args) # no way to mix positional & named args
             params = kwargs
@@ -63,14 +65,19 @@ class json_rpc_remote:
         jreq = json.dumps ({'method': name, 'params':params, 'id':self.counter})
         self.counter += 1
         if self.auth:
-            req = c.POST (self.url_ob.path, jreq, Authorization='Basic %s' % (self.auth,))
+            req = self.conn.POST (self.url_ob.path, jreq, Authorization='Basic %s' % (self.auth,))
         else:
-            req = c.POST (self.url_ob.path, jreq)
+            req = self.conn.POST (self.url_ob.path, jreq)
         if req.reply_code == '200':
             jrep = json.loads (req.content)
             return jrep['result']
         else:
              raise Error ((req.reply_code, req.content))
         
+    def close (self):
+        if self.conn is not None:
+            self.conn = None
+            self.conn.close()
+
     def __getattr__ (self, name):
         return proxy (self, name)
