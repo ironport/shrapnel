@@ -76,8 +76,8 @@ class json_rpc_remote:
         
     def close (self):
         if self.conn is not None:
-            self.conn = None
             self.conn.close()
+            self.conn = None
 
     def __getattr__ (self, name):
         return proxy (self, name)
