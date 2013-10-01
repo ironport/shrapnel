@@ -40,14 +40,20 @@ def check_lio():
         # arbitrary options to distutils.
         return True
     if newer('test/build/test_lio.c', 'test/build/test_lio'):
-        status = os.system('gcc -o test/build/test_lio test/build/test_lio.c')
+        status = os.system('gcc -o test/build/test_lio test/build/test_lio.c > /dev/null 2>&1')
         if not exit_ok(status):
             return False
     status = os.system('test/build/test_lio')
     return exit_ok(status)
 
+def check_linux_aio():
+    return os.uname()[0] == 'Linux' and exit_ok(os.system('ldconfig -p | grep libaio > /dev/null'))
+
+USE_LINUX_AIO = check_linux_aio()
+
 compile_time_env = {
     'COMPILE_LIO': check_lio(),
+    'COMPILE_LINUX_AIO': USE_LINUX_AIO,
     'COMPILE_NETDEV' : False,
     'COMPILE_LZO' : False,
     'COMPILE_LZ4' : False,
@@ -57,8 +63,6 @@ compile_time_env = {
 #--------------------------------------------------------------------------------
 # OpenSSL support 
 #--------------------------------------------------------------------------------
-import os
-import sys
 
 # If you need NPN support (for SPDY), you most likely will have to link against
 #   newer openssl than the one that came with your OS.  (this is circa 2012).
@@ -145,7 +149,7 @@ setup (
             #   and uncomment one of the following:
             #libraries=['lzo2', 'z']
             #libraries=['lz4', 'z'],
-            libraries=['z']
+            libraries=['z'] + (['aio'] if USE_LINUX_AIO else [])
             ),
         Extension ('coro.oserrors', ['coro/oserrors.pyx', ],),
         Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
