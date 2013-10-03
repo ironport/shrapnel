@@ -304,7 +304,7 @@ class Authenticator:
         self.transport = transport
         self.methods = methods
         # XXX this assumes only one of each method type?  e,g, might a user want multiple entries under 'publickey'?
-        self.by_name = { method.name : method for method in self.methods }
+        self.by_name = dict((method.name, method) for method in self.methods)
 
     def send (self, format, values):
         self.transport.send_packet (pack_payload (format, values))
