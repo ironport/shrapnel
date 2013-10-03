@@ -6,7 +6,7 @@ cdef extern from "stdlib.h":
 
 cdef extern from "libaio.h":
     ctypedef struct io_context_t:
-        int a
+        pass
 
     cdef struct iocb:
         void *data
@@ -126,6 +126,7 @@ def aio_read (int fd, int nbytes, uint64_t offset):
     :Exceptions:
         - `OSError`: OS-level error.
     """
+    # XXX: Remove limitation that offset needs to be a multiple of BLOCK_SIZE
     global _aio_pending, _aio_rb, _aio_rnb, _aio_rp, aio_iocb
 
     cdef object buf, res
@@ -135,7 +136,9 @@ def aio_read (int fd, int nbytes, uint64_t offset):
     cdef char *strbuf
 
     aligned_size = _aligned_size(nbytes)
-    posix_memalign(<void**>&strbuf, BLOCK_SIZE, aligned_size)
+    res = posix_memalign(<void**>&strbuf, BLOCK_SIZE, aligned_size)
+    if res:
+        raise_oserror_with_errno(res)
     me = the_scheduler._current
     piocb = &aio_iocb[_aio_pending]
     _aio_pending += 1
@@ -143,9 +146,14 @@ def aio_read (int fd, int nbytes, uint64_t offset):
     io_prep_pread(piocb, fd, strbuf, aligned_size, offset)
     io_set_eventfd(piocb, aio_eventfd)
     iocbs[0] = piocb
-    io_submit(aio_ioctx, 1, iocbs)
+    res = io_submit(aio_ioctx, 1, iocbs)
+    if res <= 0:
+        raise_oserror_with_errno(res)
     aio_event_map[fd] = me
     res = _YIELD()
+    if res <= 0:
+        raise_oserror()
+    assert res >= nbytes
     _aio_pending -= 1
     _aio_rp -= 1
     buf = PyBytes_FromStringAndSize (strbuf, nbytes)
@@ -168,6 +176,7 @@ def aio_write (int fd, object buf, uint64_t offset):
         - `OSError`: OS-level error.
     """
 
+    # XXX: Remove limitation that offset needs to be a multiple of BLOCK_SIZE
     global _aio_pending, _aio_wb, _aio_wnb, _aio_wp, aio_iocb
 
     cdef object res
@@ -179,7 +188,9 @@ def aio_write (int fd, object buf, uint64_t offset):
     size = PyBytes_Size(buf)
     aligned_size = _aligned_size(size)
 
-    posix_memalign(&strbuf, BLOCK_SIZE, aligned_size)
+    res = posix_memalign(&strbuf, BLOCK_SIZE, aligned_size)
+    if res:
+        raise_oserror_with_errno(res)
     memcpy(strbuf, PyBytes_AS_STRING(buf), size)
     me = the_scheduler._current
     piocb = &aio_iocb[_aio_pending]
@@ -188,10 +199,15 @@ def aio_write (int fd, object buf, uint64_t offset):
     io_prep_pwrite(piocb, fd, strbuf, aligned_size, offset)
     io_set_eventfd(piocb, aio_eventfd)
     iocbs[0] = piocb
-    io_submit(aio_ioctx, 1, iocbs)
+    res = io_submit(aio_ioctx, 1, iocbs)
+    if res <= 0:
+        raise_oserror_with_errno(res)
     aio_event_map[fd] = me
     res = _YIELD()
+    if res <= 0:
+        raise_oserror()
+    assert res == aligned_size
     _aio_pending -= 1
     _aio_wp -= 1
     free(strbuf)
-    return res
+    return size
