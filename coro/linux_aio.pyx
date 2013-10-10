@@ -38,13 +38,14 @@ cdef enum:
     BLOCK_SIZE = 512
 
 cdef int aio_eventfd
+cdef coro aio_poller
 cdef io_context_t aio_ioctx
 cdef dict aio_event_map
 cdef iocb aio_iocb[MAX_PENDING_REQS]
 
 cdef aio_setup():
     cdef int res
-    global aio_eventfd, aio_event_map
+    global aio_eventfd, aio_poller, aio_event_map
 
     res = io_setup(MAX_PENDING_REQS, &aio_ioctx)
     if res:
@@ -52,33 +53,41 @@ cdef aio_setup():
     aio_eventfd = eventfd(0, EFD_NONBLOCK)
     if aio_eventfd == -1:
         raise_oserror()
-    the_poller._register_fd(aio_eventfd)
     aio_event_map = {}
+    aio_poller = spawn(_aio_poll)
 
 cdef aio_teardown():
     cdef int res
     
+    aio_poller.shutdown()
+    close(aio_eventfd)
     res = io_destroy(aio_ioctx)
     if res:
         raise_oserror_with_errno(res)
-    close(aio_eventfd)
 
-cdef aio_poll():
+def _aio_poll():
     cdef int r, fd, res
     cdef long n
     cdef coro co
     cdef io_event aio_io_events[MAX_PENDING_REQS]
 
-    read(aio_eventfd, <char*>&n, 8)
-    r = io_getevents(aio_ioctx, 1, n, aio_io_events, NULL)
-    if r < 0:
-        raise_oserror()
-    for i from 0 <= i < r:
-        fd = aio_io_events[i].obj.aio_fildes
-        res = aio_io_events[i].res
-        #print 'POLL: fd=%r, res=%r' % (fd, res)
-        co = aio_event_map.pop(fd)
-        co._schedule(res)
+    while 1:
+        try:
+            the_poller._wait_for_read(aio_eventfd)
+            read(aio_eventfd, <char*>&n, 8)
+            if n < 1 or n > MAX_PENDING_REQS:
+                raise_oserror()
+            r = io_getevents(aio_ioctx, 1, n, aio_io_events, NULL)
+            if r < 0:
+                raise_oserror()
+            for i from 0 <= i < r:
+                fd = aio_io_events[i].obj.aio_fildes
+                res = aio_io_events[i].res
+                #print 'POLL: fd=%r, res=%r' % (fd, res)
+                co = aio_event_map.pop(fd)
+                co._schedule(res)
+        except Shutdown:
+            break
 
 cdef _aligned_size(size):
     if size % BLOCK_SIZE:

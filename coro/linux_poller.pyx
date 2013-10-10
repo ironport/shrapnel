@@ -218,12 +218,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
 
             me = the_scheduler._current
             target = me
-            add_to_map = True
-            IF COMPILE_LINUX_AIO:
-                if ek.fd == aio_eventfd:
-                    add_to_map = False
-            if add_to_map:
-                self.event_map[ek] = target
+            self.event_map[ek] = target
             self._register_event(ek, flags)
 
             return target
@@ -295,13 +290,10 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         return self._wait_for_with_eof(fd, EPOLLOUT)
 
     cdef py_event _wait_for (self, int fd, int events):
-        self._register_fd(fd, events)
-        return _YIELD()
-
-    cdef _register_fd (self, int fd, events=EPOLLIN):
         cdef event_key ek
         ek = event_key (events, fd)
         self.set_wait_for (ek)
+        return _YIELD()
 
     def wait_for (self, int fd, int events):
         """Wait for an event.
@@ -364,11 +356,6 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
 
                 ek = event_key (new_e.events, new_e.data.fd)
                 
-                IF COMPILE_LINUX_AIO:
-                    if ek.fd == aio_eventfd:
-                        aio_poll()
-                        continue
-
                 try:
                     co = self.event_map[ek]
                 except KeyError:
