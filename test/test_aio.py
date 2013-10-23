@@ -30,7 +30,13 @@ import unittest
 import random
 import resource
 
+UNAME = os.uname()[0]
+
 class Test(unittest.TestCase):
+
+    FLAG = os.O_RDWR | os.O_CREAT | os.O_TRUNC 
+    if UNAME == 'Linux':
+        FLAG |= os.O_DIRECT
 
     def tearDown(self):
         if os.path.exists('test_aio_file'):
@@ -45,7 +51,7 @@ class Test(unittest.TestCase):
 
     def test_read_write(self):
         """Test read/write."""
-        self.fd = os.open('test_lio_file', os.O_RDWR|os.O_CREAT|os.O_TRUNC)
+        self.fd = os.open('test_lio_file', Test.FLAG)
 
         # Simple 1-byte test.
         self._read_write('a')
@@ -55,12 +61,12 @@ class Test(unittest.TestCase):
         self._read_write(data)
 
         # Test offset read/write.
-        filesize = 512 * 1024
-        orig_data = os.urandom(filesize)
+        orig_data = os.urandom(512 * 1024)
+        filesize = len(orig_data)
         coro.aio_write(self.fd, orig_data, 0)
         for x in xrange(100):
             size = random.randint(1, filesize)
-            offset = random.randint(0, filesize)
+            offset = random.randint(0, filesize-size)
             data = coro.aio_read(self.fd, size, offset)
             self.assertEqual(data, orig_data[offset:offset+size])
 
@@ -69,7 +75,7 @@ class Test(unittest.TestCase):
     def test_leak(self):
         """Test map leak."""
         # There was a bug where we were leaking events in the event map.
-        self.fd = os.open('test_lio_file', os.O_RDWR|os.O_CREAT|os.O_TRUNC)
+        self.fd = os.open('test_lio_file', Test.FLAG)
 
         event_size = len(coro.event_map)
 
@@ -78,7 +84,7 @@ class Test(unittest.TestCase):
         coro.aio_write(self.fd, orig_data, 0)
         for x in xrange(100):
             size = random.randint(1, filesize)
-            offset = random.randint(0, filesize)
+            offset = random.randint(0, filesize-size)
             data = coro.aio_read(self.fd, size, offset)
             self.assertEqual(data, orig_data[offset:offset+size])
 
@@ -89,14 +95,14 @@ class Test(unittest.TestCase):
 
         for x in xrange(100):
             size = random.randint(1, filesize)
-            offset = random.randint(0, filesize)
+            offset = random.randint(0, filesize-size)
             self.assertRaises(OSError, coro.aio_read, self.fd, size, offset)
 
         self.assertEqual(event_size, len(coro.event_map))
 
     def test_error(self):
         """Test error return."""
-        fd = os.open('test_aio_file', os.O_RDWR|os.O_CREAT|os.O_TRUNC)
+        fd = os.open('test_aio_file', Test.FLAG)
         data = os.urandom(1024 * 1024)
         r = coro.aio_write(fd, data, 0)
         self.assertEqual(r, len(data))
@@ -105,16 +111,17 @@ class Test(unittest.TestCase):
         # Rip away the file descriptor.
         os.close(fd)
         # Verify it fails.
-        self.assertRaises(oserrors.EBADF, coro.aio_read, fd, len(data), 0)
+        self.assertRaises(OSError, coro.aio_read, fd, len(data), 0)
 
         # Try a test that will fail from aio_return.
         # (NOTE: On FreeBSD before 7, this would actually show up as an
         # error immediately from aio_error, but in FreeBSD 7 it now appears to
         # go through the kqueue code path.)
         soft, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
-        fd = os.open('test_aio_file', os.O_RDWR|os.O_CREAT|os.O_TRUNC)
-        self.assertRaises(oserrors.EFBIG, coro.aio_write, fd, data, soft)
-        os.close(fd)
+        if soft >= 0:
+            fd = os.open('test_aio_file', Test.FLAG)
+            self.assertRaises(oserrors.EFBIG, coro.aio_write, fd, data, soft)
+            os.close(fd)
 
 
 if __name__ == '__main__':
