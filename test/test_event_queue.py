@@ -20,8 +20,6 @@
 
 """Unittests for event queue wrapper."""
 
-__version__ = '$Revision: #1 $'
-
 import unittest
 
 import coro
@@ -42,7 +40,7 @@ class Test(unittest.TestCase):
         for j in res:
             self.assertEquals(self.q.top(), j)
             self.assertEquals(self.q.pop(), j)
-     
+
     def test_remove(self):
         data = [(3, "3"), (2, "21"), (1, "1"), (2, "22")]
 
@@ -53,7 +51,7 @@ class Test(unittest.TestCase):
         for i in data:
             self.q.remove(*i)
         self.assertEquals(0, len(self.q))
- 
+
     def test_empty(self):
         self.assertRaises(IndexError, self.q.top)
         self.assertRaises(IndexError, self.q.pop)

@@ -24,8 +24,6 @@
 # Implements the Triple DES cipher in CBC mode.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.cipher import SSH_Cipher_Method
 from Crypto.Cipher import DES3
 

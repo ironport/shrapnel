@@ -24,8 +24,6 @@
 # This implements the client functionality of the SSH transport layer.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.util import debug
 from coro.ssh.util import packet as ssh_packet
 from coro.ssh.transport import transport

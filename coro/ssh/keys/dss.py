@@ -23,8 +23,6 @@
 #
 # Encapsulates the DSS key.
 
-__version__ = '$Revision: #1 $'
-
 import public_private_key
 import hashlib
 from coro.ssh.util import packet, random

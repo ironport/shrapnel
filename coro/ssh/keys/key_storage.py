@@ -24,8 +24,6 @@
 # This module loads and saves various types of SSH public/private keys.
 #
 
-__version__ = '$Revision: #1 $'
-
 class Invalid_Server_Public_Host_Key(Exception):
 
     """Invalid_Server_Public_Host_Key(host_id, public_host_key)

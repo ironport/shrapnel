@@ -26,8 +26,6 @@
 # but in theory you could create your own method.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.util import packet as ssh_packet
 from coro.ssh.util import debug as ssh_debug
 

@@ -194,8 +194,6 @@ TODO
       `relative_tsc_time`.
 """
 
-__version__ = '$Revision: 1.4 $'
-
 include "python.pxi"
 include "pyrex_helpers.pyx"
 

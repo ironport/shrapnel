@@ -26,8 +26,6 @@ XXX: This needs additional tests for:
 - raise_all
 """
 
-__version__ = '$Revision: #1 $'
-
 import coro
 import coro_unittest
 import unittest

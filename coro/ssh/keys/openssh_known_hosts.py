@@ -24,8 +24,6 @@
 # This module handles the known_hosts file.
 #
 
-__version__ = '$Revision: #1 $'
-
 # The known_hosts file has the following format:
 # Each line contains a key with the following fields (space separated):
 # SSH2:
@@ -209,7 +207,7 @@ class OpenSSH_Known_Hosts:
         key = key_obj.name + ' ' + base64_key
         # XXX: static or class method would make this instantiation not necessary.
         #      Too bad the syntax sucks.
-        from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage        
+        from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
         x = OpenSSH_Key_Storage()
         parsed_key = x.parse_public_key(key)
         if parsed_key.public_key == key_obj.public_key:

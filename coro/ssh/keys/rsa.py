@@ -23,8 +23,6 @@
 #
 # Encapsulates the RSA key.
 
-__version__ = '$Revision: #1 $'
-
 import hashlib
 import public_private_key
 from coro.ssh.util import packet

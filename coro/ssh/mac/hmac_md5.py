@@ -23,8 +23,6 @@
 #
 # Implements the hmac-md5 SSH MAC algorithm.
 
-__version__ = '$Revision: #1 $'
-
 from hmac import SSH_HMAC
 import hashlib
 

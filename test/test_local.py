@@ -20,8 +20,6 @@
 
 """Unittests for thread-local storage."""
 
-__version__ = '$Revision: #1 $'
-
 import unittest
 
 import coro

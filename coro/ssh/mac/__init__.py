@@ -24,8 +24,6 @@
 # This implements the interface to support message authentication codes.
 #
 
-__version__ = '$Revision: #1 $'
-
 class SSH_MAC_Method:
     """SSH_MAC_Method
 

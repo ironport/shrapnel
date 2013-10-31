@@ -145,5 +145,3 @@ initiating the scp command.
    relays the data between the two hosts.
 
 """
-
-__version__ = '$Revision: #1 $'

@@ -20,8 +20,6 @@
 
 """Unittests for writev socket call."""
 
-__version__ = '$Revision: #3 $'
-
 import socket
 import sys
 import unittest

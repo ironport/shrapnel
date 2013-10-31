@@ -24,8 +24,6 @@
 # Socket transport used by SSH.
 #
 
-__version__ = '$Revision: #2 $'
-
 import coro
 from coro.dns.exceptions import DNS_Error
 from coro.oserrors import raise_oserror

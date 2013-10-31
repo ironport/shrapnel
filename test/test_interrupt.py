@@ -20,8 +20,6 @@
 
 """Unittests for interrupting coroutines."""
 
-__version__ = '$Revision: #3 $'
-
 import coro
 import coro_unittest
 import unittest

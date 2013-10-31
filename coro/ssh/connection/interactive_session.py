@@ -24,8 +24,6 @@
 # This implements the "session" channel of the ssh_connect service.
 #
 
-__version__ = '$Revision: #1 $'
-
 import channel
 from coro.ssh.util import packet as ssh_packet
 from connect import *
@@ -198,14 +196,14 @@ class Interactive_Session_Server(Interactive_Session):
         # XXX whatever, sure, it worked.
         if want_reply:
             self.send_channel_request_success()
-        
+
     request_handlers = {
         'pty-req'     : handle_pty_request,
         'x11-req'     : handle_x11_request,
         'shell'       : handle_shell_request,
         # env :
-        # exec : 
-        # subsystem : 
+        # exec :
+        # subsystem :
     }
 
 PTY_CHANNEL_REQUEST_PAYLOAD = (

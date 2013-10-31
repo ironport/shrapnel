@@ -24,8 +24,6 @@
 # This module contains expressions for parsing and matching keys.
 #
 
-__version__ = '$Revision: #1 $'
-
 import re
 from rebuild import *
 

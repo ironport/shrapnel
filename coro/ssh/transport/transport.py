@@ -28,8 +28,6 @@
 # This implements the SSH2 protocol ONLY.
 #
 
-__version__ = '$Revision: #1 $'
-
 import coro
 import struct
 import sys

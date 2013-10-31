@@ -24,8 +24,6 @@
 # List of TTY modes used for SSH Interactive Sessions.
 #
 
-__version__ = '$Revision: #1 $'
-
 import struct
 
 class Term_Mode_Builder:

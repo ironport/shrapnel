@@ -23,8 +23,6 @@
 This is the interface for running SCP and a command-line process.
 """
 
-__version__ = '$Revision: #1 $'
-
 import optparse
 import sys
 

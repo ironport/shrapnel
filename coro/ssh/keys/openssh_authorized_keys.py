@@ -24,8 +24,6 @@
 # This module handles the authorized_keys file.
 #
 
-__version__ = '$Revision: #1 $'
-
 import os
 import re
 from rebuild import *

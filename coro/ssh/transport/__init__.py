@@ -25,8 +25,6 @@
 # transmission of data.
 #
 
-__version__ = '$Revision: #1 $'
-
 class SSH_Protocol_Error(Exception):
     pass
 

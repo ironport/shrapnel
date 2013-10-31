@@ -24,8 +24,6 @@
 # This module is a key storage type where they keys are retained in memory.
 #
 
-__version__ = '$Revision: #1 $'
-
 import os
 
 import key_storage

@@ -33,8 +33,6 @@
       has expired.
 """
 
-__version__ = '$Revision: #6 $'
-
 # Two kinds of negatively-cached data
 CACHE_NXDOMAIN = "NXDOMAIN"
 CACHE_NODATA   = "NODATA"
@@ -851,7 +849,7 @@ import coro
 import socket
 from coro.dns.exceptions import *
 from coro.lru import lru_with_pin
-from coro.dns.reply import unpack_reply        
+from coro.dns.reply import unpack_reply
 
 import os
 set_seed (os.urandom (128))
@@ -872,7 +870,7 @@ class resolver:
 
     def resolve_ipv6 (self, name):
         return self.gethostbyname (name, 'AAAA')
-    
+
 def install():
     "install the builtin resolver into the coro socket layer"
     coro.set_resolver (resolver())

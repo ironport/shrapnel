@@ -24,8 +24,6 @@
 # This is the 'none' cipher.  It passes the data through without encryption.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.cipher import SSH_Cipher_Method
 
 class Cipher_None(SSH_Cipher_Method):

@@ -6,8 +6,6 @@ This is the base public/private key object.
 Specific key types subclass this for their implementation.
 """
 
-__version__ = '$Revision: #1 $'
-
 import hashlib
 
 class SSH_Public_Private_Key:

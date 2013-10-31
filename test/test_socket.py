@@ -20,8 +20,6 @@
 
 """Basic unittests for sockets including IPv6."""
 
-__version__ = '$Revision: #2 $'
-
 import socket
 import sys
 import unittest
@@ -150,4 +148,3 @@ class Test(unittest.TestCase):
 
 if __name__ == '__main__':
     coro_unittest.run_tests()
-

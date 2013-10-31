@@ -23,8 +23,6 @@
 #
 # Constants used in the connect protocol.
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.util import packet
 
 SSH_MSG_GLOBAL_REQUEST                 = 80

@@ -23,8 +23,6 @@
 This implements the core code of the SCP program.
 """
 
-__version__ = '$Revision: #1 $'
-
 import glob
 import os
 import stat

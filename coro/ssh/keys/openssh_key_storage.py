@@ -26,8 +26,6 @@
 
 # XXX: Make key parse error exception.  Replace asserts.
 
-__version__ = '$Revision: #1 $'
-
 import key_storage
 import binascii
 import hashlib

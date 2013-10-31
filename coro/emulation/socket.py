@@ -27,8 +27,6 @@ See Python's documentation for the socket module for details.
 
 from __future__ import absolute_import
 
-__version__ = '$Revision: #1 $'
-
 import os
 import socket as _socketmodule
 

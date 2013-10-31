@@ -20,8 +20,6 @@
 
 """Unittests for mutex."""
 
-__version__ = '$Revision: #1 $'
-
 import coro
 import coro_unittest
 import unittest

@@ -24,8 +24,6 @@
 # This is the interface to support compression of data over the SSH transport.
 #
 
-__version__ = '$Revision: #1 $'
-
 class SSH_Compression_Method:
     """SSH_Compression_Method
 

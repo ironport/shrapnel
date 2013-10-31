@@ -24,8 +24,6 @@ This is the client side of the SCP process.  It uses the SSH library to spawn
 connections.
 """
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.scp.core import SCP
 
 class Client(SCP):

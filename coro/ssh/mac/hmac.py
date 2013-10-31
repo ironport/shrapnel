@@ -24,8 +24,6 @@
 # This implements the base HMAC hashing algorithm from RFC 2104.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.mac import SSH_MAC_Method
 from coro.ssh.util import str_xor
 import struct

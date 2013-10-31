@@ -24,8 +24,6 @@
 # This implements the interface to parse and use various different key types.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.util import packet
 import dss
 import rsa

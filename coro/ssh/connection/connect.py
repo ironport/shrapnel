@@ -27,8 +27,6 @@
 # single encrypted tunnel.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.transport import SSH_Service
 from coro.ssh.util import packet as ssh_packet
 from coro.ssh.util import debug as ssh_debug
@@ -195,4 +193,3 @@ class Connection_Service(SSH_Service):
                 remote_id, channel.channel_id, initial_window, max_packet_size
                 )
             )
-        

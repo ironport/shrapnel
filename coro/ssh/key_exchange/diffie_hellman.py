@@ -24,8 +24,6 @@
 # This module implements the Diffie Hellman Group 1 SHA1 key exchange.
 #
 
-__version__ = '$Revision: #1 $'
-
 import hashlib
 
 from coro import write_stderr as W

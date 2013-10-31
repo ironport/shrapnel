@@ -25,8 +25,6 @@
 # used by the ssh_connect service.
 #
 
-__version__ = '$Revision: #1 $'
-
 import coro
 
 from coro.ssh.connection.data_buffer import Buffer

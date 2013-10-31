@@ -24,8 +24,6 @@
 # This is the interface to the encryption/decryption routines.
 #
 
-__version__ = '$Revision: #1 $'
-
 class SSH_Cipher_Method:
     """SSH_Cipher_Method
 

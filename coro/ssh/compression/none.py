@@ -25,8 +25,6 @@
 # It passes the data through uncompressed.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.compression import SSH_Compression_Method
 
 class Compression_None(SSH_Compression_Method):

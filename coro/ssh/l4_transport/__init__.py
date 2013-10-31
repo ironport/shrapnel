@@ -24,8 +24,6 @@
 # Base transport class to implement networking.
 #
 
-__version__ = '$Revision: #1 $'
-
 class Transport:
 
     def connect(self):

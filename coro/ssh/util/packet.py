@@ -23,8 +23,6 @@
 #
 # This module implements features to pack and unpack SSH packets.
 
-__version__ = '$Revision: #1 $'
-
 # Format Codes
 BYTE = 'byte'
 BOOLEAN = 'boolean'

@@ -24,8 +24,6 @@
 # This is the 'none' mac that returns an empty value.
 #
 
-__version__ = '$Revision: #1 $'
-
 from coro.ssh.mac import SSH_MAC_Method
 
 class MAC_None(SSH_MAC_Method):
