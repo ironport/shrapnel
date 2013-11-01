@@ -22,6 +22,13 @@
 
 __lio_version__ = "$Id: //prod/main/ap/shrapnel/coro/lio.pyx#18 $"
 
+from cpython.string cimport PyString_Check, PyString_AS_STRING,\
+                            PyString_FromStringAndSize, PyString_Size
+from cpython.list cimport PyList_Size, PyList_Append
+from cpython.tuple cimport PyTuple_Size
+from libc.string cimport strerror
+from libc.errno cimport errno
+
 cdef extern from "aio.h":
     int LIO_READ, LIO_WRITE, LIO_NOP, LIO_WAIT, LIO_NOWAIT
     int lio_listio (int mode, aiocb ** list, int nent, sigevent * sig)
@@ -77,13 +84,13 @@ class lio_listio_error (Exception):
     pass
 
 ctypedef public class lio_request [ object lio_request_object, type lio_request_type ] :
-    cdef kqueue_poller poller
+    cdef queue_poller poller
     cdef object coro
     cdef object requests
     cdef int num
     cdef aiocb ** aiocbpl
 
-    def __init__ (self, kqueue_poller poller, requests):
+    def __init__ (self, queue_poller poller, requests):
         cdef int i
         cdef lio_control_block cb
         self.num = PyTuple_Size (requests)
@@ -173,7 +180,7 @@ ctypedef public class lio_request [ object lio_request_object, type lio_request_
                 # not needed since we do kqueue -> r = aio_error (&cb.cb)
                 r = _aio_return (&cb.cb)
                 if r == -1:
-                    PyTuple_SET_ITEM_SAFE (result, i, OSError(libc.errno, libc.strerror(libc.errno)))
+                    PyTuple_SET_ITEM_SAFE (result, i, OSError(errno, strerror(errno)))
                     all_clear = 0
                 else:
                     if cb.cb.aio_lio_opcode == LIO_WRITE:

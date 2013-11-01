@@ -174,6 +174,6 @@ setup (
     packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest',],
     download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
-    install_requires = ['Cython>=0.12.1', 'distribute>=0.6.16'],
+    install_requires = ['cython>=0.12.1', 'distribute>=0.6.16', 'pycrypto'],
     cmdclass={'build_ext': build_ext},
 )

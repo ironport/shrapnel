@@ -1,15 +1,15 @@
 # Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -262,7 +262,7 @@ SocketType = socket
 
 _GLOBAL_DEFAULT_TIMEOUT = object()
 
-def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT):
+def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
     # This is copied directly from Python's implementation.
     msg = "getaddrinfo returns an empty list"
     host, port = address
@@ -273,6 +273,8 @@ def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT):
             sock = socket(af, socktype, proto)
             if timeout is not _GLOBAL_DEFAULT_TIMEOUT:
                 sock.settimeout(timeout)
+            if source_address:
+                sock.bind(source_address)
             sock.connect(sa)
             return sock
 
