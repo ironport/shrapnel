@@ -70,6 +70,10 @@ import sys
 # statically link is a bit tricky
 # Note: be sure to remove coro/ssl/openssl.c if you change this, see NPN probe below.
 #ossl_base = '/Users/rushing/src/openssl-1.0.1c'
+#
+# OS X: as of 10.9, openssl seems to have been completely removed.  You'll need
+#  to install from the sources.  Once this is done, use '/usr/local/ssl/' for ossl_base.
+
 ossl_base = '/usr'
 
 def O (path):
