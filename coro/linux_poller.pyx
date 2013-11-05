@@ -33,6 +33,9 @@ from posix cimport unistd
 from libc cimport errno
 from xlibc.stdlib cimport alloca
 
+IF COMPILE_LINUX_AIO:
+    include "linux_aio.pyx"
+
 cdef extern from "sys/time.h":
     cdef struct timespec:
         unsigned int tv_sec
@@ -185,11 +188,15 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         self.ep_fd = epoll_create(1000)
         if self.ep_fd == -1:
             raise SystemError, "epoll_create() failed"
+        IF COMPILE_LINUX_AIO:
+            aio_setup()
 
     cdef tear_down(self):
         if self.ep_fd != -1:
             unistd.close (self.ep_fd)
             self.ep_fd = -1
+        IF COMPILE_LINUX_AIO:
+            aio_teardown()
 
     cdef object set_wait_for (self, event_key ek):
         cdef coro me
@@ -285,7 +292,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
     cdef py_event _wait_for (self, int fd, int events):
         cdef event_key ek
         ek = event_key (events, fd)
-        et = self.set_wait_for (ek)
+        self.set_wait_for (ek)
         return _YIELD()
 
     def wait_for (self, int fd, int events):
@@ -347,16 +354,16 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
                     new_e.events = new_e.events & ~(EPOLLHUP)
                     new_e.events = new_e.events & ~(EPOLLERR)
 
-                _py_event = py_event()
-                _py_event.__fast_init__(&new_e)
                 ek = event_key (new_e.events, new_e.data.fd)
-
+                
                 try:
                     co = self.event_map[ek]
                 except KeyError:
                     pass
                     #W ('un-handled event: fd=%s events=%s\n' % (new_e.data.fd, new_e.events))
                 else:
+                    _py_event = py_event()
+                    _py_event.__fast_init__(&new_e)
                     if isinstance (co, coro):
                         co._schedule (_py_event)
                     else:
