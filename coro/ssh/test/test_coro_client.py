@@ -80,7 +80,7 @@ def transport_thread(channel):
             break
     coro.set_exit()
 
-def doit (ip, port):
+def doit (ip, port, username):
     if not is_ip (ip):
         ip = coro.get_resolver().resolve_ipv4 (ip)
     debug = coro.ssh.util.debug.Debug()
@@ -88,7 +88,7 @@ def doit (ip, port):
     client = coro.ssh.transport.client.SSH_Client_Transport(debug=debug)
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(ip, port=port)
     client.connect(transport)
-    auth_method = coro.ssh.auth.userauth.Userauth(client)
+    auth_method = coro.ssh.auth.userauth.Userauth(client, username)
     service = coro.ssh.connection.connect.Connection_Service(client)
     client.authenticate(auth_method, service.name)
     channel = coro.ssh.connection.interactive_session.Interactive_Session_Client(service)
@@ -126,7 +126,7 @@ def main():
     if '@' in ip:
         login_username, ip = ip.split('@', 1)
 
-    coro.spawn(doit, ip, port)
+    coro.spawn(doit, ip, port, login_username)
     try:
         coro.event_loop()
     finally:

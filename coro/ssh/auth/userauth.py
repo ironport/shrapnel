@@ -241,9 +241,11 @@ class Userauth(Authentication_System):
     name = 'ssh-userauth'
     methods = None
 
-    def __init__(self, transport):
-        # Default...You can change.
-        self.username = os.getlogin()
+    def __init__(self, transport, username=None):
+        if username is None:
+            self.username = os.getlogin()
+        else:
+            self.username = username
         self.transport = transport
         # Instantiate methods.
         self.methods = [Publickey(transport), Password(transport)]
