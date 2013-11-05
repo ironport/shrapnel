@@ -189,7 +189,7 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
             self.transport.send_disconnect(constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed:  Signature did not match.')
 
         # Finished...
-        self.transport.send_newkeys()
+        #self.transport.send_newkeys()
 
 KEXDH_REPLY_PAYLOAD = (ssh_packet.BYTE,
                        ssh_packet.STRING,      # public host key and certificates (K_S)

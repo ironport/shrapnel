@@ -84,7 +84,7 @@ def doit (ip, port):
     if not is_ip (ip):
         ip = coro.get_resolver().resolve_ipv4 (ip)
     debug = coro.ssh.util.debug.Debug()
-    debug.level = coro.ssh.util.debug.DEBUG_1
+    debug.level = coro.ssh.util.debug.DEBUG_3
     client = coro.ssh.transport.client.SSH_Client_Transport(debug=debug)
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(ip, port=port)
     client.connect(transport)

@@ -353,11 +353,11 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
 
     get_authorized_keys_filename = staticmethod(get_authorized_keys_filename)
 
-    def verify(self, host_id, server_key_types, public_host_key, username=None):
+    def verify(self, host_id, server_key_types, public_host_key, username=None, port=22):
         for key in server_key_types:
             if public_host_key.name == key.name:
                 # This is a supported key type.
-                if self._verify_contains(host_id, public_host_key, username):
+                if self._verify_contains(host_id, public_host_key, username, port):
                     return 1
         return 0
 
@@ -365,7 +365,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
 
     verify = classmethod(verify)
 
-    def _verify_contains(host_id, key, username):
+    def _verify_contains(host_id, key, username, port):
         """_verify_contains(host_id, key, username) -> boolean
         Checks whether <key> is in the known_hosts file.
         """
@@ -373,7 +373,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
         if not isinstance(host_id, remote_host.IPv4_Remote_Host_ID):
             return 0
         hostfile = openssh_known_hosts.OpenSSH_Known_Hosts()
-        return hostfile.check_for_host(host_id, key, username)
+        return hostfile.check_for_host(host_id, key, username, port)
 
     _verify_contains = staticmethod(_verify_contains)
 

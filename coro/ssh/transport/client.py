@@ -166,7 +166,8 @@ class SSH_Client_Transport(transport.SSH_Transport):
         Raises Invalid_Server_Public_Host_Key exception if it does not match.
         """
         host_id = self.transport.get_host_id()
+        port = self.transport.get_port()
         for storage in self.supported_key_storages:
-            if storage.verify(host_id, self.c2s.supported_server_keys, public_host_key, username):
+            if storage.verify(host_id, self.c2s.supported_server_keys, public_host_key, username, port):
                 return
         raise key_storage.Invalid_Server_Public_Host_Key(host_id, public_host_key)

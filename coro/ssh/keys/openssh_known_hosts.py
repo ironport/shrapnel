@@ -75,7 +75,7 @@ class OpenSSH_Known_Hosts:
         user_known_hosts_filename = os.path.join(home_dir, '.ssh', 'known_hosts')
         return user_known_hosts_filename
 
-    def check_for_host(self, host_id, key, username=None):
+    def check_for_host(self, host_id, key, username=None, port=22):
         """check_for_host(self, host_id, key, username=None) -> boolean
         Checks if the given key is in the known_hosts file.
         Returns true if it is, otherwise returns false.
@@ -88,6 +88,7 @@ class OpenSSH_Known_Hosts:
 
         <key> - A SSH_Public_Private_Key instance.
         """
+
         if not isinstance(host_id, IPv4_Remote_Host_ID):
             raise TypeError, host_id
 
@@ -103,7 +104,7 @@ class OpenSSH_Known_Hosts:
         for filename in self.get_known_hosts_filenames(username):
             for host in hosts:
                 try:
-                    if self._check_for_host(filename, host_id, host, key):
+                    if self._check_for_host(filename, host_id, host, port, key):
                         return 1
                 except Host_Key_Changed_Error, e:
                     changed = e
@@ -113,7 +114,7 @@ class OpenSSH_Known_Hosts:
         else:
             raise changed
 
-    def _check_for_host(self, filename, host_id, host, key):
+    def _check_for_host(self, filename, host_id, host, port, key):
         try:
             f = open(filename)
         except IOError:
@@ -129,7 +130,7 @@ class OpenSSH_Known_Hosts:
             m = openssh_key_formats.ssh2_known_hosts_entry.match(line)
             if m:
                 if key.name == m.group('keytype'):
-                    if self._match_host(host, m.group('list_of_hosts')):
+                    if self._match_host(host, port, m.group('list_of_hosts')):
                         if self._match_key(key, m.group('base64_key')):
                             return 1
                         else:
@@ -145,12 +146,12 @@ class OpenSSH_Known_Hosts:
         else:
             raise changed
 
-    def _match_host(self, host, pattern):
+    def _match_host(self, host, port, pattern):
         patterns = pattern.split(',')
         # Negated_Pattern is used to terminate the checks.
         try:
             for p in patterns:
-                if self._match_pattern(host, p):
+                if self._match_pattern(host, port, p):
                     return 1
         except OpenSSH_Known_Hosts.Negated_Pattern:
             return 0
@@ -159,7 +160,9 @@ class OpenSSH_Known_Hosts:
     class Negated_Pattern(Exception):
         pass
 
-    def _match_pattern(self, host, pattern):
+    host_with_port = re.compile ('^\\[([^\\]]+)\\]:([0-9]+)')
+
+    def _match_pattern(self, host, port, pattern):
         # XXX: OpenSSH does not do any special work to check IP addresses.
         # It just assumes that it will match character-for-character.
         # Thus, 001.002.003.004 != 1.2.3.4 even though those are technically
@@ -174,6 +177,17 @@ class OpenSSH_Known_Hosts:
                 raise OpenSSH_Known_Hosts.Negated_Pattern
             else:
                 return 1
+        # check for host port
+        port_probe = self.host_with_port.match (pattern)
+        if port_probe:
+            # host with port
+            host0, port0 = port_probe.groups()
+            port0 = int (port0)
+            if host == host0 and port == port0:
+                if negate:
+                    raise OpenSSH_Known_Hosts.Negated_Pattern
+                else:
+                    return 1
         # Check for wildcards.
         # XXX: Lazy
         # XXX: We could potentially escape other RE-special characters.

@@ -137,6 +137,9 @@ class coro_socket_transport(l4_transport.Transport):
     def get_host_id(self):
         return remote_host.IPv4_Remote_Host_ID(self.ip, self.get_hostname())
 
+    def get_port(self):
+        return self.port
+
 # obviously ipv4 only
 def to_in_addr_arpa (ip):
     octets = ip.split ('.')
