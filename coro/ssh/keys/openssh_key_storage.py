@@ -34,10 +34,10 @@ import hashlib
 import os
 import re
 import rebuild
-import ber
 import dss
 import rsa
 
+from coro.asn1.ber import decode as ber_decode
 from coro.ssh.keys import openssh_key_formats
 from coro.ssh.util import str_xor
 from coro.ssh.util.password import get_password
@@ -266,7 +266,9 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
                 passkey = (a+b)[:24]        # Only need first 24 characters.
                 key_data = self.des_ede3_cbc_decrypt(key_data, iv, passkey)
 
-        key_data = ber.decode(key_data)[0]
+        key_data, _ = ber_decode (key_data)
+        # Crypto.RSA requires that all are PyLong
+        key_data = [long(x) for x in key_data]
         # key_data[0] is always 0???
         if not keytype_map.has_key(key_type):
             return None
