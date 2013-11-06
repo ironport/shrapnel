@@ -147,7 +147,6 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         # string    signature of H
         msg, public_host_key, server_exchange_value, signature_of_h = ssh_packet.unpack_payload(KEXDH_REPLY_PAYLOAD, packet)
 
-        W ('kexdh: KEXDH_REPLY public host blob = %r\n' % (public_host_key,))
         # Create a SSH_Public_Private_Key instance from the packed string.
         self.server_public_host_key = parse_public_key(public_host_key)
 
