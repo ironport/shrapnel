@@ -33,21 +33,26 @@ def newer(x, y):
 def exit_ok(status):
     return os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
 
+def compile_test(src, opts=''):
+    src_path = 'test/build/%s.c' % src
+    bin_path = 'test/build/%s' % src
+    if newer(src_path, bin_path):
+        status = os.system('gcc -o %s %s %s > /dev/null 2>&1' % (bin_path, src_path, opts))
+        if not exit_ok(status):
+            return False
+    status = os.system(bin_path)
+    return exit_ok(status)
+
 def check_lio():
     if os.getenv('BUILDING') is not None:
         # Doing this in a build environment.
         # This is a terrible hack.  However, there is no easy way to add
         # arbitrary options to distutils.
         return True
-    if newer('test/build/test_lio.c', 'test/build/test_lio'):
-        status = os.system('gcc -o test/build/test_lio test/build/test_lio.c > /dev/null 2>&1')
-        if not exit_ok(status):
-            return False
-    status = os.system('test/build/test_lio')
-    return exit_ok(status)
+    return compile_test('test_lio')
 
 def check_linux_aio():
-    return os.uname()[0] == 'Linux' and exit_ok(os.system('ldconfig -p | grep libaio > /dev/null'))
+    return os.uname()[0] == 'Linux' and compile_test('test_aio', '-laio')
 
 USE_LINUX_AIO = check_linux_aio()
 
