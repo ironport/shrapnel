@@ -41,12 +41,18 @@ import coro
 def usage():
     print 'test_coro_client [-l login_name] [-p port] hostname | user@hostname'
 
-import re
-is_ip_re = re.compile ('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')
-
-# cheap emulation of inet_utils.is_ip()
 def is_ip (s):
-    return is_ip_re.match (s)    
+    if s.count ('%') == 1:
+        s, intf = s.split('%')
+    try:
+        socket.inet_pton (coro.AF.INET6, s)
+        return True
+    except socket.error:
+        try:
+            socket.inet_pton (coro.AF.INET, s)
+            return True
+        except:
+            return False
 
 oldterm = None
 oldflags = None

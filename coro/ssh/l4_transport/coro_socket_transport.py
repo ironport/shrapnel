@@ -47,7 +47,10 @@ class coro_socket_transport(l4_transport.Transport):
         self.bind_ip = bind_ip
         self.hostname = hostname
         if sock is None:
-            self.s = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
+            if ':' in ip:
+                self.s = coro.tcp6_sock()
+            else:
+                self.s = coro.tcp_sock()
         else:
             self.s = sock
             self.peer = self.s.getpeername()
@@ -55,8 +58,15 @@ class coro_socket_transport(l4_transport.Transport):
     def connect(self):
         if self.bind_ip is not None:
             self.s.bind((self.bind_ip, 0))
-
-        self.s.connect((self.ip, self.port))
+        if '%' in self.ip:
+            # link local address, need 4-tuple
+            ai = socket.getaddrinfo (self.ip, self.port)
+            address = ai[0][4]
+            ip, port, flowinfo, scope_id = address
+            ip, intf = ip.split ('%')
+            self.s.connect ((ip, port, flowinfo, scope_id))
+        else:
+            self.s.connect((self.ip, self.port))
 
     def read(self, bytes):
         # XXX: This could be made more efficient.

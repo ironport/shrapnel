@@ -32,6 +32,19 @@ cdef extern from "arpa/inet.h":
     int ntohl (int)
     int ntohs (int)
 
+cdef extern from "netdb.h":
+    struct addrinfo:
+        int ai_flags       # input flags
+        int ai_family      # protocol family for socket
+        int ai_socktype    # socket type
+        int ai_protocol    # protocol for socket
+        int ai_addrlen     # length of socket-address
+        sockaddr *ai_addr  # socket-address for socket
+        char *ai_canonname # canonical name for service location
+        addrinfo *ai_next  # pointer to next in list
+    int getaddrinfo (const char *hostname, const char *servname, const addrinfo *hints, addrinfo **res)
+    void freeaddrinfo (addrinfo *ai)
+
 cdef extern from "sys/socket.h":
     int AF_UNSPEC, AF_INET, AF_INET6, AF_UNIX
     int SOCK_STREAM, SOCK_DGRAM, SOL_SOCKET, INADDR_ANY
