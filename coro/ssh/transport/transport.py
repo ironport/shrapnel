@@ -651,11 +651,14 @@ class SSH_Transport:
         Separate function to help with unittests.
         """
         cookie = random.get_random_data(16)
+        server_keys = [x.name for x in self.self2remote.supported_server_keys]
+        server_keys.reverse()
         packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_KEXINIT,
                                     (SSH_MSG_KEXINIT,
                                      cookie,
                                      [x.name for x in self.self2remote.supported_key_exchanges],
-                                     [x.name for x in self.self2remote.supported_server_keys],
+                                     #[x.name for x in self.self2remote.supported_server_keys],
+                                     server_keys,
                                      [x.name for x in self.c2s.supported_ciphers],
                                      [x.name for x in self.s2c.supported_ciphers],
                                      [x.name for x in self.c2s.supported_macs],
