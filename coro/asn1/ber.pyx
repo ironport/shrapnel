@@ -140,7 +140,8 @@ cdef object _encode_long_integer (n):
     # 1) how many bytes?
     n0 = n
     n1 = n
-    rlen = 0
+    # add one extra byte for negative/positive flag
+    rlen = 1
     while 1:
         n1 = n1 >> 8
         if n1 == n0:
@@ -174,7 +175,7 @@ cdef object _encode_long_integer (n):
             rbuf[(rlen-1)-i] = <char> byte
             i = i + 1
             n0 = n
-    return result
+    return result[rlen-i:]
 
 # I believe that almost no one uses the official latest floating-point format in asn.1
 #   An obviously better solution is to wrap IEEE754 with a BITSTRING, and that's what
