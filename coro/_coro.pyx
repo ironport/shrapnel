@@ -231,7 +231,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         self.selfish_acts = default_selfishness
         self.max_selfish_acts = default_selfishness
         if name is None:
-            self.name = b'coro %d' % (self.id,)
+            self.name = <bytes> ('coro %d' % (self.id,))
         live_coros = live_coros + 1
 
     def __dealloc__ (self):
