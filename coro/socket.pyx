@@ -820,9 +820,24 @@ cdef public class sock [ object sock_object, type sock_type ]:
         cdef sockaddr_in6 * sin6 = <sockaddr_in6 *> sa
         cdef bytes ip
         cdef uint16_t port
-        ip, port = address
+        cdef int percent
+        cdef int flowinfo
+        cdef int scope_id
+        cdef addrinfo * ai
+        if len(address) == 4:
+            # as per python return value from getaddrinfo() and arg to connect()
+            ip, port, flowinfo, scope_id = address
+            sin6.sin6_flowinfo = htonl (flowinfo)
+            sin6.sin6_scope_id = scope_id
+        elif len(address) == 2:
+            ip, port = address
         if not ip:
             ip = b'::'
+        percent = ip.find ('%')
+        if percent != -1:
+            ip = ip[:percent]
+            # XXX hack, should make scope id an option?
+            sin6.sin6_scope_id = 2
         sin6.sin6_family = AF_INET6
         IF UNAME_SYSNAME == "FreeBSD":
             sin6.sin6_len = sizeof(sockaddr_in6)

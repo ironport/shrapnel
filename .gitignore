@@ -9,3 +9,6 @@ coro/dns/packet.c
 coro/event_queue.cpp
 *.pyc
 *.so
+coro.egg-info
+dist
+distribute-*

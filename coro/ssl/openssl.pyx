@@ -1114,7 +1114,7 @@ cdef class ssl_ctx:
             for proto in protos:
                 r.append (chr (len (proto)))
                 r.append (proto)
-            self.next_protos = ''.join (r)
+            self.next_protos = <bytes> (''.join (r))
             SSL_CTX_set_next_protos_advertised_cb (self.ctx, next_protos_server_callback, <void*>self)
             SSL_CTX_set_next_proto_select_cb (self.ctx, next_protos_client_callback, <void*>self)
 

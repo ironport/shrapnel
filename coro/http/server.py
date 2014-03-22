@@ -285,6 +285,7 @@ class http_request:
             ho['connection'] = 'close'
 
         self.chunking = chunked
+        self.close = close_it
 
         ho['server'] = 'shrapnel httpd/%s' % __version__
         ho['date'] = http_date.build_http_date (coro.now_usec / coro.microseconds)
