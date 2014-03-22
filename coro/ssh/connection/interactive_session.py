@@ -57,6 +57,31 @@ class Interactive_Session_Client(Interactive_Session):
     def exec_command(self, command):
         self.send_channel_request('exec', EXEC_CHANNEL_REQUEST_PAYLOAD, (command,))
 
+
+    def handle_request(self, request_type, want_reply, type_specific_packet_data):
+        #W ('interactive_session_client: handle_request %r %r %r\n' % (request_type, want_reply, type_specific_packet_data))
+        if self.request_handlers.has_key(request_type):
+            self.request_handlers[request_type] (self, want_reply, type_specific_packet_data)
+        elif want_reply:
+            packet = ssh_packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD, (self.remote_channel.channel_id,))
+            self.transport.send_packet(packet)
+
+    exit_status = None
+
+    def handle_exit_status(self, want_reply, type_specific_packet_data):
+        self.exit_status = ssh_packet.unpack_payload(EXIT_STATUS_PAYLOAD, type_specific_packet_data)
+
+    exit_signal = None
+
+    def handle_exit_signal(self, want_reply, type_specific_packet_data):
+        self.exit_signal = ssh_packet.unpack_payload(EXIT_SIGNAL_PAYLOAD, type_specific_packet_data)
+
+    request_handlers = {
+        'exit-status' : handle_exit_status,
+        'exit-signal' : handle_exit_signal,
+    }
+
+
 # I think to do anything useful here we'll need full terminal emulation like http://liftoff.github.io/GateOne/Developer/terminal.html
 # from RFC4254 section 8
 pty_modes = {
@@ -175,27 +200,46 @@ class Interactive_Session_Server(Interactive_Session):
             self.send_channel_request_success()
         
     request_handlers = {
-        'pty-req':  handle_pty_request,
-        'x11-req':  handle_x11_request,
-        'shell' : handle_shell_request,
+        'pty-req'     : handle_pty_request,
+        'x11-req'     : handle_x11_request,
+        'shell'       : handle_shell_request,
         # env :
         # exec : 
         # subsystem : 
     }
 
-PTY_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,   # TERM environment variable value (e.g., vt100)
-                               ssh_packet.UINT32,   # terminal width, characters (e.g., 80)
-                               ssh_packet.UINT32,   # terminal height, rows (e.g., 24)
-                               ssh_packet.UINT32,   # terminal width, pixels (e.g., 640)
-                               ssh_packet.UINT32,   # terminal height, pixels (e.g., 480)
-                               ssh_packet.STRING)   # encoded terminal modes
+PTY_CHANNEL_REQUEST_PAYLOAD = (
+    ssh_packet.STRING,         # TERM environment variable value (e.g., vt100)
+    ssh_packet.UINT32,         # terminal width, characters (e.g., 80)
+    ssh_packet.UINT32,         # terminal height, rows (e.g., 24)
+    ssh_packet.UINT32,         # terminal width, pixels (e.g., 640)
+    ssh_packet.UINT32,         # terminal height, pixels (e.g., 480)
+    ssh_packet.STRING,         # encoded terminal modes
+    )
 
-X11_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.BOOLEAN,  # single connection
-                               ssh_packet.STRING,   # x11 authentication protocol
-                               ssh_packet.STRING,   # x11 authentication cookie
-                               ssh_packet.UINT32)   # x11 screen number
+X11_CHANNEL_REQUEST_PAYLOAD = (
+    ssh_packet.BOOLEAN,         # single connection
+    ssh_packet.STRING,          # x11 authentication protocol
+    ssh_packet.STRING,          # x11 authentication cookie
+    ssh_packet.UINT32,          # x11 screen number
+    )
 
-ENV_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,   # variable name
-                               ssh_packet.STRING)   # variable value
+ENV_CHANNEL_REQUEST_PAYLOAD = (
+    ssh_packet.STRING,          # variable name
+    ssh_packet.STRING,          # variable value
+    )
 
-EXEC_CHANNEL_REQUEST_PAYLOAD = (ssh_packet.STRING,) # command
+EXEC_CHANNEL_REQUEST_PAYLOAD = (
+    ssh_packet.STRING,          # command
+    )
+
+EXIT_STATUS_PAYLOAD = (
+    ssh_packet.UINT32,          # exit_status
+    )
+
+EXIT_SIGNAL_PAYLOAD = (
+    ssh_packet.STRING,          # signal name
+    ssh_packet.BOOLEAN,         # core dumped
+    ssh_packet.STRING,          # error message
+    ssh_packet.STRING,          # language tag
+    )
