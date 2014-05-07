@@ -119,7 +119,9 @@ cdef extern from "sys/socket.h":
         cdef struct sockaddr_in6:
             sa_family_t sin6_family
             unsigned short sin6_port
+            uint32_t sin6_flowinfo
             in6_addr sin6_addr
+            uint32_t sin6_scope_id
             char sa_data[250]
 
         cdef struct sockaddr_storage:
