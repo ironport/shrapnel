@@ -106,7 +106,7 @@ class worm:
                     if not self.turn():
                         return
                     nx, ny = self.update()
-                self.move ((nx, ny))                        
+                self.move ((nx, ny))
 
     def update (self):
         x, y = self.head
@@ -162,7 +162,7 @@ class terminal:
     def __init__ (self, conn):
         self.conn = conn
         self.conn.send (
-            '\xff\xfc\x01' # IAC WONT ECHO 
+            '\xff\xfc\x01' # IAC WONT ECHO
             '\xff\xfb\x03' # IAC WILL SUPPRESS_GO_AHEAD
             '\xff\xfc"'    # IAC WONT LINEMODE
             )

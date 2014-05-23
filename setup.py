@@ -66,7 +66,7 @@ compile_time_env = {
     }
 
 #--------------------------------------------------------------------------------
-# OpenSSL support 
+# OpenSSL support
 #--------------------------------------------------------------------------------
 
 # If you need NPN support (for SPDY), you most likely will have to link against

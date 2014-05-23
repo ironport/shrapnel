@@ -34,7 +34,7 @@ UNAME = os.uname()[0]
 
 class Test(unittest.TestCase):
 
-    FLAG = os.O_RDWR | os.O_CREAT | os.O_TRUNC 
+    FLAG = os.O_RDWR | os.O_CREAT | os.O_TRUNC
     if UNAME == 'Linux':
         FLAG |= os.O_DIRECT
 

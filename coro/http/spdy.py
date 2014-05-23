@@ -120,7 +120,7 @@ class spdy_protocol:
         3 : 'rst_stream',
         4 : 'settings',
         # removed in draft3
-        5 : 'noop', 
+        5 : 'noop',
         6 : 'ping',
         7 : 'goaway',
         8 : 'headers',
@@ -332,7 +332,7 @@ class spdy_tlslite_server (tlslite_server):
         if conn.next_proto == b'spdy/3':
             return spdy_connection (self, conn, addr)
         else:
-            return connection (self, conn, addr) 
+            return connection (self, conn, addr)
 
 class spdy_openssl_server (openssl_server):
 
@@ -341,7 +341,7 @@ class spdy_openssl_server (openssl_server):
         if conn.ssl.get_next_protos_negotiated() == b'spdy/3':
             return spdy_connection (self, conn, addr)
         else:
-            return connection (self, conn, addr) 
+            return connection (self, conn, addr)
 
 # --------------------------------------------------------------------------------
 #                             spdy client

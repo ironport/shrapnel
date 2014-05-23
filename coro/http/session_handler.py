@@ -51,7 +51,7 @@ class session_handler:
             fifo = coro.fifo()
             fifo.push (request)
             sid = self.gen_session_id()
-            request['set-cookie'] = 'session=%s' % (sid,)            
+            request['set-cookie'] = 'session=%s' % (sid,)
             self.sessions[sid] = fifo
             coro.spawn (self.wrap, sid, fifo)
         else:

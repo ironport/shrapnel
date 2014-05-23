@@ -54,7 +54,7 @@ class terminal (websocket):
                 if ascii == 16:
                     self.history_index = (self.history_index + 1) % len(self.history)
                 else:
-                    self.history_index = (self.history_index - 1) % len(self.history)                    
+                    self.history_index = (self.history_index - 1) % len(self.history)
                 line = self.history[0 - self.history_index]
                 # turn into a list of chars...
                 self.line = [x for x in line]

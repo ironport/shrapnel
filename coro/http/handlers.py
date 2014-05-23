@@ -79,7 +79,7 @@ class coro_status_handler:
         request.push ('</table>\r\n')
         request.push ('<p><a href="status">Update</a></p>')
         request.push ('</body></html>')
-        request.done()                                        
+        request.done()
 
 class file_handler:
 
