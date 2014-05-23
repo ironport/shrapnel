@@ -205,6 +205,8 @@ class favicon_handler:
 
 # does anyone support digest authentication? (rfc2069)
 
+import hashlib
+
 class auth_handler:
 
     def __init__ (self, dict, handler, realm='default'):
