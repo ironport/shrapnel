@@ -41,21 +41,21 @@ class stdin (coro.sock):
         coro.sock.__init__ (self, fd=0)
         self.fd = 0
         self.old = termios.tcgetattr (self.fd)
-        #print 'old=%r' % (self.old,)
+        # print 'old=%r' % (self.old,)
         self.new = termios.tcgetattr (self.fd)
         self.new[LFLAG] &= ~(termios.ICANON | termios.ECHO  | termios.IEXTEN)
         self.new[IFLAG] &= ~(termios.IGNBRK | termios.IXOFF | termios.IXON)
         self.new[CC][termios.VMIN] = 1
         self.new[CC][termios.VTIME] = 0
-        self.new[CC][termios.CINTR] = 254 # block ctrl-c?  doesn't work.
-        #print 'new=%r' % (self.new,)
+        self.new[CC][termios.CINTR] = 254  # block ctrl-c?  doesn't work.
+        # print 'new=%r' % (self.new,)
         termios.tcsetattr (self.fd, termios.TCSANOW, self.new)
 
     def __dealloc__ (self):
         self.restore()
 
     def restore (self):
-        #print '[restoring stdin to %r]' % (self.old,)
+        # print '[restoring stdin to %r]' % (self.old,)
         termios.tcsetattr (self.fd, termios.TCSAFLUSH, self.old)
 
     def read (self, size):

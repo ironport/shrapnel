@@ -4,6 +4,7 @@ class socket_producer:
     def __init__ (self, conn, buffer_size=8000):
         self.conn = conn
         self.buffer_size = buffer_size
+
     def next (self):
         return self.conn.recv (self.buffer_size)
 
@@ -32,7 +33,7 @@ class buffered_stream:
                 if self.buffer[i] == delim[m]:
                     m += 1
                     if m == ld:
-                        result, self.buffer = self.buffer[:i+1], self.buffer[i+1:]
+                        result, self.buffer = self.buffer[:i + 1], self.buffer[i + 1:]
                         yield result
                         return
                 else:
@@ -54,7 +55,7 @@ class buffered_stream:
             i = 0
             while i < len (self.buffer):
                 if dfa.consume (self.buffer[i]):
-                    result, self.buffer = self.buffer[:i+1], self.buffer[i+1:]
+                    result, self.buffer = self.buffer[:i + 1], self.buffer[i + 1:]
                     yield result
                     return
                 i += 1
@@ -80,7 +81,7 @@ class buffered_stream:
 
     def read_until (self, delim, join=True):
         "read until <delim>.  return a list of parts unless <join> is True"
-        result = ( x for x in self.gen_read_until (delim) )
+        result = (x for x in self.gen_read_until (delim))
         if join:
             return ''.join (result)
         else:
@@ -88,7 +89,7 @@ class buffered_stream:
 
     def read_exact (self, size, join=True):
         "read exactly <size> bytes.  return a list of parts unless <join> is True"
-        result = ( x for x in self.gen_read_exact (size) )
+        result = (x for x in self.gen_read_exact (size))
         if join:
             return ''.join (result)
         else:
@@ -113,4 +114,3 @@ class buffered_stream:
                 return
             else:
                 yield block
-

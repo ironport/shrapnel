@@ -1,4 +1,3 @@
-# $Header: //prod/main/ap/shrapnel/setup.py#17 $
 #!/usr/bin/env python
 
 import sys
@@ -17,7 +16,7 @@ except ImportError:
         '\nThe Cython compiler is required to build Shrapnel.\n'
         '  Try "pip install cython"\n'
         '  *or* "easy_install cython"\n'
-        )
+    )
     sys.exit (-1)
 
 include_dir = os.getcwd()
@@ -59,15 +58,15 @@ USE_LINUX_AIO = check_linux_aio()
 compile_time_env = {
     'COMPILE_LIO': check_lio(),
     'COMPILE_LINUX_AIO': USE_LINUX_AIO,
-    'COMPILE_NETDEV' : False,
-    'COMPILE_LZO' : False,
-    'COMPILE_LZ4' : False,
+    'COMPILE_NETDEV': False,
+    'COMPILE_LZO': False,
+    'COMPILE_LZ4': False,
     'CORO_DEBUG': False,
-    }
+}
 
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # OpenSSL support
-#--------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 # If you need NPN support (for SPDY), you most likely will have to link against
 #   newer openssl than the one that came with your OS.  (this is circa 2012).
@@ -78,7 +77,7 @@ compile_time_env = {
 
 # statically link is a bit tricky
 # Note: be sure to remove coro/ssl/openssl.c if you change this, see NPN probe below.
-#ossl_base = '/Users/rushing/src/openssl-1.0.1c'
+# ossl_base = '/Users/rushing/src/openssl-1.0.1c'
 #
 # OS X: as of 10.9, openssl seems to have been completely removed.  You'll need
 #  to install from the sources.  Once this is done, use '/usr/local/ssl/' for ossl_base.
@@ -101,15 +100,15 @@ OpenSSL_Extension = Extension (
     ['coro/ssl/openssl.pyx'],
     depends=['coro/ssl/openssl.pxi'],
     # manual static link
-    #extra_link_args = [ O('libcrypto.a'), O('libssl.a') ],
+    # extra_link_args = [O('libcrypto.a'), O('libssl.a')],
     # link to an absolute location
-    #extra_link_args = [ '-L %s -lcrypto -lssl' % (ossl_base,) ]
+    # extra_link_args = ['-L %s -lcrypto -lssl' % (ossl_base,)]
     # 'normal' link
-    libraries = ['crypto', 'ssl'],
-    include_dirs = [ O('include') ],
-    cython_compile_time_env = {'NPN' : USE_NPN},
-    )
-#--------------------------------------------------------------------------------
+    libraries=['crypto', 'ssl'],
+    include_dirs=[O('include')],
+    cython_compile_time_env={'NPN': USE_NPN},
+)
+# --------------------------------------------------------------------------
 
 setup (
     name='coro',
@@ -117,23 +116,23 @@ setup (
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
-    license = "MIT",
-    url = "http://github.com/ironport/shrapnel",
-    ext_modules = [
+    license="MIT",
+    url="http://github.com/ironport/shrapnel",
+    ext_modules=[
         Extension(
             'coro.event_queue',
             ['coro/event_queue.pyx'],
             language='c++',
-            depends=[os.path.join(include_dir, 'pyrex', 'python.pxi'),],
+            depends=[os.path.join(include_dir, 'pyrex', 'python.pxi'), ],
             pyrex_include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'pyrex'),
-                ],),
+            ],),
         Extension (
             'coro._coro',
             ['coro/_coro.pyx', 'coro/swap.c'],
-            extra_compile_args = ['-Wno-unused-function'],
-            depends = (
+            extra_compile_args=['-Wno-unused-function'],
+            depends=(
                 glob.glob('coro/*.pyx') +
                 glob.glob('coro/*.pxi') +
                 glob.glob('coro/*.pxd') + [
@@ -143,31 +142,32 @@ setup (
                     os.path.join(include_dir, 'pyrex', 'tsc_time_include.pyx'),
                     os.path.join(include_dir, 'include', 'tsc_time.h'),
                     os.path.join(include_dir, 'pyrex', 'libc.pxd'),
-                    ]
-                 ),
+                ]
+            ),
             pyrex_include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'pyrex'),
-                ],
+            ],
             include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'include'),
-                ],
-            pyrex_compile_time_env = compile_time_env,
+            ],
+            pyrex_compile_time_env=compile_time_env,
             # to enable LZO|LZ4 for stack compression, set COMPILE_LZO|COMPILE_LZ4 above
             #   and uncomment one of the following:
-            #libraries=['lzo2', 'z']
-            #libraries=['lz4', 'z'],
+            # libraries=['lzo2', 'z']
+            # libraries=['lz4', 'z'],
             libraries=['z'] + (['aio'] if USE_LINUX_AIO else [])
-            ),
-        Extension ('coro.oserrors', ['coro/oserrors.pyx', ],),
-        Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ],),
-        Extension ('coro.dns.surf', ['coro/dns/surf.pyx',],),
+        ),
+        Extension ('coro.oserrors', ['coro/oserrors.pyx', ], ),
+        Extension ('coro.dns.packet', ['coro/dns/packet.pyx', ], ),
+        Extension ('coro.dns.surf', ['coro/dns/surf.pyx', ], ),
         Extension ('coro.lru', ['coro/lru.pyx'], ),
-        Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'],),
-        Extension ('coro.db.postgres.proto', ['coro/db/postgres/proto.pyx'],),
+        Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'], ),
+        Extension ('coro.db.postgres.proto', ['coro/db/postgres/proto.pyx'], ),
         Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
-        Extension ('coro.http.zspdy', ['coro/http/zspdy.pyx'], include_dirs=['coro'], libraries=['z'], depends=['coro/zlib.pxd']),
+        Extension ('coro.http.zspdy', ['coro/http/zspdy.pyx'],
+                   include_dirs=['coro'], libraries=['z'], depends=['coro/zlib.pxd']),
         Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
@@ -175,13 +175,13 @@ setup (
             include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'include'),
-                ],
-            ),
+            ],
+        ),
         # the pre-computed openssl extension from above
         OpenSSL_Extension,
-        ],
+    ],
     packages= find_packages(),
-    py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest',],
+    py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
     download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
     install_requires = ['cython>=0.12.1', 'distribute>=0.6.16', 'pycrypto'],
     cmdclass={'build_ext': build_ext},

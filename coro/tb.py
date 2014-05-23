@@ -33,7 +33,7 @@ def _get_module_name(n):
     try:
         path, filename = os.path.split(n)
         path, directory = os.path.split(path)
-        #name, ext = os.path.splitext(filename)
+        # name, ext = os.path.splitext(filename)
         if directory:
             return '/'.join((directory, filename))
         else:
@@ -62,9 +62,9 @@ def stack_string(f=None):
             _get_module_name(f.f_code.co_filename) + ' ' +
             f.f_code.co_name + '|' +
             str(f.f_lineno)
-            )
+        )
         f = f.f_back
-    return '[' + ('] ['.join(stack))+ ']'
+    return '[' + ('] ['.join(stack)) + ']'
 
 def traceback_string(t=None, v=None, tb=None):
     """Returns a compact string representing the current exception.
@@ -81,7 +81,7 @@ def traceback_string(t=None, v=None, tb=None):
         Returns a string of the current exception and stack trace.
     """
     if t is None:
-        t,v,tb = sys.exc_info()
+        t, v, tb = sys.exc_info()
     tbinfo = []
     if tb is None:
         # this should never happen, but then again, lots of things
@@ -92,7 +92,7 @@ def traceback_string(t=None, v=None, tb=None):
             _get_module_name (tb.tb_frame.f_code.co_filename) + ' ' +
             tb.tb_frame.f_code.co_name + '|' +
             str(tb.tb_lineno)
-            )
+        )
         tb = tb.tb_next
 
     # just to be safe

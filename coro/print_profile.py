@@ -31,8 +31,6 @@ TODO
 
 """
 
-
-
 import urllib
 import cgi
 import sys
@@ -137,9 +135,15 @@ function ts_resortTable(lnk,clid) {
 
     // We appendChild rows that already exist to the tbody, so it moves them rather than creating new ones
     // don't do sortbottom rows
-    for (i=0;i<newRows.length;i++) { if (!newRows[i].className || (newRows[i].className && (newRows[i].className.indexOf('sortbottom') == -1))) table.tBodies[0].appendChild(newRows[i]);}
+    for (i=0;i<newRows.length;i++) {
+        if (!newRows[i].className || (newRows[i].className && (newRows[i].className.indexOf('sortbottom') == -1)))
+             table.tBodies[0].appendChild(newRows[i]);
+    }
     // do sortbottom rows only
-    for (i=0;i<newRows.length;i++) { if (newRows[i].className && (newRows[i].className.indexOf('sortbottom') != -1)) table.tBodies[0].appendChild(newRows[i]);}
+    for (i=0;i<newRows.length;i++) {
+        if (newRows[i].className && (newRows[i].className.indexOf('sortbottom') != -1))
+            table.tBodies[0].appendChild(newRows[i]);
+    }
 
     // Delete any other arrows there may be showing
     var allspans = document.getElementsByTagName("span");
@@ -156,7 +160,8 @@ function ts_resortTable(lnk,clid) {
 
 function getParent(el, pTagName) {
     if (el == null) return null;
-    else if (el.nodeType == 1 && el.tagName.toLowerCase() == pTagName.toLowerCase())    // Gecko bug, supposed to be uppercase
+    else if (el.nodeType == 1 && el.tagName.toLowerCase() == pTagName.toLowerCase())
+        // Gecko bug, supposed to be uppercase
         return el;
     else
         return getParent(el.parentNode, pTagName);
@@ -251,7 +256,7 @@ def _mapfuns(d1, d2):
 
     m1 = [(_name(f), f) for f in d1]
     m2 = dict([(_name(f), f) for f in d2])
-    return dict([(v, m2[k]) for k,v in m1 if k in m2])
+    return dict([(v, m2[k]) for k, v in m1 if k in m2])
 
 
 class profile_data:
@@ -296,8 +301,8 @@ class profile_data:
         # Find any columns that have all zeros and skip them.
         has_nonzero = {}
         # Also determine the sum for the column.
-        column_sums = [0]*len(self.headings)
-        empty_cols = [0]*len(self.headings)
+        column_sums = [0] * len(self.headings)
+        empty_cols = [0] * len(self.headings)
 
         for heading in self.headings:
             has_nonzero[heading] = False
@@ -332,21 +337,21 @@ class profile_data:
             try:
                 calls2, data_tuple2, aggregate_data_tuple2 = other_profile[m[function_string]]
             except KeyError:
-                calls2, data_tuple2, aggregate_data_tuple2 = 0,empty_cols, empty_cols
+                calls2, data_tuple2, aggregate_data_tuple2 = 0, empty_cols, empty_cols
             print '  <tr align=right>'
-            print '    <td>%s</td>' % (calls-calls2,)
+            print '    <td>%s</td>' % (calls - calls2, )
             for i, heading in enumerate(self.headings):
                 if heading not in skip_headings:
                     if aggregate:
-                        data_item = aggregate_data_tuple[i]-aggregate_data_tuple2[i]
+                        data_item = aggregate_data_tuple[i] - aggregate_data_tuple2[i]
                     else:
-                        data_item = data_tuple[i]-data_tuple2[i]
+                        data_item = data_tuple[i] - data_tuple2[i]
                     if isinstance(data_item, float):
                         value = '%.6f' % (data_item,)
                     else:
                         value = data_item
                     if data_item and function_string != '<wait>':
-                        pct = ' (%.2f%%)' % ((float(data_item)/column_sums[i])*100,)
+                        pct = ' (%.2f%%)' % ((float(data_item) / column_sums[i]) * 100,)
                     else:
                         pct = ''
                     print '    <td>%s%s</td>' % (value, pct)
@@ -355,15 +360,15 @@ class profile_data:
                             per = data_item
                         else:
                             if isinstance(data_item, float):
-                                per = '%.6f' % (data_item/calls,)
+                                per = '%.6f' % (data_item / calls,)
                             else:
-                                per = data_item/calls
-                        print '    <td>%s</td>' % (per,)
+                                per = data_item / calls
+                        print '    <td>%s</td>' % (per, )
             print '    <td align=left><a name="tt_%s"></a><a href="#cg_%s">%s</a></td>' % (
-                            urllib.quote_plus(function_string),
-                            urllib.quote_plus(function_string),
-                            cgi.escape(function_string, quote=True)
-                           )
+                urllib.quote_plus(function_string),
+                urllib.quote_plus(function_string),
+                cgi.escape(function_string, quote=True)
+            )
             print '  </tr>'
         print '</table>'
         print '<p><tt>/call</tt> columns represent the time spent in that function per call <b>on average</b>.'
@@ -374,7 +379,7 @@ class profile_data:
         rg = {}
         for caller_string, callees in self.call_data.iteritems():
             for callee_string, call_count in callees:
-                if rg.has_key(callee_string):
+                if callee_string in rg:
                     rg[callee_string].append((caller_string, call_count))
                 else:
                     rg[callee_string] = [(caller_string, call_count)]
@@ -394,23 +399,21 @@ class profile_data:
             print '</tt>'
             print '<pre>'
             # Print callers.
-            if rg.has_key(function_string):
+            if function_string in rg:
                 l = []
                 for caller, count in rg[function_string]:
                     l.append((caller, count))
-                l.sort(lambda a,b: cmp(a[1], b[1]))
+                l.sort(lambda a, b: cmp(a[1], b[1]))
                 for caller, count in l:
                     print '%10i/%-10i (%04.1f%%) <a href="#tt_%s">%s</a>' % (
                         count,
                         calls,
-                        (float(count)/calls) * 100,
+                        (float(count) / calls) * 100,
                         urllib.quote_plus(caller),
                         cgi.escape(caller, quote=True)
-                       )
+                    )
 
-            print '%15i           <b>%s</b>' % (calls,
-                                                function_string
-                                               )
+            print '%15i           <b>%s</b>' % (calls, function_string)
 
             # Print callees.
             callees2 = []
@@ -418,15 +421,15 @@ class profile_data:
             for callee_string, call_count in callees:
                 callee_calls = self.profile_data.get(callee_string, [1])[0]
                 callees2.append((callee_string, call_count, callee_calls))
-            callees2.sort(lambda a,b: cmp(a[1], b[1]))
+            callees2.sort(lambda a, b: cmp(a[1], b[1]))
             for callee_string, call_count, callee_calls in callees2:
                 print '%10i/%-10i (%04.1f%%) <a href="#tt_%s">%s</a>' % (
                     call_count,
                     callee_calls,
-                    (float(call_count)/callee_calls) * 100,
+                    (float(call_count) / callee_calls) * 100,
                     urllib.quote_plus(callee_string),
                     cgi.escape(callee_string, quote=True)
-                   )
+                )
             print '</pre>'
 
         print '<hr>'
@@ -445,7 +448,6 @@ class profile_data:
         print 'callee_y is the total number of calls to this callee from all functions in the program.'
         print
         print 'Profile data values of 0 are not displayed.'
-
 
     def _print_header(self):
         print '<html><head><title>Shrapnel Profile</title></head><body bgcolor="#ffffff">'
@@ -493,4 +495,3 @@ if __name__ == '__main__':
     baseline = sys.argv[1]
     otherfile = sys.argv[2] if len(sys.argv) == 3 else None
     main(baseline, otherfile)
-

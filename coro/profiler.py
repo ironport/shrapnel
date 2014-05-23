@@ -107,13 +107,13 @@ def go (fun, *args, **kwargs):
     :keyword profile_bench: The bench object type to use.  Defaults to
           :class:`coro.rusage_bench`.
     """
-    if kwargs.has_key('profile_filename'):
+    if 'profile_filename' in kwargs:
         profile_filename = kwargs['profile_filename']
         del kwargs['profile_filename']
     else:
         profile_filename = '/tmp/coro_profile.bin'
 
-    if kwargs.has_key('profile_bench'):
+    if 'profile_bench' in kwargs:
         profile_bench = kwargs['profile_bench']
         del kwargs['profile_bench']
     else:
@@ -146,25 +146,25 @@ def stop(filename='/tmp/coro_profile.bin'):
     p.stop()
     _dump(p, filename)
 
-def tak1 (x,y,z):
+def tak1 (x, y, z):
     if y >= x:
         return z
     else:
         return tak1 (
-            tak1 (x-1, y, z),
-            tak2 (y-1, z, x),
-            tak2 (z-1, x, y)
-            )
+            tak1 (x - 1, y, z),
+            tak2 (y - 1, z, x),
+            tak2 (z - 1, x, y)
+        )
 
-def tak2 (x,y,z):
+def tak2 (x, y, z):
     if y >= x:
         return z
     else:
         return tak2 (
-            tak2 (x-1, y, z),
-            tak1 (y-1, z, x),
-            tak1 (z-1, x, y)
-            )
+            tak2 (x - 1, y, z),
+            tak1 (y - 1, z, x),
+            tak1 (z - 1, x, y)
+        )
 
 if __name__ == '__main__':
     go (tak2, 18, 12, 6)

@@ -53,8 +53,8 @@ def default_exception_notifier():
             me.id,
             me.name,
             compact_traceback(),
-            )
         )
+    )
 
 set_exception_notifier (default_exception_notifier)
 
@@ -104,7 +104,7 @@ def in_parallel (fun_arg_list):
 #         InParallelError, [(SUCCESS, result0), (FAILURE, exc_info1), ...]
 
     n = len(fun_arg_list)
-    if n==0:
+    if n == 0:
         return []
     result_list = [None] * n
     sem = inverted_semaphore(n)
@@ -115,11 +115,11 @@ def in_parallel (fun_arg_list):
             i,
             sem,
             fun_arg_list[i]
-            )
+        )
     sem.block_till_zero()
     for i in xrange (n):
         if result_list[i][0] is FAILURE:
-            raise InParallelError, result_list
+            raise InParallelError(result_list)
     # no errors, convert to a simple result list
     return [x[1] for x in result_list]
 
@@ -230,7 +230,7 @@ def spawn (fun, *args, **kwargs):
 
     :returns: The new coroutine object.
     """
-    if kwargs.has_key('thread_name'):
+    if 'thread_name' in kwargs:
         thread_name = kwargs['thread_name']
         del kwargs['thread_name']
     else:
@@ -253,7 +253,7 @@ def new (fun, *args, **kwargs):
 
     :returns: The new coroutine object.
     """
-    if kwargs.has_key('thread_name'):
+    if 'thread_name' in kwargs:
         thread_name = kwargs['thread_name']
         del kwargs['thread_name']
     else:

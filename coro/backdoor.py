@@ -59,9 +59,9 @@ class backdoor:
         self.global_dict = global_dict
 
         # allow the user to change the prompts:
-        if not sys.__dict__.has_key('ps1'):
+        if 'ps1' not in sys.__dict__:
             sys.ps1 = '>>> '
-        if not sys.__dict__.has_key('ps2'):
+        if 'ps2' not in sys.__dict__:
             sys.ps2 = '... '
 
     def send (self, data):
@@ -199,7 +199,7 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
         try:
             os.remove (unix_path)
         except OSError, why:
-            if why[0]==errno.ENOENT:
+            if why[0] == errno.ENOENT:
                 pass
             else:
                 raise
@@ -223,9 +223,9 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
                 break
             except OSError, why:
                 if why[0] != errno.EADDRINUSE:
-                    raise OSError, why
+                    raise OSError(why)
         else:
-            raise Exception, "couldn't bind a port (try not specifying a port)"
+            raise Exception("couldn't bind a port (try not specifying a port)")
 
     if client_class is None:
         client_class = client
@@ -268,15 +268,15 @@ class ssh_server:
         self.server_key = server_key
         self.authenticators = authenticators
         coro.spawn (self.serve)
-        
+
     def serve (self):
         serve (self.port, self.addr, client_class=self.new_connection)
-        
+
     def new_connection (self, conn, addr, welcome_message, global_dict):
-        #debug = coro.ssh.util.debug.Debug()
-        #debug.level = coro.ssh.util.debug.DEBUG_3
+        # debug = coro.ssh.util.debug.Debug()
+        # debug.level = coro.ssh.util.debug.DEBUG_3
         transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(sock=conn)
-        server = coro.ssh.transport.server.SSH_Server_Transport (self.server_key) #, debug=debug)
+        server = coro.ssh.transport.server.SSH_Server_Transport (self.server_key)  # , debug=debug)
         authenticator = coro.ssh.auth.userauth.Authenticator (server, self.authenticators)
         server.connect (transport, authenticator)
         service = coro.ssh.connection.connect.Connection_Service (server, ssh_repl)
