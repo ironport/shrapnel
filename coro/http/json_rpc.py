@@ -22,9 +22,9 @@ class json_rpc_handler:
         result = self.root.handle_json_rpc (qd['method'], qd['params'])
         request['content-type'] = 'application/json'
         if v2:
-            rd = {'jsonrpc':'2.0', 'result':result, 'id':qd['id']}
+            rd = {'jsonrpc': '2.0', 'result': result, 'id': qd['id']}
         else:
-            rd = {'result':result, 'error':None, 'id':qd['id']}
+            rd = {'result': result, 'error': None, 'id': qd['id']}
         request.push (json.dumps (rd))
         request.done()
 
@@ -58,11 +58,11 @@ class json_rpc_remote:
         if self.conn is None:
             self.conn = http_client (self.url_ob.hostname, self.url_ob.port)
         if kwargs:
-            assert (not args) # no way to mix positional & named args
+            assert (not args)  # no way to mix positional & named args
             params = kwargs
         else:
             params = list (args)
-        jreq = json.dumps ({'method': name, 'params':params, 'id':self.counter})
+        jreq = json.dumps ({'method': name, 'params': params, 'id': self.counter})
         self.counter += 1
         if self.auth:
             req = self.conn.POST (self.url_ob.path, jreq, Authorization='Basic %s' % (self.auth,))
@@ -72,8 +72,8 @@ class json_rpc_remote:
             jrep = json.loads (req.content)
             return jrep['result']
         else:
-             raise Error ((req.reply_code, req.content))
-        
+            raise Error ((req.reply_code, req.content))
+
     def close (self):
         if self.conn is not None:
             self.conn.close()

@@ -32,12 +32,12 @@ def simple_thread():
     count = 0
     try:
         while count < 10:
-            #print "count is %d" % (count,)
+            # print "count is %d" % (count,)
             coro.sleep_relative (1.0)
             count += 1
         msg = "thread was never interrupted"
         exitval = 1
-    except coro.Interrupted, why:
+    except coro.Interrupted as why:
         if why == []:
             msg = "multiple interrupts policy succeeded"
             exitval = 0
@@ -59,7 +59,7 @@ def tripwire(sleep_val):
     # use these values to try to trigger refcount bugs:
     thread.interrupt([])
     thread.interrupt({})
-    thread.interrupt({'':[]})
+    thread.interrupt({'': []})
     thread.interrupt([{}])
 
 def main(verbose=0):

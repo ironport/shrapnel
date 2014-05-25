@@ -33,8 +33,9 @@ OekNfzzIBr6QkMvmIOuL
 ks = OpenSSH_Key_Storage()
 server_key_ob = ks.parse_private_key (server_key_pri)
 
-# will authentication user 'foo' with password 'bar' for the 'ssh-connection' service [the only service currently supported]
-pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo' : { 'ssh-connection' : 'bar' } })
+# will authentication user 'foo' with password 'bar' for the
+# 'ssh-connection' service [the only service currently supported]
+pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo': {'ssh-connection': 'bar'}})
 
 # how to add public-key authentication:
 #
@@ -61,11 +62,11 @@ def main():
         sys.exit(1)
 
     for option, value in optlist:
-        if option=='-p':
+        if option == '-p':
             port = int (value)
 
     coro.spawn (coro.backdoor.ssh_server, port, '', server_key_ob, [pwd_auth])
     coro.event_loop()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

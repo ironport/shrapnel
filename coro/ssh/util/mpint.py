@@ -51,13 +51,13 @@ def pack_mpint(n):
                 break
             x = x >> 32
     else:
-        while x>0:
+        while x > 0:
             s.append(struct.pack('>L', x & 0xffffffffL))
             x = x >> 32
     s.reverse()
     s = ''.join(s)
 
-    if s[0]=='\0':
+    if s[0] == '\0':
         # Remove extra leading zeros.
         # This is a positive number.
         count = 0
@@ -66,11 +66,11 @@ def pack_mpint(n):
                 break
             count += 1
         # If the MSB is set, pad with a zero byte.
-        if ord(s[count])&128:
-            s = s[count-1:]
+        if ord(s[count]) & 128:
+            s = s[count - 1:]
         else:
             s = s[count:]
-    elif s[0]=='\377' and n < 0:
+    elif s[0] == '\377' and n < 0:
         # Remove extra leading ones.
         # This is a negative number.
         for x in xrange(len(s)):
@@ -79,13 +79,13 @@ def pack_mpint(n):
                 break
         # If the MSB is not set, then we need to sign-extend and make sure
         # there is another byte of all ones.
-        if ord(s[x])&128:
+        if ord(s[x]) & 128:
             s = s[x:]
         else:
-            s = s[x-1:]
+            s = s[x - 1:]
 
     # If the MSB is set and this is a positive number, pad with a zero.
-    if n > 0 and ord(s[0])&128:
+    if n > 0 and ord(s[0]) & 128:
         s = '\0' + s
     return s
 
@@ -113,7 +113,7 @@ def unpack_mpint(mpint):
             struct_format = '>I'
     result = 0L
     for x in xrange(0, len(mpint), 4):
-        result = (result << 32) | struct.unpack(struct_format, mpint[x: x+4])[0]
+        result = (result << 32) | struct.unpack(struct_format, mpint[x: x + 4])[0]
     return result
 
 import unittest

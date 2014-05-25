@@ -75,4 +75,4 @@ def install (nameserver_ips):
     "install a stub resolver into the coro socket layer"
     coro.set_resolver (
         stub_resolver (nameserver_ips)
-        )
+    )

@@ -51,7 +51,7 @@ if init_defaults:
     default_ctx.set_tmp_dh (DH_PARAM_512)
     default_ctx.set_options (default_ctx.get_options() | sslip.SSL_OP_SINGLE_DH_USE)
     # put these two RC4 ciphers up front, they use much less CPU than 3DES
-    #default_ctx.set_ciphers ('RC4-SHA:RC4-MD5:ALL')
+    # default_ctx.set_ciphers ('RC4-SHA:RC4-MD5:ALL')
 else:
     default_cert = None
     default_key = None
@@ -60,12 +60,12 @@ else:
 # Helper code
 ssl_default_op = sslip.SSL_OP_SINGLE_DH_USE
 ssl_op_map = {
-    "sslv2":  ssl_default_op|sslip.SSL_OP_NO_SSLv3|sslip.SSL_OP_NO_TLSv1,
-    "sslv3":  ssl_default_op|sslip.SSL_OP_NO_SSLv2|sslip.SSL_OP_NO_TLSv1,
-    "tlsv1":  ssl_default_op|sslip.SSL_OP_NO_SSLv2|sslip.SSL_OP_NO_SSLv3,
-    "sslv2sslv3":  ssl_default_op|sslip.SSL_OP_NO_TLSv1,
-    "sslv3tlsv1":  ssl_default_op|sslip.SSL_OP_NO_SSLv2,
-    "sslv2sslv3tlsv1":  ssl_default_op,
+    "sslv2": ssl_default_op | sslip.SSL_OP_NO_SSLv3 | sslip.SSL_OP_NO_TLSv1,
+    "sslv3": ssl_default_op | sslip.SSL_OP_NO_SSLv2 | sslip.SSL_OP_NO_TLSv1,
+    "tlsv1": ssl_default_op | sslip.SSL_OP_NO_SSLv2 | sslip.SSL_OP_NO_SSLv3,
+    "sslv2sslv3": ssl_default_op | sslip.SSL_OP_NO_TLSv1,
+    "sslv3tlsv1": ssl_default_op | sslip.SSL_OP_NO_SSLv2,
+    "sslv2sslv3tlsv1": ssl_default_op,
 }
 
 def new_ssl_ctx(protocol, method, ciphers):
@@ -129,7 +129,7 @@ class ssl_sock (object):
         self.ssl.set_fd (self.sock.fileno())
 
     def _non_blocking_retry (self, fun, *args):
-        while 1:
+        while True:
             try:
                 return fun (*args)
             except sslip.WantRead:
@@ -150,7 +150,7 @@ class ssl_sock (object):
         self.ssl.set_accept_state()
         return self.sock.listen (backlog)
 
-    def accept (self,verify=None):
+    def accept (self, verify=None):
         """ ssl_sock -> ssl_sock, addr
 
         Protocol, unspecified, is inherited from the accepting socket's
@@ -189,7 +189,7 @@ class ssl_sock (object):
         return self._non_blocking_retry (self.ssl.read, block_size)
 
     def recvfrom (self, block_size, timeout=30):
-        raise SystemError, "recvfrom not supported for SSL sockets"
+        raise SystemError("recvfrom not supported for SSL sockets")
 
     def send (self, data):
         return self._non_blocking_retry (self.ssl.write, data)
@@ -198,7 +198,7 @@ class ssl_sock (object):
     sendall = send
 
     def sendto (self, data, addr):
-        raise SystemError, "sendto not supported for SSL sockets"
+        raise SystemError("sendto not supported for SSL sockets")
 
     def writev (self, list_of_data):
         _sum = 0
@@ -224,10 +224,11 @@ class ssl_sock (object):
         return self.ssl.get_cipher()
 
     # The following are taken from #defines in /usr/include/openssl/*.h
-    _protocol_str_map = { 0x0002: 'SSLv2', # SSL2_VERSION
-                          0x0300: 'SSLv3', # SSL3_VERSION
-                          0x0301: 'TLSv1', # TLS1_VERSION
-                        }
+    _protocol_str_map = {0x0002: 'SSLv2',  # SSL2_VERSION
+                         0x0300: 'SSLv3',  # SSL3_VERSION
+                         0x0301: 'TLSv1',  # TLS1_VERSION
+                         }
+
     def getProtocol (self):
         prot_id = self.ssl.get_protocol()
         try:
@@ -238,22 +239,25 @@ class ssl_sock (object):
     # forward these other methods to the ssl socket
     def getpeername (self, *args):
         return self.sock.getpeername (*args)
+
     def getsockname (self, *args):
         return self.sock.getsockname (*args)
+
     def getsockopt (self, *args):
         return self.sock.getsockopt (*args)
+
     def setsockopt (self, *args):
         return self.sock.setsockopt (*args)
 
     def setblocking (self, flag):
         if flag:
-            raise SystemError, "cannot set coro socket to blocking-mode"
+            raise SystemError("cannot set coro socket to blocking-mode")
         else:
             # coro sockets are always in non-blocking mode.
             pass
 
     def settimeout (self, value):
-        raise SystemError, "use coro.with_timeout() rather than sock.settimeout()"
+        raise SystemError("use coro.with_timeout() rather than sock.settimeout()")
 
     def gettimeout (self):
         return None

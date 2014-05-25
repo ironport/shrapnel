@@ -22,10 +22,11 @@
 import struct
 import operator
 import sysctl
+from functools import reduce
 
 def get_current_mbufs():
     data = sysctl.sysctl ('kern.ipc.mbtypes')
-    nelems = len(data)/4
+    nelems = len(data) / 4
     nums = struct.unpack (nelems * 'l', data)
     free = nums[0]
     return free, reduce (operator.add, nums[1:])

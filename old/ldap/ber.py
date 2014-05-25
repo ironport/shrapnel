@@ -40,25 +40,25 @@ UNKNOWN = 'unknown'
 
 # flags for BER tags
 FLAGS = {
-    'UNIVERSAL'       : 0x00,
-    'STRUCTURED'      : 0x20,
-    'APPLICATION'     : 0x40,
-    'CONTEXT'         : 0x80,
-    'PRIVATE'         : 0xC0,
+    'UNIVERSAL': 0x00,
+    'STRUCTURED': 0x20,
+    'APPLICATION': 0x40,
+    'CONTEXT': 0x80,
+    'PRIVATE': 0xC0,
 }
 
 # universal BER tags
 TAGS = {
-    'INTEGER'                   : 0x02,
-    'OCTET_STRING'              : 0x04,
-    'OBJID'                     : 0x06,
-    'NULL'                      : 0x05,
-    'SEQUENCE'                  : 0x10 | FLAGS['STRUCTURED'],
-    'BOOLEAN'                   : 0x01,
-    'BITSTRING'                 : 0x03,
-    'SET'                       : 0x11,
-    'SETOF'                     : 0x31,
-    'Enumerated'                : 0x0a,
+    'INTEGER': 0x02,
+    'OCTET_STRING': 0x04,
+    'OBJID': 0x06,
+    'NULL': 0x05,
+    'SEQUENCE': 0x10 | FLAGS['STRUCTURED'],
+    'BOOLEAN': 0x01,
+    'BITSTRING': 0x03,
+    'SET': 0x11,
+    'SETOF': 0x31,
+    'Enumerated': 0x0a,
 }
 
 # pre-compute tag encodings
@@ -106,19 +106,19 @@ def encode_an_integer_type (arg, ber_tag):
         s.append(((arg & 0xff000000) >> 24) & 0xff)
         arg = arg << 8
     result = ''.join(map(chr, s))
-    return ber_tag + encode_length(len(result)) +  result
+    return ber_tag + encode_length(len(result)) + result
 
 
 # encode an unsigned 32 bit value (which is actually a python long)
 def encode_an_unsigned(arg, ber_tag):
     s = []
-    while arg > 0L:
-        s.insert(0, chr(arg & 0xffL))
-        arg = arg >> 8L
+    while arg > 0:
+        s.insert(0, chr(arg & 0xff))
+        arg = arg >> 8
     if s and (ord(s[0]) & 0x80):
         s.insert(0, chr(0))
     result = ''.join(s)
-    return ber_tag + encode_length(len(result)) +  result
+    return ber_tag + encode_length(len(result)) + result
 
 
 def encode_tag (name):
@@ -127,14 +127,14 @@ def encode_tag (name):
     try:
         return TAG_ENCODINGS[name]
     except KeyError:
-        raise UnknownTag, name
+        raise UnknownTag(name)
 
 def decode_tag (tag):
     """decode ASN.1 data type tag"""
     try:
         return REVERSE_TAGS[tag]
     except KeyError:
-        raise UnknownTag, tag
+        raise UnknownTag(tag)
 
 def encode_boolean(value):
     if value:
@@ -182,11 +182,14 @@ class TLV:
         self.tag = tag
         self.length = length
         self.value = value
-        self.lol = lol # length of length - needed for sequence decoding - kludgy
+        self.lol = lol  # length of length - needed for sequence decoding - kludgy
+
     def __str__(self):
         return '<TLV: tag=0x%x, length=%d, value=%s>' % (self.tag, self.length, repr(self.value))
+
     def __repr__(self):
         return '%s(0x%x, %d, %s)' % (self.__class__.__name__, self.tag, self.length, repr(self.value))
+
     def decode(self):
         try:
             return DECODE_METHODS[self.tag](self.length, self.value)
@@ -213,10 +216,10 @@ def get_tlv(message):
     if len(message) > 1:
         tag = ord(message[0])
         length, inc = _decode_message_length(message)
-        value = message[inc+1:length+inc+1]
+        value = message[inc + 1:length + inc + 1]
         return TLV(tag, length, value, inc)
     else:
-        raise ValueError, 'ber.get_tlv: message too small'
+        raise ValueError('ber.get_tlv: message too small')
 
 def decode (message):
     return get_tlv (message).decode()
@@ -229,7 +232,7 @@ def _decode_message_length(message):
     if not msb:
         return val, 1
     else:
-        return _decode_an_integer (val, message[2:2+val], signed=0), 1+val
+        return _decode_an_integer (val, message[2:2 + val], signed=0), 1 + val
 
 # A SEQUENCE is implicitly a tuple
 def decode_sequence(length, message):
@@ -271,7 +274,7 @@ def _decode_an_integer (length, message, signed=1):
     return val
 
 def _decode_an_unsigned(length, message):
-    val = 0L
+    val = 0
     for i in xrange(length):
         val = (val << 8) + ord(message[i])
     return val

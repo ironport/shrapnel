@@ -25,12 +25,12 @@ else:
 MAX_RECONNECT_RETRY   = 10.0
 RECONNECT_RETRY_GRAIN = 0.1
 DEFAULT_RECV_SIZE     = 0x8000
-POSTGRES_HEADER_SIZE     = 0x5 # 1-byte message type; 4-byte length
+POSTGRES_HEADER_SIZE     = 0x5  # 1-byte message type; 4-byte length
 
 # large object mode constants
 
 INV_WRITE = 0x00020000
-INV_READ =  0x00040000
+INV_READ = 0x00040000
 
 SEEK_SET = 0
 SEEK_CUR = 1
@@ -48,12 +48,12 @@ def LOG(data, seq=None):
     global DATA, DATAP, DATAX
 
     if DATA is None:
-        DATA = ['']*5000
+        DATA = [''] * 5000
     DATAX += 1
     if not seq:
         seq = DATAX
 
-    ##coro.print_stderr("%d: DATA[%d] = %s\n" % (DATAX, DATAP, data[:30]))
+    # coro.print_stderr("%d: DATA[%d] = %s\n" % (DATAX, DATAP, data[:30]))
     DATA[DATAP] = '%d: %s' % (seq, data)
     DATAP += 1
     if DATAP >= len(DATA):
@@ -86,7 +86,7 @@ class BackendError(PostgresError):
     def __init__(self, msg, error_data=None):
         PostgresError.__init__(self, msg)
 
-        if type(error_data) == types.DictType:
+        if isinstance(error_data, types.DictType):
             self.error_fields = error_data.copy()
         elif error_data:
             self.error_fields = unpack_error_data(error_data)
@@ -121,7 +121,6 @@ class InternalError(PostgresError):
     pass
 
 
-
 # ===========================================================================
 # String Quoting
 # ===========================================================================
@@ -130,15 +129,15 @@ _std_split_re = re.compile('''([\x00-\x1f\\\\'\x7f-\xff]+)''')
 _std_char_quote = {
     '\000': '',
     '\\': '\\\\',
-    "'" : "\\'",
+    "'": "\\'",
     '\r': '\\r',
     '\n': '\\n',
     '\b': '\\b',
     '\f': '\\f',
     '\t': '\\t',
-    }
+}
 
-_array_split_re = re.compile('''([\x00-\x1f\\\\'"\x7f-\xff]+)''') # add double quote
+_array_split_re = re.compile('''([\x00-\x1f\\\\'"\x7f-\xff]+)''')  # add double quote
 _array_char_quote = _std_char_quote.copy()
 _array_char_quote['\\'] = '\\\\\\\\'
 _array_char_quote['"'] = '\\\\"'
@@ -187,7 +186,7 @@ def _quote_string(s, delim, splitter, quoter):
 
 _like_split_re = re.compile('''([%_\\\\]+)''')
 def _like_quote_char(c):
-    return '\\'+c
+    return '\\' + c
 
 def escape_like_string(s):
     """Escape characters in an LIKE/ILIKE match string."""
@@ -224,7 +223,6 @@ def scrub_utf8(s):
     return _4_byte_utf8_re.sub(_replacement_char_utf8, s)
 
 
-
 # ===========================================================================
 # Client class
 # ===========================================================================
@@ -242,7 +240,7 @@ class postgres_client:
                   address=None):
 
         self._backend_pid = 0
-        self._secret_key = 0 # used for cancellations
+        self._secret_key = 0  # used for cancellations
 
         if username:
             self.username = username
@@ -276,10 +274,10 @@ class postgres_client:
             if self._state == self.DISCONNECTED:
                 try:
                     self._socket, self._sock_send = self.connect_socket()
-                except (socket.error, OSError, IOError), e:
+                except (socket.error, OSError, IOError) as e:
                     # problem connecting; Postgres probably isn't running
                     # convert this to a common PostgresError exception
-                    raise ConnectError, str(e), sys.exc_info()[2]
+                    raise ConnectError(str(e), sys.exc_info()[2])
 
                 self._recv_buffer = ''
                 self._recv_length = 0
@@ -333,12 +331,12 @@ class postgres_client:
         responsible for ensuring that the connection is not in use."""
 
         if not self.is_connected():
-            self._backend_pid = 0 # throw away cached value
+            self._backend_pid = 0  # throw away cached value
             return 0
         elif not self._backend_pid:
             res = self.query('SELECT pg_backend_pid()')
             if res.ntuples > 0:
-                self._backend_pid = res.getvalue(0,0)
+                self._backend_pid = res.getvalue(0, 0)
 
         return self._backend_pid
 
@@ -351,7 +349,7 @@ class postgres_client:
         If the query times out, raise TimeoutError."""
 
         aq = async_query(self)
-        aq.start(query) # start another thread working
+        aq.start(query)  # start another thread working
 
         # Wait for results
         return aq.get_result(timeout)
@@ -400,8 +398,8 @@ class postgres_client:
 
             self.query(sql)
             return
-        except QueryError, e:
-            if e.error_code() == PG_ERROR_UNIQUE_VIOLATION: # Duplicate key
+        except QueryError as e:
+            if e.error_code() == PG_ERROR_UNIQUE_VIOLATION:  # Duplicate key
                 # This usually means a problem with the pg_statistic table
                 # Will retry below...
                 P("analyze error (%r)" % (fake_duplicate_problem,))
@@ -415,7 +413,7 @@ class postgres_client:
         try:
             self.query("""DELETE FROM pg_statistic""")
         except PostgresError:
-            pass # don't barf trying to fix pg_statistic
+            pass  # don't barf trying to fix pg_statistic
 
         # Retry.  May still raise an exception, but at this point,
         # there's nothing more to be done about it.
@@ -437,7 +435,7 @@ class postgres_client:
             self._state = self.CONNECTED
             return self._simple_query(None)
         else:
-            pass # we'll let this slide
+            pass  # we'll let this slide
 
     def lo_creat(self, mode):
         fn_oid = self._get_lo_function('lo_creat')
@@ -482,7 +480,7 @@ class postgres_client:
 
     def close(self):
         if self._state != self.DISCONNECTED:
-            try: # best effort at cleanly shutting down
+            try:  # best effort at cleanly shutting down
                 self.send_packet(PG_TERMINATE_MSG)
 
                 # Make sure the db disconnects, so that if the caller
@@ -511,13 +509,13 @@ class postgres_client:
         self._backend_pid = 0
         self._state = self.DISCONNECTED
 
-    finish = close # compatibility with libpq
+    finish = close  # compatibility with libpq
 
     def notice_received(self, where, message_fields):
-##        print where, message_fields
+        # print where, message_fields
         pass
 
-### Internal Routines
+# Internal Routines
 
     def connect_socket(self):
         """Connect to database at self.address.
@@ -526,7 +524,7 @@ class postgres_client:
         Works in both coro and non-coro environments, and with TCP and
         Unix-domain sockets."""
 
-        if (type(self.address) == type('')):
+        if (isinstance(self.address, type(''))):
             sock, sock_send = self.make_socket(socket.AF_UNIX,
                                                socket.SOCK_STREAM)
         else:
@@ -543,21 +541,21 @@ class postgres_client:
         by using self.sendall instead."""
 
         if GOT_CORO and coro.coro_is_running():
-            sock = apply(coro.make_socket, args, kwargs)
+            sock = coro.make_socket(*args, **kwargs)
             sender = sock.send
         else:
-            sock = apply(socket.socket, args, kwargs)
+            sock = socket.socket(*args, **kwargs)
             sender = self.sendall
 
         return (sock, sender)
 
     def recv(self):
-        ## SEQ = LOG('do recv')
+        # SEQ = LOG('do recv')
         try:
             data = self._socket.recv (DEFAULT_RECV_SIZE)
         except (socket.error, OSError, IOError):
             data = None
-        ## LOG(data, SEQ)
+        # LOG(data, SEQ)
 
         if not data:
             raise ConnectionClosedError
@@ -568,9 +566,9 @@ class postgres_client:
 
     def write (self, data):
         try:
-            ## SEQ = LOG(data)
+            # SEQ = LOG(data)
             self._sock_send(data)
-            ## LOG('done send', SEQ)
+            # LOG('done send', SEQ)
         except (socket.error, OSError, IOError):
             raise ConnectionClosedError
 
@@ -610,7 +608,7 @@ class postgres_client:
             length = struct.unpack('!i',
                                    self._recv_buffer[1:POSTGRES_HEADER_SIZE])[0]
 
-            return message_type, length-4 # return length of data only
+            return message_type, length - 4  # return length of data only
 
     def read_packet(self):
         msg, length = self.get_header()
@@ -626,9 +624,9 @@ class postgres_client:
         #
         # now we have at least one packet
         #
-        data = self._recv_buffer[POSTGRES_HEADER_SIZE:POSTGRES_HEADER_SIZE+length]
-        self._recv_buffer = self._recv_buffer[POSTGRES_HEADER_SIZE+length:]
-        self._recv_length = self._recv_length - (POSTGRES_HEADER_SIZE+length)
+        data = self._recv_buffer[POSTGRES_HEADER_SIZE:POSTGRES_HEADER_SIZE + length]
+        self._recv_buffer = self._recv_buffer[POSTGRES_HEADER_SIZE + length:]
+        self._recv_length = self._recv_length - (POSTGRES_HEADER_SIZE + length)
 
         if self.debug:
             print "<--", msg, length, len(data)
@@ -643,25 +641,24 @@ class postgres_client:
 
         # send startup packet
         self.send_packet(PG_STARTUP_MSG,
-                         0x00030000, # protocol version
+                         0x00030000,  # protocol version
                          'user', self.username,
                          'database', self.database,
-                         '' # terminate options
+                         ''  # terminate options
                          )
 
         msg, data = self.read_packet()
         if msg == PG_AUTHENTICATION_OK_MSG:
-            pass # no password needed
+            pass  # no password needed
         elif msg == PG_ERROR_MSG:
-            raise ConnectError, ("_startup", data)
+            raise ConnectError("_startup", data)
         else:
-            raise ConnectError, ("Authentication required (%d)" % \
-                                 msg)
+            raise ConnectError("Authentication required (%d)" % msg)
 
     def _wait_for_backend(self):
         """Wait for the backend to be ready for a query"""
 
-        while 1:
+        while True:
             msg, data = self.read_packet()
 
             if msg == PG_READY_FOR_QUERY_MSG:
@@ -670,21 +667,21 @@ class postgres_client:
             elif msg == PG_BACKEND_KEY_DATA_MSG:
                 self._backend_pid, self._secret_key = unpack_data(data,
                                                                   'ii')
-##                print "pid=%d, secret=%d" % (self._backend_pid,
-##                                             self._secret_key)
+# print "pid=%d, secret=%d" % (self._backend_pid,
+# self._secret_key)
 
             elif msg == PG_PARAMETER_STATUS_MSG:
-                k,v = unpack_data(data, 'ss')
+                k, v = unpack_data(data, 'ss')
                 self._set_parameter(k, v)
 
             elif msg == PG_ERROR_MSG:
-                raise ConnectError, ("_wait_for_backend", data)
+                raise ConnectError("_wait_for_backend", data)
 
             elif msg == PG_NOTICE_MSG:
                 self._notice(BACKEND_START_NOTICE, data)
 
             else:
-                continue # ignore packet?
+                continue  # ignore packet?
 
     def _simple_query(self, query):
         """Execute a simple query.
@@ -700,7 +697,7 @@ class postgres_client:
         exception = None
         result = None
 
-        while 1:
+        while True:
             msg, data = self.read_packet()
 
             if msg == PG_READY_FOR_QUERY_MSG:
@@ -713,7 +710,7 @@ class postgres_client:
 
             elif msg == PG_COPY_IN_RESPONSE_MSG:
                 self._state = self.COPYIN
-                break # exit loop so we can accept putline calls
+                break  # exit loop so we can accept putline calls
 
             elif msg == PG_COPY_OUT_RESPONSE_MSG:
                 if not exception:
@@ -737,20 +734,20 @@ class postgres_client:
                 continue
 
             elif msg == PG_PARAMETER_STATUS_MSG:
-                k,v = unpack_data(data, 'ss')
+                k, v = unpack_data(data, 'ss')
                 self._set_parameter(k, v)
 
             elif msg == PG_ERROR_MSG:
                 if not exception:
                     exception = QueryError('_simple_query', data)
-                    ## LOG("QueryError: %r" % exception.error_fields)
-                    ## coro.print_stderr("QueryError: %r\n" % exception.error_fields)
+                    # LOG("QueryError: %r" % exception.error_fields)
+                    # coro.print_stderr("QueryError: %r\n" % exception.error_fields)
 
             elif msg == PG_NOTICE_MSG:
                 self._notice(QUERY_NOTICE, data)
 
             else:
-                continue # ignore packet?
+                continue  # ignore packet?
 
         if exception:
             raise exception
@@ -763,7 +760,7 @@ class postgres_client:
 
     def _set_parameter(self, key, value):
         self.backend_parameters[key] = value
-##        print "Parameter: %s=%s" % (k, v)
+# print "Parameter: %s=%s" % (k, v)
 
     def _notice(self, where, data):
         self.notice_received(where, unpack_notice_data(data))
@@ -784,7 +781,7 @@ class postgres_client:
                          proname='lowrite'""")
             fns = {}
             for i in xrange(res.ntuples):
-                fns[res.getvalue(i,0)] = res.getvalue(i,1)
+                fns[res.getvalue(i, 0)] = res.getvalue(i, 1)
 
             _lo_functions = fns
 
@@ -792,7 +789,7 @@ class postgres_client:
         if fn:
             return fn
         else:
-            raise InternalError, 'Failed to get %s function oid' % name
+            raise InternalError('Failed to get %s function oid' % name)
 
     def _function_call(self, fn_oid, *args):
         """Execute a function call."""
@@ -800,8 +797,8 @@ class postgres_client:
         # Construct the arguments for the function call message
 
         packet_args = [fn_oid,  # what function
-                       _Int16_arg(1), # only need 1 format type...
-                       _Int16_arg(1), # ...which is binary
+                       _Int16_arg(1),  # only need 1 format type...
+                       _Int16_arg(1),  # ...which is binary
                        ]
 
         # Number of args
@@ -810,7 +807,7 @@ class postgres_client:
         # Args (length followed by bytes)...
         for a in args:
             if a is None:
-                packet_args.append(-1) # special representation for NULL
+                packet_args.append(-1)  # special representation for NULL
             else:
                 arg_data = pack_data(a)
                 packet_args.extend((len(arg_data), _ByteN_arg(arg_data)))
@@ -823,7 +820,7 @@ class postgres_client:
         exception = None
         result = None
 
-        while 1:
+        while True:
             msg, data = self.read_packet()
 
             if msg == PG_READY_FOR_QUERY_MSG:
@@ -837,22 +834,22 @@ class postgres_client:
                 elif return_len == 4:
                     result = struct.unpack('!i', data)[0]
                 else:
-                    result = data # punt on decoding?
+                    result = data  # punt on decoding?
 
             elif msg == PG_ERROR_MSG:
                 if not exception:
                     exception = FunctionError('_function_call', data)
-                    ## LOG("FunctionError: %r" % exception.error_fields)
-                    ## coro.print_stderr("FunctionError: %r\n" % exception.error_fields)
+                    # LOG("FunctionError: %r" % exception.error_fields)
+                    # coro.print_stderr("FunctionError: %r\n" % exception.error_fields)
 
             elif msg == PG_NOTICE_MSG:
                 self._notice(FUNCTION_NOTICE, data)
 
             else:
-                continue # ignore packet?
+                continue  # ignore packet?
 
         if exception:
-            ## coro.print_stderr("exception: %r\n" % exception.error_fields)
+            # coro.print_stderr("exception: %r\n" % exception.error_fields)
             raise exception
 
         return result
@@ -890,7 +887,7 @@ class query_results:
 
     def getvalue(self, row, col):
         r = self.getrow(row)
-        if r is not None and col >=0 and col < len(r):
+        if r is not None and col >= 0 and col < len(r):
             return r[col]
         else:
             return None
@@ -1011,7 +1008,7 @@ class async_query:
 
         try:
             res = self._client.query(sql)
-        except PostgresError, e:
+        except PostgresError as e:
             # The query raised an exception, which becomes the "result"
             res = e
 
@@ -1045,8 +1042,8 @@ class async_query:
 
         if isinstance(self._res, Exception):
             if (isinstance(self._res, BackendError) and
-                self._res.error_code() == PG_ERROR_QUERY_CANCELLED):
-                raise coro.TimeoutError # really did time out
+                    self._res.error_code() == PG_ERROR_QUERY_CANCELLED):
+                raise coro.TimeoutError  # really did time out
             else:
                 raise self._res
 
@@ -1128,9 +1125,9 @@ def _simple_array_decode(x, fn):
     Call fn on each element to convert to actual value"""
 
     if x[0] != '{' or x[-1] != '}':
-        raise ValueError, 'Array not enclosed in {...}'
+        raise ValueError('Array not enclosed in {...}')
     x = x[1:-1]
-    return map(lambda s,fn=fn: fn(s.strip()), x.split(','))
+    return map(lambda s, fn=fn: fn(s.strip()), x.split(','))
 
 _simple_str_elt_re = re.compile(r'''([^"][^,]*),?''')
 _quoted_str_elt_re = re.compile(r'''"((?:\\\\|\\"|[^"])*)",?''')
@@ -1140,12 +1137,12 @@ def _general_array_decode(x):
     """Decode array string where elements may be quoted."""
 
     if x[0] != '{' or x[-1] != '}':
-        raise ValueError, 'Array not enclosed in {...}'
+        raise ValueError('Array not enclosed in {...}')
     x = x[1:-1]
 
     result = []
     pos = 0
-    while pos<len(x):
+    while pos < len(x):
         # check for unquoted element
         match = _simple_str_elt_re.match(x, pos)
         if match:
@@ -1163,12 +1160,12 @@ def _general_array_decode(x):
             continue
 
         # problem
-        raise ValueError, 'Could not parse array (%s)' % x[pos:]
+        raise ValueError('Could not parse array (%s)' % x[pos:])
 
     return result
 
 def decode_bool(x):
-    return x=='t' or x=='T'
+    return x == 't' or x == 'T'
 
 def decode_int_array(x):
     return _simple_array_decode(x, int)
@@ -1185,8 +1182,8 @@ def decode_bytea(x):
     parts = _quoted_bytea_re.split(x)
     for i in xrange(1, len(parts), 2):
         # even elements are OK; odd elements need conversion
-        if parts[i] == '\\\\': # 2 slashes...
-            parts[i] = '\\' # ...become 1
+        if parts[i] == '\\\\':  # 2 slashes...
+            parts[i] = '\\'  # ...become 1
         else:
             parts[i] = chr(int(parts[i][1:], 8))
 
@@ -1199,26 +1196,26 @@ def decode_bytea(x):
 decode_type_map = {}
 decode_type_names = {}
 
-for oid,    cast,               name in (
-    (16,    decode_bool,        'bool'),
-    (17,    decode_bytea,       'bytea'),
-    (18,    str,                'char'),
-    (19,    str,                'name'),
-    (20,    long,               'int8'),
-    (21,    int,                'int2'),
-    (22,    decode_int_array,   'int2vector'),
-    (23,    int,                'int4'),
-    (25,    str,                'text'),
-    (26,    int,                'oid'),
-    (27,    long,               'tid'),
-    (28,    int,                'xid'),
-    (29,    int,                'cid'),
-    (30,    str,                'oidvector'),
-    (700,   float,              'float4'),
-    (701,   float,              'float8'),
-    (1007,  decode_int_array,   'int4[]'),
-    (1009,  decode_str_array,   'text[]'),
-    ):
+for oid, cast, name in (
+    (16, decode_bool, 'bool'),
+    (17, decode_bytea, 'bytea'),
+    (18, str, 'char'),
+    (19, str, 'name'),
+    (20, long, 'int8'),
+    (21, int, 'int2'),
+    (22, decode_int_array, 'int2vector'),
+    (23, int, 'int4'),
+    (25, str, 'text'),
+    (26, int, 'oid'),
+    (27, long, 'tid'),
+    (28, int, 'xid'),
+    (29, int, 'cid'),
+    (30, str, 'oidvector'),
+    (700, float, 'float4'),
+    (701, float, 'float8'),
+    (1007, decode_int_array, 'int4[]'),
+    (1009, decode_str_array, 'text[]'),
+):
     decode_type_map[oid] = cast
     decode_type_names[oid] = name
 
@@ -1244,10 +1241,10 @@ def unpack_data(data, formats, return_rest=0):
 
     for code in formats:
         if code == 'i':
-            result.append(struct.unpack('!i', data[pos:pos+4])[0])
+            result.append(struct.unpack('!i', data[pos:pos + 4])[0])
             pos += 4
         elif code == 'h':
-            result.append(struct.unpack('!h', data[pos:pos+2])[0])
+            result.append(struct.unpack('!h', data[pos:pos + 2])[0])
             pos += 2
         elif code == 'c':
             result.append(data[pos])
@@ -1257,8 +1254,8 @@ def unpack_data(data, formats, return_rest=0):
             if i < 0:
                 i = len(data)
 
-            result.append(data[pos:pos+i])
-            pos += (i+1)
+            result.append(data[pos:pos + i])
+            pos += (i + 1)
 
     if return_rest:
         result.append(data[pos:])
@@ -1286,7 +1283,7 @@ def unpack_error_data(data):
             i = len(data)
 
         result[k] = data[pos:i]
-        pos = i+1
+        pos = i + 1
 
     return result
 
@@ -1305,11 +1302,11 @@ def pack_data(*data_args):
 
     parts = []
     for d in data_args:
-        if type(d) == types.StringType:
-            parts.extend((d, '\0')) # null terminated string
-        elif type(d) == types.IntType:
+        if isinstance(d, types.StringType):
+            parts.extend((d, '\0'))  # null terminated string
+        elif isinstance(d, types.IntType):
             parts.append(struct.pack('!i', d))
-        elif type(d) == types.ListType or type(d) == types.TupleType:
+        elif isinstance(d, types.ListType) or isinstance(d, types.TupleType):
             parts.append(struct.pack(d[0], *d[1:]))
 
     return ''.join(parts)
@@ -1319,20 +1316,20 @@ def build_message (message_type, *data_args):
 
     args = pack_data(*data_args)
     data = '%s%s%s' % (message_type,
-                       struct.pack('!i', len(args)+4),
+                       struct.pack('!i', len(args) + 4),
                        args)
     return data
 
 # helpers that can be used for args to pack_data
 
 def _Int16_arg(x):
-    if type(x) == types.IntType:
+    if isinstance(x, types.IntType):
         return ('!h', x)
     else:
         return ('!%dh' % len(x),) + tuple(x)
 
 def _Int32_arg(x):
-    if type(x) == types.IntType:
+    if isinstance(x, types.IntType):
         return int(x)
     else:
         return ('!%di' % len(x),) + tuple(x)
@@ -1373,7 +1370,7 @@ def connect_to_db(database, username='', address=None, schema=None):
     try:
         db.connect()
         return db
-    except ConnectError, e: # doesn't exist
+    except ConnectError as e:  # doesn't exist
         if e.error_code() == PG_ERROR_INVALID_CATALOG_NAME:
             if schema is not None:
                 dbm = database_manager(username=username,
@@ -1386,17 +1383,17 @@ def connect_to_db(database, username='', address=None, schema=None):
             else:
                 return None
         else:
-            raise # some other Postgres error
+            raise  # some other Postgres error
 
 class database_manager:
     def __init__(self, username='', password='',
-                 address = None,
+                 address=None,
                  debug=False):
         self._db = postgres_client('template1',
                                    username=username,
                                    password=password,
                                    address=address)
-        self._debug =  debug
+        self._debug = debug
 
     def has_database(self, database):
 
@@ -1422,7 +1419,7 @@ class database_manager:
                 new_db.connect()
                 try:
                     new_db.query(schema)
-                    delete_db = False # it's done
+                    delete_db = False  # it's done
                 finally:
                     new_db.close()
         finally:
@@ -1437,9 +1434,9 @@ class database_manager:
     def drop_database(self, database):
         try:
             self._query('DROP DATABASE %s' % database)
-        except QueryError, e:
+        except QueryError as e:
             if e.error_code() == PG_ERROR_INVALID_CATALOG_NAME:
-                pass # this is OK
+                pass  # this is OK
             else:
                 raise
 
@@ -1461,13 +1458,13 @@ class database_manager:
             while True:
                 try:
                     return self._db.query(sql)
-                except QueryError, e:
+                except QueryError as e:
                     if e.error_code() == PG_ERROR_OBJECT_IN_USE:
                         self._backoff()
                     else:
-                        raise # some other exception
+                        raise  # some other exception
         finally:
-            self._db.close() # close the connection
+            self._db.close()  # close the connection
 
     def _backoff(self):
         """Called after finding that template1 is in use.
@@ -1493,7 +1490,7 @@ class database_manager:
             elif res.getvalue(0, 0) != my_pid:
                 if self._debug:
                     P("%d closing" % (my_pid,))
-                self._db.close() # the other connection takes priority
+                self._db.close()  # the other connection takes priority
                 break
             else:
                 # This connection has smallest pid, so remain connected.
@@ -1524,61 +1521,61 @@ def sleep(x):
     else:
         time.sleep(x)
 
-##def test ():
-##    c = mysql_client ('rushing', 'fnord', ('10.1.1.55', 3306))
-##    print 'connecting...'
-##    c.connect()
-##    print 'logging in...'
-##    c.login()
-##    print c
-##    c.cmd_use ('mysql')
-##    for row in c.cmd_query ('select * from user').fetchrows():
-##        print row
-##    c.cmd_quit()
+# def test ():
+#    c = mysql_client ('rushing', 'fnord', ('10.1.1.55', 3306))
+# print 'connecting...'
+# c.connect()
+# print 'logging in...'
+# c.login()
+# print c
+#    c.cmd_use ('mysql')
+# for row in c.cmd_query ('select * from user').fetchrows():
+# print row
+# c.cmd_quit()
 
-##def test_mgr(munge=0):
-##    import quarantine_schema
+# def test_mgr(munge=0):
+#    import quarantine_schema
 
-##    dbm = database_manager()
-##    sq = 'system_quarantine'
+#    dbm = database_manager()
+#    sq = 'system_quarantine'
 
-##    if munge:
-##        schema = quarantine_schema.quarantine_schema.replace(
-##            'INTO ', 'INTO zzz', 1)
-##    else:
-##        schema = quarantine_schema.quarantine_schema
-##    print schema[:500]
+# if munge:
+# schema = quarantine_schema.quarantine_schema.replace(
+# 'INTO ', 'INTO zzz', 1)
+# else:
+#        schema = quarantine_schema.quarantine_schema
+# print schema[:500]
 
-##    try:
-##        print dbm.has_database(sq)
-##        dbm.drop_database(sq)
-##        dbm.create_database(sq, schema)
-##    except BackendError, e:
-##        print e.error_fields
-##        if 0:
-##            import traceback
-##            traceback.print_exc()
-##        else:
-##            raise
+# try:
+# print dbm.has_database(sq)
+# dbm.drop_database(sq)
+#        dbm.create_database(sq, schema)
+# except BackendError, e:
+# print e.error_fields
+# if 0:
+#            import traceback
+# traceback.print_exc()
+# else:
+# raise
 
 
-##def make_db():
-##    db = postgres_client('lrosenstein', '', 'system_quarantine',
-##                         ('127.0.0.1', 5432))
-##    db.connect()
-##    return db
+# def make_db():
+# db = postgres_client('lrosenstein', '', 'system_quarantine',
+# ('127.0.0.1', 5432))
+# db.connect()
+# return db
 
-##def test_open(db):
-##    db.query("BEGIN")
-##    return db.lo_open(17219, INV_READ)
+# def test_open(db):
+# db.query("BEGIN")
+# return db.lo_open(17219, INV_READ)
 
-##def test_read(db):
-##    db.query("BEGIN")
-##    fd = db.lo_open(17219, INV_READ)
-##    print db.lo_read(fd, 50)
-##    print db.lo_read(fd)
-##    db.lo_close(fd)
-##    db.query("ROLLBACK")
+# def test_read(db):
+# db.query("BEGIN")
+#    fd = db.lo_open(17219, INV_READ)
+# print db.lo_read(fd, 50)
+# print db.lo_read(fd)
+# db.lo_close(fd)
+# db.query("ROLLBACK")
 
 def test_concurrent_dbm(tries):
     dbm = database_manager(debug=True)
@@ -1594,7 +1591,7 @@ def watcher(thread_ids):
         if len(thread_ids) == 0:
             coro.set_exit()
             break
-        thread_ids = [ x for x in thread_ids if coro.all_threads.has_key(x) ]
+        thread_ids = [x for x in thread_ids if x in coro.all_threads]
         coro.sleep_relative(0.1)
 
 if __name__ == '__main__':

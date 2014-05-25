@@ -111,6 +111,7 @@ class client:
         self.conn.close()
 
     response_re = re.compile ('([^ ]+) ([0-9][0-9][0-9]) (.+)')
+
     def _read_message (self, req):
         line = self.stream.read_line()
         if not line:
@@ -155,7 +156,7 @@ class client:
         req = (
             '%s %s HTTP/1.1\r\n'
             '%s\r\n' % (method, uri, headers)
-            )
+        )
         self.conn.send (req)
         # XXX 100 continue
         if content:
@@ -202,5 +203,3 @@ class client:
         req = self.send_request ('POST', uri, headers, content, force=True)
         req.wait()
         return req
-    
-    

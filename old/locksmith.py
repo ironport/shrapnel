@@ -77,11 +77,11 @@ class LockSmith:
             thread.raise_exception(DeadlockError)
         if __debug__:
             # Make sure that there are no more cycles.
-            for k,v in g.items():
+            for k, v in g.items():
                 if v in thread_ids:
                     del g[k]
             cycle_g = self._find_cycles(g)
-            assert (len(cycle_g)==0)
+            assert (len(cycle_g) == 0)
 
     def _build_graph(self):
         """_build_graph(self) -> g
@@ -134,7 +134,7 @@ class LockSmith:
         Returns <g> with all nodes not involved in a cycle removed.
         """
         g = g.copy()
-        while 1:
+        while True:
             in_d = self._in_degree(g)
             found = False
             for k, v in in_d.iteritems():
@@ -157,7 +157,7 @@ class LockSmith:
         """thread_manager(self) -> None
         This is the deadlock detection thread.
         """
-        while 1:
+        while True:
             try:
                 coro.sleep_relative(self.deadlock_check_period)
                 self.check_for_deadlocks()
@@ -199,7 +199,7 @@ class MutexLockSmith(LockSmith):
         Acquires the global lock.
         """
         # Check if the rules are being met to acquire the global lock.
-        while 1:
+        while True:
             if not self.locks:
                 # Simple case, no other locks held.
                 self._lock(self.global_lock_name)
@@ -252,7 +252,7 @@ class MutexLockSmith(LockSmith):
         """
         self._unlock(self.global_lock_name)
         # If the global lock is completely released.
-        if not self.locks.has_key(self.global_lock_name):
+        if self.global_lock_name not in self.locks:
             # See if anyone was waiting for it.
             if self.global_cv:
                 # Wake them up.
@@ -275,9 +275,9 @@ class MutexLockSmith(LockSmith):
         # To lock the global lock, you need to use lock_global
         assert(key != self.global_lock_name)
         # Check if the rules for the global lock are met before getting a var lock.
-        while 1:
+        while True:
             # If global lock is held.
-            if self.locks.has_key(self.global_lock_name):
+            if self.global_lock_name in self.locks:
                 lock = self.locks[self.global_lock_name]
                 # And I don't hold it.
                 if not lock.has_lock():
@@ -316,7 +316,7 @@ class MutexLockSmith(LockSmith):
         assert(key != self.global_lock_name)
 
         # If global lock is held.
-        if self.locks.has_key(self.global_lock_name):
+        if self.global_lock_name in self.locks:
             lock = self.locks[self.global_lock_name]
             # And I don't hold it.
             if not lock.has_lock():
@@ -340,7 +340,7 @@ class MutexLockSmith(LockSmith):
         # Could use setdefault, but that would mean the default argument
         # would cause a mutex object to be created every time and then thrown
         # away.
-        if self.locks.has_key(key):
+        if key in self.locks:
             lock = self.locks[key]
         else:
             lock = self.locks[key] = coro.mutex()
@@ -350,7 +350,7 @@ class MutexLockSmith(LockSmith):
         # Could use setdefault, but that would mean the default argument
         # would cause a mutex object to be created every time and then thrown
         # away.
-        if self.locks.has_key(key):
+        if key in self.locks:
             lock = self.locks[key]
         else:
             lock = self.locks[key] = coro.mutex()
@@ -396,7 +396,7 @@ class MutexLockSmith(LockSmith):
         Attempts to lock the mutex.  If it is already locked, then it
         returns 1.  If it successfully acquires the lock, it returns 0.
         """
-        if self.locks.has_key(key):
+        if key in self.locks:
             lock = self.locks[key]
         else:
             lock = self.locks[key] = coro.mutex()
@@ -413,7 +413,7 @@ class MutexLockSmith(LockSmith):
                 thread_id = t.thread_id()
                 # Not possible for a thread to be waiting for more than one
                 # lock.
-                assert (not g.has_key(thread_id))
+                assert (thread_id not in g)
                 g[thread_id] = owner_id
         if self.global_cv:
             # Threads waiting to acquire the global lock.
@@ -424,7 +424,7 @@ class MutexLockSmith(LockSmith):
                     # Do not include situation where I own an ordinary lock
                     # AND am waiting for the global lock.
                     if thread_id != lock_owner_thread_id:
-                        assert (not g.has_key(thread_id))
+                        assert (thread_id not in g)
                         g[thread_id] = lock_owner_thread_id
 
         if self.global_finished_cv:
@@ -432,12 +432,12 @@ class MutexLockSmith(LockSmith):
             # Rare case where we ran in between one thread unlocking the
             # global lock and another locking it can cause the global lock
             # to not exist.
-            if self.locks.has_key(self.global_lock_name):
+            if self.global_lock_name in self.locks:
                 lock = self.locks[self.global_lock_name]
                 owner_thread_id = lock._owner.thread_id()
                 for t in self.global_finished_cv._waiting:
                     thread_id = t.thread_id()
-                    assert (not g.has_key(thread_id))
+                    assert (thread_id not in g)
                     g[thread_id] = owner_thread_id
             # In theory, these threads are also waiting for anything
             # in self.global_cv._waiting, but that would break our

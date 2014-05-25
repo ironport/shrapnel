@@ -73,7 +73,7 @@ class Static_Key_Storage(key_storage.SSH_Key_Storage):
         self.known_hosts.append((hosts, key_objs))
 
     def load_keys(self, username=None):
-        if not self.public_key.has_key(username) or not self.private_key.has_key(username):
+        if username not in self.public_key or username not in self.private_key:
             return None
         if username is None:
             username = os.getlogin()
@@ -85,7 +85,7 @@ class Static_Key_Storage(key_storage.SSH_Key_Storage):
     load_keys.__doc__ = key_storage.SSH_Key_Storage.load_keys.__doc__
 
     def load_private_keys(self, username=None):
-        if not self.private_key.has_key(username):
+        if username not in self.private_key:
             return []
         if username is None:
             username = os.getlogin()
@@ -94,7 +94,7 @@ class Static_Key_Storage(key_storage.SSH_Key_Storage):
     load_private_keys.__doc__ = key_storage.SSH_Key_Storage.load_private_keys.__doc__
 
     def load_public_keys(self, username=None):
-        if not self.public_key.has_key(username):
+        if username not in self.public_key:
             return []
         if username is None:
             username = os.getlogin()

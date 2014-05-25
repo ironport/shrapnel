@@ -32,7 +32,7 @@ OekNfzzIBr6QkMvmIOuL
 -----END DSA PRIVATE KEY-----
 """
 
-user_key_pub = """ssh-dss AAAAB3NzaC1kc3MAAACBAPawYoOY758V46mBep5i3pRQSuXnmYLiwBWH06NMXfMKkncZE4eWIVVoDqZmeMfCSHP8uY2gS+QDfdMCGtqu9sX8noPx5SG6gzUnadhFKU2+o7tbJ9WkQX7TPHB2GLBk5SNn6MFfLlLwlLv+OFnO0jcBD81fkCZp19BoZt1CCMGLAAAAFQCCSKBZHEoXw7Y1jiT0GFuqGgPMaQAAAIB2EjHBcrMa6jvmNI1DLYEHrYlQ30cDvnYYIyunMsp6SybE1sLN2W3UqGLjqB2i3FgWh7o1yUVWdImBvFz4kdYVhlEcYUeTgu8IWH2YNFcr7/Q4IpF9h20pu/ASuR9aK/D8sA4s7JqVfkS/mIaOZ8W2aZiOSaqvJXQPee9tiKgLDAAAAIEA6jTTFwh0wBlLdzALSaxf+A4IPGwE3mlmVmzt+A+a+EqL2ZRmAZ2puQH3NKckqrAlHDY7gGuF5XlHUTiTbVanuv6vCRlPwHWCPNNZhYFqGLpMEqRNPV2cMlU0gaPn69DMZwbDNCJghZI6C2uejoh3agHvHq8jgm9q4e3X3nEjStc= rushing@beast.local\n"""
+user_key_pub = """ssh-dss AAAAB3NzaC1kc3MAAACBAPawYoOY758V46mBep5i3pRQSuXnmYLiwBWH06NMXfMKkncZE4eWIVVoDqZmeMfCSHP8uY2gS+QDfdMCGtqu9sX8noPx5SG6gzUnadhFKU2+o7tbJ9WkQX7TPHB2GLBk5SNn6MFfLlLwlLv+OFnO0jcBD81fkCZp19BoZt1CCMGLAAAAFQCCSKBZHEoXw7Y1jiT0GFuqGgPMaQAAAIB2EjHBcrMa6jvmNI1DLYEHrYlQ30cDvnYYIyunMsp6SybE1sLN2W3UqGLjqB2i3FgWh7o1yUVWdImBvFz4kdYVhlEcYUeTgu8IWH2YNFcr7/Q4IpF9h20pu/ASuR9aK/D8sA4s7JqVfkS/mIaOZ8W2aZiOSaqvJXQPee9tiKgLDAAAAIEA6jTTFwh0wBlLdzALSaxf+A4IPGwE3mlmVmzt+A+a+EqL2ZRmAZ2puQH3NKckqrAlHDY7gGuF5XlHUTiTbVanuv6vCRlPwHWCPNNZhYFqGLpMEqRNPV2cMlU0gaPn69DMZwbDNCJghZI6C2uejoh3agHvHq8jgm9q4e3X3nEjStc= rushing@beast.local\n"""  # noqa
 
 ks = OpenSSH_Key_Storage()
 server_key_ob = ks.parse_private_key (server_key_pri)
@@ -53,6 +53,7 @@ class echo_server (coro.ssh.connection.interactive_session.Interactive_Session_S
     def __init__ (self, connection_service):
         coro.ssh.connection.interactive_session.Interactive_Session_Server.__init__ (self, connection_service)
         coro.spawn (self.go)
+
     def go (self):
         self.send ('Welcome to the echo server.\n')
         while 1:
@@ -68,8 +69,8 @@ def go (conn, addr):
     debug.level = coro.ssh.util.debug.DEBUG_3
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(sock=conn)
     server = coro.ssh.transport.server.SSH_Server_Transport (server_key_ob, debug=debug)
-    pubkey_auth = coro.ssh.auth.userauth.Public_Key_Authenticator ({'rushing': { 'ssh-connection' : [user_key_ob]}})
-    pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo' : { 'ssh-connection' : 'bar' } })
+    pubkey_auth = coro.ssh.auth.userauth.Public_Key_Authenticator ({'rushing': {'ssh-connection': [user_key_ob]}})
+    pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo': {'ssh-connection': 'bar'}})
     authenticator = coro.ssh.auth.userauth.Authenticator (server, [pubkey_auth, pwd_auth])
     server.connect (transport, authenticator)
     service = coro.ssh.connection.connect.Connection_Service (server, echo_server)
@@ -88,11 +89,11 @@ def main():
         sys.exit(1)
 
     for option, value in optlist:
-        if option=='-p':
+        if option == '-p':
             port = int (value)
 
     coro.spawn (serve, port)
     coro.event_loop()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

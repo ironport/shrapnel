@@ -10,7 +10,7 @@ W = coro.write_stderr
 
 CSI = '\x1B['
 
-at_format = CSI + '%d;%dH%s' # + CSI + '0m'
+at_format = CSI + '%d;%dH%s'  # + CSI + '0m'
 
 def at (x, y, ch):
     return at_format % (y, x, ch)
@@ -21,7 +21,7 @@ class arena:
     def __init__ (self, w=150, h=53):
         self.w = w
         self.h = h
-        self.data = [ array.array ('c', " " * w) for y in range (h) ]
+        self.data = [array.array ('c', " " * w) for y in range (h)]
         # put some walls around the outside
         for i in range (w):
             self.data[0][i] = '='
@@ -35,33 +35,41 @@ class arena:
         self.data[-1][-1] = '+'
         self.worms = []
         self.listeners = []
+
     def random_pos (self):
         while 1:
-            x = random.randrange (1, self.w-1)
-            y = random.randrange (1, self.h-1)
-            if self[x,y] == ' ':
+            x = random.randrange (1, self.w - 1)
+            y = random.randrange (1, self.h - 1)
+            if self[x, y] == ' ':
                 break
         return x, y
+
     def render (self):
         return '\n'.join (x.tostring() for x in self.data)
+
     def __getitem__ (self, (x, y)):
         return self.data[y][x]
+
     def draw (self, pos, chr='*'):
         x, y = pos
         if self.data[y][x] in "=|+":
-            import pdb; pdb.set_trace()
+            import pdb
+            pdb.set_trace()
         self.data[y][x] = chr
         for lx in self.listeners:
             lx.draw (pos, chr)
+
     def erase (self, pos):
         x, y = pos
         self.data[y][x] = ' '
         for lx in self.listeners:
             lx.erase (pos)
+
     def populate (self, n=5):
         for i in range (n):
             x, y = self.random_pos()
             self.worms.append (worm (self, x, y))
+
     def cull (self, hoffa=False):
         removed = []
         for worm in self.worms:
@@ -77,8 +85,8 @@ class worm:
     counter = 0
 
     # up down left right
-    movex = [0,0,-1,1]
-    movey = [-1,1,0,0]
+    movex = [0, 0, -1, 1]
+    movey = [-1, 1, 0, 0]
 
     def __init__ (self, arena, x, y, length=10):
         self.arena = arena
@@ -87,22 +95,22 @@ class worm:
         self.dir = random.randrange (0, 4)
         self.length = length
         worm.counter += 1
-        self.chr = '0123456789abcdefghijklmnopqrstuvwxyz'[worm.counter%36]
+        self.chr = '0123456789abcdefghijklmnopqrstuvwxyz'[worm.counter % 36]
         self.speed = random.randrange (200, 400)
         self.exit = False
         self.stunned = False
         W ('new worm %r @ %d, %d speed=%d\n' % (self.chr, x, y, self.speed))
         coro.spawn (self.go)
-        
+
     def go (self):
         while not self.exit:
             coro.sleep_relative (self.speed / 10000.0)
-            if random.randrange (0,20) == 10:
+            if random.randrange (0, 20) == 10:
                 if not self.turn():
                     return
             else:
                 nx, ny = self.update()
-                while self.arena[(nx,ny)] != ' ':
+                while self.arena[(nx, ny)] != ' ':
                     if not self.turn():
                         return
                     nx, ny = self.update()
@@ -113,7 +121,7 @@ class worm:
         return (
             x + self.movex[self.dir],
             y + self.movey[self.dir]
-            )
+        )
 
     def turn (self):
         while not self.exit:
@@ -123,7 +131,7 @@ class worm:
             for i in range (4):
                 nx = x + self.movex[i]
                 ny = y + self.movey[i]
-                if a[nx,ny] == ' ':
+                if a[nx, ny] == ' ':
                     choices.append (i)
             if not choices:
                 return self.stun()
@@ -162,10 +170,10 @@ class terminal:
     def __init__ (self, conn):
         self.conn = conn
         self.conn.send (
-            '\xff\xfc\x01' # IAC WONT ECHO
-            '\xff\xfb\x03' # IAC WILL SUPPRESS_GO_AHEAD
-            '\xff\xfc"'    # IAC WONT LINEMODE
-            )
+            '\xff\xfc\x01'  # IAC WONT ECHO
+            '\xff\xfb\x03'  # IAC WILL SUPPRESS_GO_AHEAD
+            '\xff\xfc"'     # IAC WONT LINEMODE
+        )
         # turn off the cursor
         self.conn.send (CSI + '?25l')
         self.fifo = coro.fifo()
@@ -173,6 +181,7 @@ class terminal:
         self.t0 = coro.spawn (self.listen)
         self.t1 = coro.spawn (self.writer)
         self.exit = False
+
     def redraw (self):
         self.fifo.push (''.join ([
             # clear the screen
@@ -182,20 +191,23 @@ class terminal:
             # draw the arena
             the_arena.render(),
             '\n keys: [q]uit [r]edraw [n]ew [c]ull [l]engthen [h]offa\n',
-            ]))
+        ]))
+
     def draw (self, (x, y), chr):
         chr = (
             CSI
-            + '%dm' % (40+ord(chr)%8,)
+            + '%dm' % (40 + ord(chr) % 8,)
             + CSI
-            + '%dm' % (30+ord(chr)%7,)
+            + '%dm' % (30 + ord(chr) % 7,)
             + chr
             + CSI
             + '0m'
-            )
-        self.fifo.push (at (x+1, y+1, chr))
+        )
+        self.fifo.push (at (x + 1, y + 1, chr))
+
     def erase (self, (x, y)):
-        self.fifo.push (at (x+1, y+1, ' '))
+        self.fifo.push (at (x + 1, y + 1, ' '))
+
     def writer (self):
         while not self.exit:
             data = self.fifo.pop()
@@ -203,6 +215,7 @@ class terminal:
                 break
             else:
                 self.conn.send (data)
+
     def listen (self):
         while not self.exit:
             byte = self.conn.recv (1)
@@ -250,6 +263,6 @@ if __name__ == '__main__':
     coro.spawn (status)
     coro.spawn (serve)
     coro.spawn (coro.backdoor.serve, unix_path='/tmp/xx.bd')
-    #import coro.profiler
-    #coro.profiler.go (coro.event_loop)
+    # import coro.profiler
+    # coro.profiler.go (coro.event_loop)
     coro.event_loop()

@@ -27,9 +27,9 @@ s = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
 s.connect (('localhost', 10001))
 
 i = 0
-while 1:
+while True:
     ignore = s.send (d)
     ignore = s.recv (4096)
     i = i + 1
-    if (i%100) == 0:
+    if (i % 100) == 0:
         sys.stderr.write ('.')

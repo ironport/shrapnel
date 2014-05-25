@@ -46,7 +46,7 @@ def server (port=18080):
     s.set_reuse_addr()
     s.bind (('', port))
     s.listen (1024)
-    while 1:
+    while True:
         conn, addr = s.accept()
         coro.spawn (client, conn, addr)
 

@@ -40,15 +40,15 @@ class Term_Mode_Builder:
 
 TTY_OP_END = 0   # Indicates end of options.
 VINTR      = 1   # Interrupt character; 255 if none.  Similarly for the
-                 # other characters. Not all of these characters are
-                 # supported on all systems.
+# other characters. Not all of these characters are
+# supported on all systems.
 VQUIT      = 2   # The quit character (sends SIGQUIT signal on POSIX
-                 # systems).
+# systems).
 VERASE     = 3   # Erase the character to left of the cursor.
 VKILL      = 4   # Kill the current input line.
 VEOF       = 5   # End-of-file character (sends EOF from the terminal).
 VEOL       = 6   # End-of-line character in addition to carriage return
-                 # and/or linefeed.
+# and/or linefeed.
 VEOL2      = 7   # Additional end-of-line character.
 VSTART     = 8   # Continues paused output (normally control-Q).
 VSTOP      = 9   # Pauses output (normally control-S).
@@ -57,13 +57,13 @@ VDSUSP     = 11  # Another suspend character.
 VREPRINT   = 12  # Reprints the current input line.
 VWERASE    = 13  # Erases a word left of cursor.
 VLNEXT     = 14  # Enter the next character typed literally, even if it
-                 # is a special character
+# is a special character
 VFLUSH     = 15  # Character to flush output.
 VSWTCH     = 16  # Switch to a different shell layer.
 VSTATUS    = 17  # Prints system status line (load, command, pid etc).
 VDISCARD   = 18  # Toggles the flushing of terminal output.
 IGNPAR     = 30  # The ignore parity flag.  The parameter SHOULD be 0 if
-                 # this flag is FALSE set, and 1 if it is TRUE.
+# this flag is FALSE set, and 1 if it is TRUE.
 PARMRK     = 31  # Mark parity and framing errors.
 INPCK      = 32  # Enable checking of parity errors.
 ISTRIP     = 33  # Strip 8th bit off characters.
@@ -78,7 +78,7 @@ IMAXBEL    = 41  # Ring bell on input queue full.
 ISIG       = 50  # Enable signals INTR, QUIT, [D]SUSP.
 ICANON     = 51  # Canonicalize input lines.
 XCASE      = 52  # Enable input and output of uppercase characters by
-                 # preceding their lowercase equivalents with `\'.
+# preceding their lowercase equivalents with `\'.
 ECHO       = 53  # Enable echoing.
 ECHOE      = 54  # Visually erase chars.
 ECHOK      = 55  # Kill character discards current line.
@@ -100,5 +100,5 @@ CS8        = 91  # 8 bit mode.
 PARENB     = 92  # Parity enable.
 PARODD     = 93  # Odd parity, else even.
 
-TTY_OP_ISPEED = 128 # Specifies the input baud rate in bits per second.
-TTY_OP_OSPEED = 129 # Specifies the output baud rate in bits per second.
+TTY_OP_ISPEED = 128  # Specifies the input baud rate in bits per second.
+TTY_OP_OSPEED = 129  # Specifies the output baud rate in bits per second.

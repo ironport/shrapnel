@@ -52,7 +52,7 @@ class http_file:
                 self.streamo = read_stream.buffered_stream (self._gen_read_all().next)
             else:
                 raise HTTP_Protocol_Error ("no way to determine length of HTTP data")
-            
+
     def _gen_read_chunked (self):
         "generator: decodes chunked transfer-encoding."
         s = self.streami
@@ -127,7 +127,8 @@ class header_set:
             self.crack (h)
 
     def from_keywords (self, kwds):
-        "Populate this header set from a dictionary of keyword arguments (e.g., 'content_length' becomes 'content-length')"
+        """Populate this header set from a dictionary of keyword arguments
+           (e.g., 'content_length' becomes 'content-length')"""
         r = []
         for k, v in kwds.items():
             k = k.replace ('_', '-')
@@ -139,14 +140,15 @@ class header_set:
         # deliberately ignoring 822 crap like continuation lines.
         try:
             i = h.index (': ')
-            name, value = h[:i], h[i+2:]
+            name, value = h[:i], h[i + 2:]
             self[name] = value
         except ValueError:
             coro.write_stderr ('dropping bogus header %r\n' % (h,))
             pass
 
     def get_one (self, key):
-        "Get the value of a header expected to have at most one value. If not present, return None.  If more than one, raise ValueError."
+        """Get the value of a header expected to have at most one value.
+           If not present, return None.  If more than one, raise ValueError."""
         r = self.headers.get (key, None)
         if r is None:
             return r

@@ -52,7 +52,7 @@ def parse_public_key(public_key):
     """
     data, offset = packet.unpack_payload_get_offset((packet.STRING,), public_key)
     keytype = data[0]
-    if not keytypes.has_key(keytype):
+    if keytype not in keytypes:
         raise Unknown_Key_Type(keytype)
 
     key_obj = keytypes[keytype]()

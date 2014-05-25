@@ -24,13 +24,14 @@ import process
 import os
 
 def p():
-    while 1:
+    while True:
         print 'hi'
         coro.sleep_relative(.5)
 
 def main():
     pid, fi, fo, fe = process.spawn_job_bg('/bin/sleep 3')
-    coro.wait_for_kevent (pid, kqueue_events.EV_ADD | kqueue_events.EV_ONESHOT, kqueue_events.EVFILT_PROC, kqueue_events.NOTE_EXIT)
+    coro.wait_for_kevent (pid, kqueue_events.EV_ADD | kqueue_events.EV_ONESHOT,
+                          kqueue_events.EVFILT_PROC, kqueue_events.NOTE_EXIT)
     print 'wait done'
     os.waitpid(pid, 0)
     coro.sleep_relative(5)

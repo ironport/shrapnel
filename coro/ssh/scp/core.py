@@ -76,12 +76,12 @@ class SCP:
     root_slash = None
 
     def __init__(self, input=None,
-                       output=None,
-                       path_filter=None,
-                       filter_recursive_only=False,
-                       root=None,
-                       shell_globbing=False
-                ):
+                 output=None,
+                 path_filter=None,
+                 filter_recursive_only=False,
+                 root=None,
+                 shell_globbing=False
+                 ):
         if input:
             self.input = input
         else:
@@ -217,7 +217,7 @@ class SCP:
                     size = int(result[5:end])
                 except ValueError:
                     self.hard_error('Invalid size (%r)' % (result,))
-                filename = result[end+1:]
+                filename = result[end + 1:]
                 if not filename:
                     self.hard_error('Filename not specified (%r)' % (result,))
                 if '/' in filename or filename == '..':
@@ -251,7 +251,8 @@ class SCP:
                             try:
                                 os.chmod(absolute_pathname, mode)
                             except OSError, e:
-                                self.debug(DEBUG_NORMAL, 'Failed to chmod %r to %o: %s', relative_pathname, mode, e.strerror)
+                                self.debug(
+                                    DEBUG_NORMAL, 'Failed to chmod %r to %o: %s', relative_pathname, mode, e.strerror)
                                 # Continue, this is not critical.
                     else:
                         try:
@@ -266,13 +267,14 @@ class SCP:
                         try:
                             os.utime(absolute_pathname, timestamp)
                         except OSError, e:
-                            self.soft_error('Failed to set timestamp (%r) on %r: %s' % (timestamp, relative_pathname, e.strerror))
+                            self.soft_error('Failed to set timestamp (%r) on %r: %s' %
+                                            (timestamp, relative_pathname, e.strerror))
                             continue
                 else:
                     # code == 'C'
                     # Creating a file.
                     try:
-                        fd = os.open(absolute_pathname, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, mode)
+                        fd = os.open(absolute_pathname, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
                     except OSError, e:
                         self.soft_error('Failed to create %r: %s' % (relative_pathname, e.strerror))
                         continue
@@ -284,7 +286,8 @@ class SCP:
                         while bytes_left > 0:
                             block = self.input.read(min(bytes_left, self.blocksize))
                             if not block:
-                                self.hard_error('End of file, but expected more data while ready %r.' % (relative_pathname,))
+                                self.hard_error('End of file, but expected more data while ready %r.' %
+                                                (relative_pathname,))
                             bytes_left -= len(block)
                             if not error:
                                 try:
@@ -301,7 +304,8 @@ class SCP:
                         try:
                             os.utime(absolute_pathname, timestamp)
                         except OSError, e:
-                            self.soft_error('Failed to set timestamp (%r) on %r: %s' % (timestamp, relative_pathname, e.strerror))
+                            self.soft_error('Failed to set timestamp (%r) on %r: %s' %
+                                            (timestamp, relative_pathname, e.strerror))
                             continue
                     if error:
                         self.soft_error('Error while writing %r: %s' % (relative_pathname, error.strerror))
@@ -355,7 +359,7 @@ class SCP:
                            recursive,
                            more_relative_pathname,
                            more_absolute_pathname
-                          )
+                           )
 
     def _send(self, preserve, recursive, relative_pathname, absolute_pathname):
 
@@ -392,8 +396,8 @@ class SCP:
         self.output.write('C%04o %i %s\n' % (stat.S_IMODE(st.st_mode),
                                              st.st_size,
                                              base
-                                            )
-                         )
+                                             )
+                          )
         self.output.flush()
         if not self.read_response():
             return
@@ -449,8 +453,8 @@ class SCP:
         self.output.write('D%04o %i %s\n' % (stat.S_IMODE(st.st_mode),
                                              0,
                                              base
-                                            )
-                         )
+                                             )
+                          )
         self.output.flush()
         if not self.read_response():
             return
@@ -553,7 +557,6 @@ class SCP:
             # Never saw a \n.
             self.hard_error('Command line too long (%i)' % (self.max_line_size,))
         return True
-
 
     def _report_error(self, message):
         """Report an error message.

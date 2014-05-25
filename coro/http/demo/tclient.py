@@ -9,7 +9,7 @@ from coro.http.protocol import header_set
 def t0():
     c = http_client ('127.0.0.1', 80)
     h = header_set()
-    l = [ c.send_request ('GET', '/postgresql/html/', h, content=None, force=True) for x in range (10) ]
+    l = [c.send_request ('GET', '/postgresql/html/', h, content=None, force=True) for x in range (10)]
     for req in l:
         req.wait()
         W ('%s\n' % (req.response,))
@@ -26,4 +26,3 @@ if __name__ == '__main__':
     coro.spawn (t0)
     coro.spawn (coro.backdoor.serve, unix_path='/tmp/xx.bd')
     coro.event_loop()
-

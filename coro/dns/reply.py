@@ -32,6 +32,7 @@ class dns_reply:
     self.ar    -> List of additional record tuples (typename, name, ttl, DATA)
     DATA depends on the type of the RR entry.
     """
+
     def __init__ (self):
         self.rcode = 0
         self.q  = []
@@ -45,7 +46,7 @@ class dns_reply:
     def __repr__ (self):
         return '<dns_reply rcode=%d q:%s an:%s ns:%s ar:%s>' % (
             self.rcode, self.q, self.an, self.ns, self.ar
-            )
+        )
 
 
 def get_rr (u, use_actual_ttl=0, ttl_min=1800):
@@ -99,7 +100,7 @@ def unpack_reply (reply, use_actual_ttl=0, ttl_min=1800):
     else:
         __pychecker__ = 'unusednames=x'
         r.q  = [u.getQuestion() for x in range (h.qdcount)]
-        r.an = filter (None, [ get_rr (u, use_actual_ttl, ttl_min) for x in range (h.ancount) ])
-        r.ns = filter (None, [ get_rr (u, use_actual_ttl, ttl_min) for x in range (h.nscount) ])
-        r.ar = filter (None, [ get_rr (u, use_actual_ttl, ttl_min) for x in range (h.arcount) ])
+        r.an = filter (None, [get_rr (u, use_actual_ttl, ttl_min) for x in range (h.ancount)])
+        r.ns = filter (None, [get_rr (u, use_actual_ttl, ttl_min) for x in range (h.nscount)])
+        r.ar = filter (None, [get_rr (u, use_actual_ttl, ttl_min) for x in range (h.arcount)])
     return r

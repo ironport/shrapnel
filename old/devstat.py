@@ -25,30 +25,33 @@ import struct
 # see /usr/include/sys/devicestat.h
 
 devstat_format = (
-#struct devstat {
-'II'  # STAILQ_ENTRY(devstat)   dev_links;
-'I'   # u_int32_t               device_number;       // Devstat device number.
-'16s' # char                    device_name[DEVSTAT_NAME_LEN];
-'i'   # int                     unit_number;
-'q'   # u_int64_t               bytes_read;          //  Total bytes read from a device.
-'q'   # u_int64_t               bytes_written;       //  Total bytes written to a device.
-'q'   # u_int64_t               bytes_freed;         //  Total bytes freed from a device.
-'q'   # u_int64_t               num_reads;           //  Total number of read requests to the device.
-'q'   # u_int64_t               num_writes;          //  Total number of write requests to the device.
-'q'   # u_int64_t               num_frees;           //  Total number of free requests to the device.
-'q'   # u_int64_t               num_other;           //  Total number of transactions that don't read or write data.
-'i'   # int32_t                 busy_count;          //  Total number of transactions outstanding for the device.
-'I'   # u_int32_t               block_size;          //  Block size, bytes
-'qqq' # u_int64_t               tag_types[3];        //  The number of simple, ordered, and head of queue tags sent.
-'II'  # struct timeval          dev_creation_time;   //  Time the device was created.
-'II'  # struct timeval          busy_time;           //  Total amount of time drive has spent processing requests.
-'II'  # struct timeval          start_time;          //  The time when busy_count was last == 0.  Or, the start of the latest busy period.
-'II'  # struct timeval          last_comp_time;      //  Last time a transaction was completed.
-'8s'
-#       devstat_support_flags   flags;               //  Which statistics are supported by a given device.
-#       devstat_type_flags      device_type;         //  Device type
-#       devstat_priority        priority;            //  Controls list pos.
-#};
+    # struct devstat {
+    'II'  # STAILQ_ENTRY(devstat)   dev_links;
+    'I'   # u_int32_t               device_number;       // Devstat device number.
+    '16s'  # char                    device_name[DEVSTAT_NAME_LEN];
+    'i'   # int                     unit_number;
+    'q'   # u_int64_t               bytes_read;          //  Total bytes read from a device.
+    'q'   # u_int64_t               bytes_written;       //  Total bytes written to a device.
+    'q'   # u_int64_t               bytes_freed;         //  Total bytes freed from a device.
+    'q'   # u_int64_t               num_reads;           //  Total number of read requests to the device.
+    'q'   # u_int64_t               num_writes;          //  Total number of write requests to the device.
+    'q'   # u_int64_t               num_frees;           //  Total number of free requests to the device.
+    'q'   # u_int64_t               num_other;           //  Total number of transactions that don't read or write data.
+    'i'   # int32_t                 busy_count;          //  Total number of transactions outstanding for the device.
+    'I'   # u_int32_t               block_size;          //  Block size, bytes
+    # u_int64_t               tag_types[3];        //  The number of simple, ordered, and head of queue tags sent.
+    'qqq'
+    'II'  # struct timeval          dev_creation_time;   //  Time the device was created.
+    'II'  # struct timeval          busy_time;           //  Total amount of time drive has spent processing requests.
+    # struct timeval          start_time;          //  The time when
+    # busy_count was last == 0.  Or, the start of the latest busy period.
+    'II'
+    'II'  # struct timeval          last_comp_time;      //  Last time a transaction was completed.
+    '8s'
+    #       devstat_support_flags   flags;               //  Which statistics are supported by a given device.
+    #       devstat_type_flags      device_type;         //  Device type
+    #       devstat_priority        priority;            //  Controls list pos.
+    # };
 )
 
 def fix_zt_string (s):
@@ -67,11 +70,11 @@ class devstat_struct:
 
 def devstat():
     if sysctl.sysctl ('kern.devstat.version', 1) != 4:
-        raise SystemError, "devstat(9) version has changed"
+        raise SystemError("devstat(9) version has changed")
     data = sysctl.sysctl ('kern.devstat.all', 0)
     devices = {}
     for i in range (0, len(data), devstat_size):
-        sub = data[i:i+devstat_size]
+        sub = data[i:i + devstat_size]
         if len(sub) != devstat_size:
             # there are an extra four bytes tacked on to the end.
             # don't know what they're about.  padding?  They always
@@ -97,10 +100,9 @@ def devstat():
     return devices
 
 def devstat_print_all():
-    d = devstat().items()
-    d.sort()
-    for k,v in d:
-        print '---',k,'---'
+    d = sorted(devstat().items())
+    for k, v in d:
+        print '---', k, '---'
         v.pprint()
 
 if __name__ == '__main__':

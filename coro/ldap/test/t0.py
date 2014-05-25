@@ -18,7 +18,7 @@ pq_tests = [
       15)),
     # nary expressions
     ('(|(a=b)(b=c)(c=d)(e=f)(f=g)(h=i))',
-     ((C, 1, [(C, 3, ['a', 'b']), (C, 3, ['b', 'c']), (C, 3, ['c', 'd']), (C, 3, ['e', 'f']), (C, 3, ['f', 'g']), (C, 3, ['h', 'i'])]),
+     ((C, 1, [(C, 3, ['a', 'b']), (C, 3, ['b', 'c']), (C, 3, ['c', 'd']), (C, 3, ['e', 'f']), (C, 3, ['f', 'g']), (C, 3, ['h', 'i'])]),  # noqa
       50)),
     ('(|(!(a=*))(&(b=c)(d=e))(x<=y))',
      ((C, 1, [(C, 2, [(C, 7, 'a')]), (C, 0, [(C, 3, ['b', 'c']), (C, 3, ['d', 'e'])]), (C, 6, ['x', 'y'])]),
@@ -37,7 +37,7 @@ pq_tests = [
     ('(a=', QuerySyntaxError),
     ('(a<b)', QuerySyntaxError),
     # good hex escape
-    ('(a=some\\AAthing)',((C, 3, ['a', 'some\252thing']), 17)),
+    ('(a=some\\AAthing)', ((C, 3, ['a', 'some\252thing']), 17)),
     # bad hex escape
     ('(a=some\\AZthing)', QuerySyntaxError),
     # upper/lower case hex escape
@@ -49,14 +49,14 @@ pq_tests = [
     # junk/illegal
     ('junk', QuerySyntaxError),
     # lots of parens
-    (('('*100), QuerySyntaxError),
+    (('(' * 100), QuerySyntaxError),
     # expression too complex
     (('(!' * 55) + '(x=y)' + (')' * 55), QuerySyntaxError),
     # expression not too complex
     (('(!' * 10) + '(x=y)' + (')' * 10),
-     ((C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 3, ['x', 'y'])])])])])])])])])])]),
+     ((C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 3, ['x', 'y'])])])])])])])])])])]),  # noqa
       28)),
-    ]
+]
 
 class parse_query_test (unittest.TestCase):
     def runTest (self):

@@ -36,7 +36,7 @@ class protos_test (_ldap_test_case):
 
     def runTest (self):
         i = 0
-        while 1:
+        while True:
             try:
                 data = open (('%08d' % n), 'rb').read()
                 try:
@@ -61,9 +61,9 @@ class integer_test (_ldap_test_case):
         for i in range (-2000000, -1000000, 50):
             self.assertEqual (decode (INTEGER (i))[0], i)
         # test long integers
-        for i in range (1000000L, 2000000L, 50):
+        for i in range (1000000, 2000000, 50):
             self.assertEqual (decode (INTEGER (i))[0], i)
-        big = 2038490283059834505983450695834059639085793847509834752039485034967489769487694856L
+        big = 2038490283059834505983450695834059639085793847509834752039485034967489769487694856
         self.assertEqual (decode (INTEGER (big))[0], big)
 
 C = 'context'
@@ -79,8 +79,8 @@ pq_tests = [
       15)),
     # nary expressions
     ('(|(a=b)(b=c)(c=d)(e=f)(f=g)(h=i))',
-     ((C, 1, [(C, 3, ['a', 'b']), (C, 3, ['b', 'c']), (C, 3, ['c', 'd']), (C, 3, ['e', 'f']), (C, 3, ['f', 'g']), (C, 3, ['h', 'i'])]),
-      50)),
+     ((C, 1, [(C, 3, ['a', 'b']), (C, 3, ['b', 'c']), (C, 3, ['c', 'd']), (C, 3, ['e', 'f']),
+      (C, 3, ['f', 'g']), (C, 3, ['h', 'i'])]), 50)),
     ('(|(!(a=*))(&(b=c)(d=e))(x<=y))',
      ((C, 1, [(C, 2, [(C, 7, 'a')]), (C, 0, [(C, 3, ['b', 'c']), (C, 3, ['d', 'e'])]), (C, 6, ['x', 'y'])]),
       33)),
@@ -98,7 +98,7 @@ pq_tests = [
     ('(a=', QuerySyntaxError),
     ('(a<b)', QuerySyntaxError),
     # good hex escape
-    ('(a=some\\AAthing)',((C, 3, ['a', 'some\252thing']), 17)),
+    ('(a=some\\AAthing)', ((C, 3, ['a', 'some\252thing']), 17)),
     # bad hex escape
     ('(a=some\\AZthing)', QuerySyntaxError),
     # upper/lower case hex escape
@@ -110,14 +110,14 @@ pq_tests = [
     # junk/illegal
     ('junk', QuerySyntaxError),
     # lots of parens
-    (('('*100), QuerySyntaxError),
+    (('(' * 100), QuerySyntaxError),
     # expression too complex
     (('(!' * 55) + '(x=y)' + (')' * 55), QuerySyntaxError),
     # expression not too complex
     (('(!' * 10) + '(x=y)' + (')' * 10),
-     ((C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 3, ['x', 'y'])])])])])])])])])])]),
-      28)),
-    ]
+     ((C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2, [(C, 2,
+       [(C, 2, [(C, 2, [(C, 3, ['x', 'y'])])])])])])])])])])]), 28)),
+]
 
 class parse_query_test (_ldap_test_case):
     def runTest (self):

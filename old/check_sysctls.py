@@ -20,27 +20,29 @@ def verify_resource (name, minval):
     try:
         x = sysctl.sysctl (name, 1)
     except:
-        raise SystemError, "Failed to query sysctl MIB '%s': %s" % (name, tb.traceback_string())
+        raise SystemError("Failed to query sysctl MIB '%s': %s" % (name, tb.traceback_string()))
     else:
         if x < minval:
-            raise SystemError, "The sysctl MIB '%s' has value '%d', which is less than the required minimum value of '%d'" % (name, x, minval)
+            raise SystemError(
+                "The sysctl MIB '%s' has value '%d', which is less than the required minimum value of '%d'" %
+                (name, x, minval))
 
 resource_minimums = {
-    "kern.maxfiles"         : 16384,        # /etc/sysctl.conf
-    "kern.maxfilesperproc"      : 16000,        # /etc/sysctl.conf
-    "kern.ipc.somaxconn"        :  8192,        # /etc/sysctl.conf
-    "kern.ipc.nmbufs"           : 65536,        # /boot/loader.conf
-    "kern.ipc.nmbclusters"      : 16384,        # /boot/loader.conf
-    "net.inet.ip.portrange.last"    : 49151,        # /etc/sysctl.conf
-    "net.inet.tcp.tcbhashsize"      : 16384,        # /boot/loader.conf
-    "net.inet.ip.intr_queue_maxlen" :   200,        # /etc/sysctl.conf
-#    "machdep.tsc_freq"              :     0,        # see kernel config and rdtsc.h
-    }
+    "kern.maxfiles": 16384,        # /etc/sysctl.conf
+    "kern.maxfilesperproc": 16000,        # /etc/sysctl.conf
+    "kern.ipc.somaxconn": 8192,        # /etc/sysctl.conf
+    "kern.ipc.nmbufs": 65536,        # /boot/loader.conf
+    "kern.ipc.nmbclusters": 16384,        # /boot/loader.conf
+    "net.inet.ip.portrange.last": 49151,        # /etc/sysctl.conf
+    "net.inet.tcp.tcbhashsize": 16384,        # /boot/loader.conf
+    "net.inet.ip.intr_queue_maxlen": 200,        # /etc/sysctl.conf
+    # "machdep.tsc_freq"              :     0,        # see kernel config and rdtsc.h
+}
 
 def verify():
     if not os.environ.get("BUILDING"):
         for name, minval in resource_minimums.items():
             verify_resource (name, minval)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     verify()

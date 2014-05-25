@@ -45,7 +45,7 @@ class LDAP:
     SearchRequest               = 3
     SearchResultEntry           = 4
     SearchResultDone            = 5
-    SearchResultReference       = 19 # <--- NOT IN SEQUENCE
+    SearchResultReference       = 19  # <--- NOT IN SEQUENCE
     ModifyRequest               = 6
     ModifyResponse              = 7
     AddRequest                  = 8
@@ -57,7 +57,7 @@ class LDAP:
     CompareRequest              = 14
     CompareResponse             = 15
     AbandonRequest              = 16
-    ExtendedRequest             = 23 # <--- NOT IN SEQUENCE
+    ExtendedRequest             = 23  # <--- NOT IN SEQUENCE
     ExtendedResponse            = 24
 
 class SCOPE:
@@ -81,7 +81,7 @@ def encode_search_request (
     filter,
     which_attrs=None,
     compatibility={}
-    ):
+):
     if scope is None:
         scope = compatibility.get('scope', SCOPE.SUBTREE)
     if which_attrs is None:
@@ -95,7 +95,7 @@ def encode_search_request (
         # different here, hence the lookup in the compatibility dict.
         which_attrs = SEQUENCE (
             OCTET_STRING (compatibility.get ('no_attr_attr', '1.1'))
-            )
+        )
     else:
         which_attrs = SEQUENCE (*[OCTET_STRING (x) for x in which_attrs])
     return TLV (
@@ -108,7 +108,7 @@ def encode_search_request (
         BOOLEAN (types_only),
         parse_query (filter),
         which_attrs,
-        )
+    )
 
 class AUTH:
     # 1 and 2 are reserved
@@ -195,7 +195,7 @@ class Error (Exception):
 RESULT._reverse_map = r = {}
 for attr in dir(RESULT):
     value = getattr (RESULT, attr)
-    if (type(value) == type(0)):
+    if isinstance(value, type(0)):
         r[value] = attr
 
 def result_string (result):
@@ -211,7 +211,7 @@ def encode_bind_request (version, name, auth_data):
         INTEGER (version),
         OCTET_STRING (name),
         auth_data
-        )
+    )
 
 def encode_simple_bind (version, name, login):
     return encode_bind_request (
@@ -220,8 +220,8 @@ def encode_simple_bind (version, name, login):
         TLV (
             CHOICE (AUTH.simple, 0),
             login
-            )
         )
+    )
 
 def encode_sasl_bind (version, name, mechanism, credentials=''):
     if credentials:
@@ -235,15 +235,15 @@ def encode_sasl_bind (version, name, mechanism, credentials=''):
             CHOICE (AUTH.sasl),
             OCTET_STRING (mechanism),
             cred
-            )
         )
+    )
 
 def encode_starttls ():
     # encode STARTTLS request: RFC 2830, 2.1
     return TLV (
         APPLICATION (LDAP.ExtendedRequest),
         TLV (CHOICE (0, 0), '1.3.6.1.4.1.1466.20037')
-        )
+    )
 
 class client:
 
@@ -286,7 +286,7 @@ class client:
         if not tl:
             return [None, None]
         tag = tl[0]
-        if tag != '0': # SEQUENCE | STRUCTURED
+        if tag != '0':  # SEQUENCE | STRUCTURED
             raise ProtocolError ('bad tag byte: %r' % (tag,))
         l = ord (tl[1])
         p = [tl]
@@ -338,9 +338,9 @@ class client:
             del self.pending[msgid]
 
     # server replies NO:
-    #starttls decoded=[1, ('application', 24, [2, '', 'unsupported extended operation'])]
+    # starttls decoded=[1, ('application', 24, [2, '', 'unsupported extended operation'])]
     # server replies YES:
-    #starttls decoded=[1, ('application', 24, [0, '', ''])]
+    # starttls decoded=[1, ('application', 24, [0, '', ''])]
 
     exit_recv_thread = False
 
@@ -360,6 +360,7 @@ class client:
         return reply
 
     ldap_protocol_version = 3
+
     def simple_bind (self, name, login):
         return self.send_message (encode_simple_bind (self.ldap_protocol_version, name, login))
 
@@ -377,11 +378,11 @@ def t0():
             0,
             0,
             '(&(objectclass=inetorgperson)(userid=srushing))',
-            #'(&(objectclass=inetorgperson)(userid=newton))',
+            # '(&(objectclass=inetorgperson)(userid=newton))',
             # ask for these specific attributes only
             ['mailAlternateAddress', 'rfc822ForwardingMailbox']
-            )
         )
+    )
 
     import pprint
     import socket

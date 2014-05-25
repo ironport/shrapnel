@@ -23,6 +23,7 @@
 import coro
 import operator
 import sys
+from functools import reduce
 
 W = coro.write_stderr
 
@@ -59,13 +60,13 @@ def fun_42 (sleep):
 
 def fun1 (sleep, arg0, arg1):
     W ('fun1() sleep=%d\n' % sleep)
-    result = apply (fun0, (sleep, arg0, arg1))
+    result = fun0(*(sleep, arg0, arg1))
     W ('fun1() sleep=%d, result=%r\n' % (sleep, result))
 
 # tests switching in __call__
 def go (t):
     W ('before %r {%d}\n' % (t, sys.get_dispatcher_depth()))
-    result = t(3,4,5)
+    result = t(3, 4, 5)
     W ('after %r {%d}\n' % (t, sys.get_dispatcher_depth()))
     return result
 
@@ -81,7 +82,7 @@ def go4():
 
 def fun2 (sleep):
     W ("fun2() sleep=%d\n" % (sleep,))
-    x = apply (thing2, (sleep,))
+    x = thing2(*(sleep,))
     W ("fun2() sleep=%d, result=%r\n" % (sleep, x))
 
 def go5():
@@ -104,17 +105,17 @@ class Plonk (Exception):
 
 def fun3():
     coro.sleep_relative (5)
-    raise Plonk, (1,2,3)
+    raise Plonk(1, 2, 3)
 
 def fun4():
     for i in range (50):
-        x = apply (operator.add, (3,4))
-        assert (x==7)
+        x = operator.add(*(3, 4))
+        assert (x == 7)
         W ('x=7 [%d]\n' % (sys.getrefcount(7)))
 
 def fun5():
     for i in range (50):
-        x = apply (thing, (i,))
+        x = thing(*(i,))
         W ('None [%d]\n' % (sys.getrefcount(None)))
 
 # ================================================================================
@@ -131,7 +132,7 @@ the_fifo = my_fifo()
 def popper (n):
     global live
     W ('>%d>' % (n,))
-    while 1:
+    while True:
         x = the_fifo.pop()
         W ('[%d.%d]' % (n, x))
         coro.sleep_relative (0)
@@ -186,7 +187,7 @@ class A:
 
 def go9 (t):
     a = A()
-    return a.m (t, 3,4,5)
+    return a.m (t, 3, 4, 5)
 
 # tests switching in fancy-args method (ext_do_call)
 def fun9():

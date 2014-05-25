@@ -23,15 +23,15 @@ intersects = region.region_intersect_p
 # split a rect into four quadrants
 
 def split (rect):
-    l,t,r,b = rect
-    w2 = ((r-l)/2)+l
-    h2 = ((b-t)/2)+t
+    l, t, r, b = rect
+    w2 = ((r - l) / 2) + l
+    h2 = ((b - t) / 2) + t
     return (
-        (l,t,w2,h2),
-        (w2,t,r,h2),
-        (l,h2,w2,b),
-        (w2,h2,r,b)
-        )
+        (l, t, w2, h2),
+        (w2, t, r, h2),
+        (l, h2, w2, b),
+        (w2, h2, r, b)
+    )
 
 # insert an object into the tree.  The object must have a
 # 'get_rect()' method in order to support searching.
@@ -45,7 +45,7 @@ def insert (tree, tree_rect, ob, ob_rect):
         for i in range(4):
             if contains (quads[i], ob_rect):
                 if not tree[i]:
-                    tree[i] = [None,None,None,None,set()]
+                    tree[i] = [None, None, None, None, set()]
                 insert (tree[i], quads[i], ob, ob_rect)
                 return
     tree[4].add (ob)
@@ -91,31 +91,31 @@ def gen_all (tree):
                 yield x
 
 def dump (rect, tree, depth=0):
-    print '  ' * depth, rect,  tree[4]
+    print '  ' * depth, rect, tree[4]
     quads = split (rect)
     for i in range (4):
         if tree[i]:
-            dump (quads[i], tree[i], depth+1)
+            dump (quads[i], tree[i], depth + 1)
 
 # wrapper for a quadtree, maintains bounds, keeps track of the
 # number of objects, etc...
 
 class quadtree:
-    def __init__ (self, rect=(0,0,16,16)):
+    def __init__ (self, rect=(0, 0, 16, 16)):
         self.rect = rect
-        self.tree = [None,None,None,None,set()]
+        self.tree = [None, None, None, None, set()]
         self.num_obs = 0
-        self.bounds = (0,0,0,0)
+        self.bounds = (0, 0, 0, 0)
 
     def __repr__ (self):
         return '<quad tree (objects:%d) bounds:%s >' % (
             self.num_obs,
             repr(self.bounds)
-            )
+        )
 
     def check_bounds (self, rect):
-        l,t,r,b = self.bounds
-        L,T,R,B = rect
+        l, t, r, b = self.bounds
+        L, T, R, B = rect
         if L < l:
             l = L
         if T < t:
@@ -124,7 +124,7 @@ class quadtree:
             r = R
         if B > b:
             b = B
-        self.bounds = l,t,r,b
+        self.bounds = l, t, r, b
 
     def get_bounds (self):
         return self.bounds
@@ -132,22 +132,22 @@ class quadtree:
     def insert (self, ob):
         rect = ob.get_rect()
         while not contains (self.rect, rect):
-            l,t,r,b = self.rect
-            w, h = r-l, b-t
+            l, t, r, b = self.rect
+            w, h = r - l, b - t
             # favor growing right and down
             if (rect[2] > r) or (rect[3] > b):
                 # resize, placing original in the upper left
-                self.rect = l, t, (r+w), (b+h)
+                self.rect = l, t, (r + w), (b + h)
                 self.tree = [self.tree, None, None, None, set()]
             elif (rect[0] < l) or (rect[1] < t):
                 # resize, placing original in lower right
-                self.rect = (l-w,t-h,r,b)
+                self.rect = (l - w, t - h, r, b)
                 self.tree = [None, None, None, self.tree, set()]
         # we know the target rect fits in our space
         insert (self.tree, self.rect, ob, rect)
         self.check_bounds (rect)
         self.num_obs += 1
-        
+
     def gen_all (self):
         for ob in gen_all (self.tree):
             yield ob
@@ -171,7 +171,9 @@ class quadtree:
 class box:
     def __init__ (self, rect):
         self.rect = rect
+
     def get_rect (self):
         return self.rect
+
     def __repr__ (self):
         return '<box (%d,%d,%d,%d)>' % self.rect

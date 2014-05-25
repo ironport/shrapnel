@@ -54,9 +54,9 @@ class backdoor:
         self.global_dict = global_dict
 
         # allow the user to change the prompts:
-        if not sys.__dict__.has_key('ps1'):
+        if 'ps1' not in sys.__dict__:
             sys.ps1 = '>>> '
-        if not sys.__dict__.has_key('ps2'):
+        if 'ps2' not in sys.__dict__:
             sys.ps2 = '... '
 
     def send (self, data):
@@ -118,13 +118,12 @@ class backdoor:
         # about.
         for name, value in env.items():
             if (name.startswith('__') and
-                name.endswith('__') and
-                name not in ('__builtins__',)
-               ):
+                    name.endswith('__') and
+                    name not in ('__builtins__',)):
                 del env[name]
         env['__name__'] = '__backdoor__'
 
-        while 1:
+        while True:
             self.prompt()
             line = self.read_line()
             if line is None:
@@ -156,7 +155,7 @@ class backdoor:
                 try:
                     co = compile (line, repr(self), 'exec')
                     exec co in env
-                except SyntaxError, msg:
+                except SyntaxError as msg:
                     # this is a hack, but it is a righteous hack:
                     if not self.multilines and msg[0] == 'unexpected EOF while parsing':
                         self.multilines.append(line)
@@ -180,8 +179,8 @@ def serve (port=None, ip='127.0.0.1', unix_path=None, welcome_message=None, glob
     if unix_path:
         try:
             os.remove(unix_path)
-        except OSError, why:
-            if why[0]==errno.ENOENT:
+        except OSError as why:
+            if why[0] == errno.ENOENT:
                 pass
             else:
                 raise
@@ -198,7 +197,7 @@ def serve (port=None, ip='127.0.0.1', unix_path=None, welcome_message=None, glob
         if port is None:
             ports = xrange(8023, 8033)
         else:
-            if type(port) == types.IntType:
+            if isinstance(port, types.IntType):
                 ports = [port]
             else:
                 ports = port
@@ -208,14 +207,14 @@ def serve (port=None, ip='127.0.0.1', unix_path=None, welcome_message=None, glob
                 s.bind ((ip, i))
                 bound = 1
                 break
-            except (OSError, socket.error), why:
+            except (OSError, socket.error) as why:
                 if why[0] != errno.EADDRINUSE:
-                    raise OSError, why
+                    raise OSError(why)
         if not bound:
-            raise Exception, "couldn't bind a port (try not specifying a port)"
+            raise Exception("couldn't bind a port (try not specifying a port)")
         coro.print_stderr('Backdoor started on port %d\n' % i)
     s.listen (1024)
-    while 1:
+    while True:
         conn, addr = s.accept()
         coro.print_stderr ('incoming connection from %r\n' % (conn.getsockname(),))
         thread = coro.spawn (client, conn, addr, welcome_message, global_dict)

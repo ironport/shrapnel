@@ -52,7 +52,7 @@ def http_client():
     client.connect (('192.168.200.44', 8080))
     client.send ('GET / HTTP/1.1\r\nConnection: close\r\n\r\n')
     data = ''
-    while 1:
+    while True:
         block = client.recv (8192)
         if block:
             data += block
@@ -81,7 +81,7 @@ def channel (conn, addr):
         print 'no peer cert'
     conn.send ('Hi there %r\n' % (addr,))
     print 'cipher=', conn.ssl.get_cipher()
-    while 1:
+    while True:
         line = conn.recv (8192)
         if not line:
             break
@@ -94,14 +94,14 @@ def server (port=9090):
     server.create()
     server.bind (('', port))
     server.listen (1024)
-    while 1:
+    while True:
         conn, addr = server.accept()
         coro.spawn (channel, conn, addr)
 
 def smtp_tls_server_session (conn):
     oconn = conn
     conn.send ('200 howdy\r\n')
-    while 1:
+    while True:
         cmd = conn.recv (1024)
         coro.print_stderr ('got %r\r\n' % (cmd,))
         cmd = cmd.lower()
@@ -114,11 +114,11 @@ def smtp_tls_server_session (conn):
                 sconn.ssl_accept()
                 conn = sconn
             except sslip.Error:
-                #conn.send ('454 TLS negotiation failed\r\n')
+                # conn.send ('454 TLS negotiation failed\r\n')
                 pass
         elif cmd.startswith ('data'):
             conn.send ('354 go ahead\r\n')
-            while 1:
+            while True:
                 block = conn.recv (8192)
                 if block.endswith ('\r\n.\r\n'):
                     break
@@ -134,7 +134,7 @@ def smtp_tls_server_session (conn):
                 '250-SIZE 10240000\r\n'
                 '250-STARTTLS\r\n'
                 '250 8BITMIME\r\n'
-                )
+            )
         else:
             conn.send ('200 ok\r\n')
 
@@ -142,7 +142,7 @@ def smtp_tls_server():
     sock = coro.make_socket (socket.AF_INET, socket.SOCK_STREAM)
     sock.bind (('0.0.0.0', 25))
     sock.listen (5)
-    while 1:
+    while True:
         conn, addr = sock.accept()
         coro.spawn (smtp_tls_server_session, conn)
 
@@ -150,10 +150,10 @@ def smtp_tls_server():
 # [tricky, had to rename /var/qmail/control/cert.pem to servercert.pem]
 def smtp_tls_session (
     host,
-    port = '25',
-    fromaddr = 'rushing@nightmare.com',
-    to = 'rushing@nightmare.com'
-    ):
+    port='25',
+    fromaddr='rushing@nightmare.com',
+    to='rushing@nightmare.com'
+):
     print "smtp tls test client"
     sock = coro.make_socket (socket.AF_INET, socket.SOCK_STREAM)
     print "host=%r port=%r" % (host, port)
@@ -167,7 +167,7 @@ def smtp_tls_session (
     ctx = coro_ssl.ssl_ctx (sslip.SSLV2_CLIENT_METHOD)
     client = coro_ssl.ssl_sock (ctx)
     client.create (sock=sock)
-    #client.ssl.set_connect_state()
+    # client.ssl.set_connect_state()
     try:
         coro.print_stderr ('calling ssl_connect()\n')
         client.ssl_connect()
@@ -209,17 +209,17 @@ if __name__ == '__main__':
         coro.spawn (smtp_tls_server)
     elif '--smtp-tls' in sys.argv:
         if '--host' in sys.argv:
-             i = 1 + sys.argv.index('--host')
-             host = sys.argv[i]
+            i = 1 + sys.argv.index('--host')
+            host = sys.argv[i]
         if '--port' in sys.argv:
-             i = 1 + sys.argv.index('--port')
-             port = sys.argv[i]
+            i = 1 + sys.argv.index('--port')
+            port = sys.argv[i]
         if '--from' in sys.argv:
-             i = 1 + sys.argv.index('--from')
-             fromaddr = sys.argv[i]
+            i = 1 + sys.argv.index('--from')
+            fromaddr = sys.argv[i]
         if '--to' in sys.argv:
-             i = 1 + sys.argv.index('--to')
-             to = sys.argv[i]
+            i = 1 + sys.argv.index('--to')
+            to = sys.argv[i]
         coro.spawn (smtp_tls_session, host, port, fromaddr, to)
     else:
         coro.spawn (client)

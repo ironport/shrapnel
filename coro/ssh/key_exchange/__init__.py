@@ -118,10 +118,10 @@ class SSH_Key_Exchange:
         """
         shared_secret = ssh_packet.pack_payload((ssh_packet.MPINT,), (self.shared_secret,))
         key = self.get_hash_object(
-                shared_secret,
-                self.exchange_hash,
-                letter,
-                self.session_id).digest()
+            shared_secret,
+            self.exchange_hash,
+            letter,
+            self.session_id).digest()
         if len(key) > required_size:
             # Key is too big...return only what is needed.
             key = key[:required_size]
@@ -132,11 +132,14 @@ class SSH_Key_Exchange:
             # K3 = HASH(K || H || K1 || K2)
             # ...
             # key = K1 || K2 || K3 || ...
-            self.transport.debug.write(ssh_debug.DEBUG_2, 'get_encryption_key: computed key is too small len(key)=%i required_size=%i', (len(key), required_size))
+            self.transport.debug.write(
+                ssh_debug.DEBUG_2, 'get_encryption_key: computed key is too small len(key)=%i required_size=%i',
+                (len(key), required_size))
             key_data = [key]
             key_data_len = len(key)
             while key_data_len < required_size:
-                additional_key_data = self.get_hash_object(shared_secret, self.exchange_hash, ''.join(key_data)).digest()
+                additional_key_data = self.get_hash_object(
+                    shared_secret, self.exchange_hash, ''.join(key_data)).digest()
                 key_data.append(additional_key_data)
                 key_data_len += len(additional_key_data)
             key = ''.join(key_data)[:required_size]
@@ -145,7 +148,8 @@ class SSH_Key_Exchange:
             pass
         return key
 
-    def set_info(self, c2s_version_string, s2c_version_string, c2s_kexinit_packet, s2c_kexinit_packet, supported_server_keys):
+    def set_info(self, c2s_version_string, s2c_version_string,
+                 c2s_kexinit_packet, s2c_kexinit_packet, supported_server_keys):
         self.c2s_version_string = c2s_version_string
         self.s2c_version_string = s2c_version_string
         self.c2s_kexinit_packet = c2s_kexinit_packet
@@ -153,8 +157,8 @@ class SSH_Key_Exchange:
         self.supported_server_keys = supported_server_keys
 
     def get_key_algorithm(self, key):
-        name = ssh_packet.unpack_payload( (ssh_packet.STRING,), key)[0]
+        name = ssh_packet.unpack_payload((ssh_packet.STRING,), key)[0]
         for key_alg in self.supported_server_keys:
             if key_alg.name == name:
                 return key_alg
-        raise ValueError, name
+        raise ValueError(name)

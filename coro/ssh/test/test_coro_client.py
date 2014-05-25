@@ -81,7 +81,7 @@ def transport_thread(channel):
             data = channel.read(1024)
             if data:
                 stdout.send (data)
-                #os.write(1, data)
+                # os.write(1, data)
         except EOFError:
             break
     coro.set_exit()
@@ -119,9 +119,9 @@ def main():
         sys.exit(1)
 
     for option, value in optlist:
-        if option=='-l':
+        if option == '-l':
             login_username = value
-        elif option=='-p':
+        elif option == '-p':
             port = int (value)
 
     if len(args) != 1:
@@ -140,5 +140,5 @@ def main():
             termios.tcsetattr(0, termios.TCSAFLUSH, oldterm)
             fcntl.fcntl(0, fcntl.F_SETFL, oldflags)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

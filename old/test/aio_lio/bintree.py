@@ -19,14 +19,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-def split ((lo, hi)):
-    w2 = (hi - lo)/2
+def split (xxx_todo_changeme):
+    (lo, hi) = xxx_todo_changeme
+    w2 = (hi - lo) / 2
     return ((lo, lo + w2), (lo + w2, hi))
 
-def contains ((la, ra), (lb, rb)):
+def contains (xxx_todo_changeme1, xxx_todo_changeme2):
+    (la, ra) = xxx_todo_changeme1
+    (lb, rb) = xxx_todo_changeme2
     return la <= lb and ra >= rb
 
-def intersects ((la, ra), (lb, rb)):
+def intersects (xxx_todo_changeme3, xxx_todo_changeme4):
+    (la, ra) = xxx_todo_changeme3
+    (lb, rb) = xxx_todo_changeme4
     return ra >= lb and rb >= la
 
 # L,T,R,B
@@ -92,13 +97,13 @@ class node (object):
             print
         l, r = split (line)
         if self.l:
-            self.l.dump (l, depth+1)
+            self.l.dump (l, depth + 1)
         if self.r:
-            self.r.dump (r, depth+1)
+            self.r.dump (r, depth + 1)
 
 class bintree:
 
-    def __init__ (self, line=(0,1024)):
+    def __init__ (self, line=(0, 1024)):
         self.tree = node()
         self.line = line
         self.size = 0
@@ -107,13 +112,13 @@ class bintree:
         return '<bintree tree (objects:%d) line:%r >' % (
             self.size,
             self.line
-            )
+        )
 
     def dump (self):
         self.tree.dump (self.line, 0)
 
     def insert (self, line):
-        while 1:
+        while True:
             if contains (self.line, line):
                 self.tree.insert (self.line, line)
                 break

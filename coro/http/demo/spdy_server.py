@@ -8,7 +8,7 @@ ctx = coro.ssl.new_ctx (
     key=coro.ssl.pkey (open ('cert/server.key').read(), '', True),
     next_protos=['spdy/3', 'http/1.1'],
     proto='tlsv1',
-    )
+)
 
 server = coro.http.spdy.spdy_openssl_server (ctx)
 server.push_handler (coro.http.handlers.favicon_handler())

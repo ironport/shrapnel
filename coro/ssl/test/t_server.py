@@ -11,8 +11,8 @@ ctx = openssl.ssl_ctx()
 ctx.use_cert (openssl.x509 (open ('../../http/cert/server.crt').read()))
 ctx.use_key (openssl.pkey (open ('../../http/cert/server.key').read(), '', True))
 ctx.set_ciphers ('RC4-SHA:RC4-MD5:ALL')
-#ctx.set_tmp_dh (openssl.dh_param (open ('../../http/cert/dh_param_1024.pem').read()))
-#ctx.set_next_protos (['spdy/2', 'http/1.1'])
+# ctx.set_tmp_dh (openssl.dh_param (open ('../../http/cert/dh_param_1024.pem').read()))
+# ctx.set_next_protos (['spdy/2', 'http/1.1'])
 
 def session (conn, addr):
     conn.ssl.set_fd (conn.fd)

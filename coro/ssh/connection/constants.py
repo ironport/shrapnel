@@ -51,10 +51,10 @@ SSH_MSG_CHANNEL_OPEN_PAYLOAD = (packet.BYTE,        # SSH_MSG_CHANNEL_OPEN
 # This is the basic confirmation payload.  Different session types may add
 # addition information to this.
 SSH_MSG_CHANNEL_OPEN_CONFIRMATION_PAYLOAD = (packet.BYTE,   # SSH_MSG_CHANNEL_OPEN_CONFIRMATION,
-                                             packet.UINT32, # recipient channel
-                                             packet.UINT32, # sender channel
-                                             packet.UINT32, # initial window size
-                                             packet.UINT32) # maximum packet size
+                                             packet.UINT32,  # recipient channel
+                                             packet.UINT32,  # sender channel
+                                             packet.UINT32,  # initial window size
+                                             packet.UINT32)  # maximum packet size
 
 SSH_MSG_CHANNEL_OPEN_FAILURE_PAYLOAD = (packet.BYTE,    # SSH_MSG_CHANNEL_OPEN_FAILURE
                                         packet.UINT32,  # recipient channel
@@ -77,17 +77,17 @@ SSH_MSG_GLOBAL_REQUEST_SUCCESS_PAYLOAD = (packet.BYTE)     # SSH_MSG_GLOBAL_REQU
 SSH_MSG_GLOBAL_REQUEST_FAILURE_PAYLOAD = (packet.BYTE)     # SSH_MSG_GLOBAL_REQUEST_FAILURE
 
 SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD = (packet.BYTE,   # SSH_MSG_CHANNEL_WINDOW_ADJUST
-                                         packet.UINT32, # recipient channel
-                                         packet.UINT32) # bytes to add
+                                         packet.UINT32,  # recipient channel
+                                         packet.UINT32)  # bytes to add
 
 SSH_MSG_CHANNEL_DATA_PAYLOAD = (packet.BYTE,        # SSH_MSG_CHANNEL_DATA
                                 packet.UINT32,      # recipient channel
                                 packet.STRING)      # data
 
 SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD = (packet.BYTE,   # SSH_MSG_CHANNEL_EXTENDED_DATA
-                                         packet.UINT32, # recipient channel
-                                         packet.UINT32, # data_type_code
-                                         packet.STRING) # data
+                                         packet.UINT32,  # recipient channel
+                                         packet.UINT32,  # data_type_code
+                                         packet.STRING)  # data
 
 SSH_EXTENDED_DATA_STDERR = 1
 

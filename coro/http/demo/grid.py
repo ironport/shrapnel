@@ -16,7 +16,7 @@ class grid_handler:
         self.w = w
         self.h = h
         self.grid = [['.' for x in range (w)] for y in range (h)]
-        self.pos = [w/2, h/2]
+        self.pos = [w / 2, h / 2]
         self.grid[self.pos[1]][self.pos[0]] = 'X'
 
     def match (self, request):
@@ -33,19 +33,19 @@ class grid_handler:
         request.set_deflate()
         if request.file:
             data = request.file.read()
-            pairs = [ x.split('=') for x in data.split ('&') ]
+            pairs = [x.split('=') for x in data.split ('&')]
             for k, v in pairs:
                 if k == 'dir':
                     x0, y0 = self.pos
                     x1, y1 = self.pos
                     if v == 'left':
-                        x1 = max (x0-1, 0)
+                        x1 = max (x0 - 1, 0)
                     elif v == 'right':
-                        x1 = min (x0+1, self.w-1)
+                        x1 = min (x0 + 1, self.w - 1)
                     elif v == 'up':
-                        y1 = max (y0-1, 0)
+                        y1 = max (y0 - 1, 0)
                     elif v == 'down':
-                        y1 = min (y0+1, self.h-1)
+                        y1 = min (y0 + 1, self.h - 1)
                     else:
                         pass
                     self.grid[y0][x0] = '*'
@@ -67,7 +67,7 @@ class grid_handler:
             '<input type="submit" name="dir" value="down" />'
             '</form>'
             '<a href="/grid/source">source for this handler</a>'
-            )
+        )
         request.done()
 
 server = coro.http.server()

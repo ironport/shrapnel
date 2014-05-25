@@ -48,13 +48,13 @@ import types
 ##############################################################################
 
 def test_make_coro():
-    test_func = lambda(x,y): (x,y)
+    test_func = lambda(x, y): (x, y)
     for x in xrange(1000):
         a = coro.new(test_func, 0, 1)
         # Unspawned threads aren't able to clean up their all_threads reference
         del coro.all_threads[a.thread_id()]
         del a
-    coros = map(lambda x,test_func=test_func: coro.new(test_func, x, 1), range(1000))
+    coros = map(lambda x, test_func=test_func: coro.new(test_func, x, 1), range(1000))
     for x in coros:
         # Unspawned threads aren't able to clean up their all_threads reference
         del coro.all_threads[x.thread_id()]
@@ -68,9 +68,9 @@ def test_sleep():
     coro.print_stderr('    This pause should be 1 second.\n')
     coro.sleep_relative(1.0)
     coro.print_stderr('    This pause should be 1 second.\n')
-    coro.sleep_relative(1L*coro.ticks_per_sec)
+    coro.sleep_relative(1L * coro.ticks_per_sec)
     coro.print_stderr('    This pause should be 1 second.\n')
-    coro.sleep_absolute(coro.now+1L*coro.ticks_per_sec)
+    coro.sleep_absolute(coro.now + 1L * coro.ticks_per_sec)
 
 ##############################################################################
 
@@ -81,8 +81,8 @@ def test_sleep_interrupt():
     try:
         coro.sleep_relative(10)
     except coro.Interrupted, why:
-        if why!='foobar':
-            raise ValueError, 'Incorrect interrupt value.'
+        if why != 'foobar':
+            raise ValueError('Incorrect interrupt value.')
 
 def _test_sleep_interrupt(c):
     c.interrupt('foobar')
@@ -104,8 +104,8 @@ def test_multiple_sleep_interrupt():
     try:
         coro.sleep_relative(10)
     except coro.Interrupted, why:
-        if why!='foobar':
-            raise ValueError, 'Incorrect interrupt value.'
+        if why != 'foobar':
+            raise ValueError('Incorrect interrupt value.')
 
 def _test_multiple_sleep_interrupt_ok(c):
     c.interrupt('foobar')
@@ -116,7 +116,7 @@ def _test_multiple_sleep_interrupt_fail(c):
     except SystemError, why:
         coro.print_stderr('    Expected exception: %s\n' % (why,))
     else:
-        raise ValueError, 'SystemError didn\'t happen as expected!'
+        raise ValueError('SystemError didn\'t happen as expected!')
 
 ##############################################################################
 
@@ -127,7 +127,7 @@ def test_with_timeout():
     except coro.TimeoutError:
         pass
     else:
-        raise ValueError, 'Timeout didn\'t happen as expected!'
+        raise ValueError('Timeout didn\'t happen as expected!')
 
 def test_with_timeout_with_interrupt():
     coro.spawn(_test_with_timeout_with_interrupt, coro.current())
@@ -135,10 +135,10 @@ def test_with_timeout_with_interrupt():
         coro.print_stderr('    Should be no pause:\n')
         coro.with_timeout(1, coro.sleep_relative, 5)
     except coro.Interrupted, why:
-        if why!='foobar':
-            raise ValueError, 'Interrupt value is not foobar!'
+        if why != 'foobar':
+            raise ValueError('Interrupt value is not foobar!')
     else:
-        raise ValueError, 'Interrupt didn\'t happen as expected!'
+        raise ValueError('Interrupt didn\'t happen as expected!')
 
 def _test_with_timeout_with_interrupt(c):
     c.interrupt('foobar')
@@ -150,7 +150,7 @@ def test_resume():
     coro.spawn(_test_resume, coro.current())
     result = coro.yield()
     if result != 'yoyo':
-        raise ValueError, 'Resume with wrong value!'
+        raise ValueError('Resume with wrong value!')
 
 def _test_resume(c):
     c.resume('yoyo')
@@ -167,13 +167,13 @@ def test_interrupt():
     result = coro.yield()
     coro.print_stderr('resuming with result %r\n' % (result,))
     if result != 'yoyo':
-        raise ValueError, 'Resume with wrong value!'
+        raise ValueError('Resume with wrong value!')
     # Go back to sleep to catch the latent interrupt
     try:
         result = coro.yield()
     except coro.Interrupted, why:
         if why != 'foo':
-            raise ValueError, 'Wrong why %s' % why
+            raise ValueError('Wrong why %s' % why)
 
 def _test_interrupt_resume(c):
     coro.print_stderr('resume running\n')
@@ -183,7 +183,7 @@ def _test_interrupt_latent(c):
     coro.print_stderr('interrupter running\n')
     result = c.interrupt('foo')
     if result != 1:
-        raise ValueError, 'Not latent? %i' % result
+        raise ValueError('Not latent? %i' % result)
 
 def _test_interrupt_fail(c):
     try:
@@ -191,7 +191,7 @@ def _test_interrupt_fail(c):
     except SystemError:
         pass
     else:
-        raise ValueError, 'Second latent interrupt didn\'t fail?'
+        raise ValueError('Second latent interrupt didn\'t fail?')
 
 
 ##############################################################################
@@ -203,10 +203,10 @@ def test_raise():
         result = coro.yield()
     except ZeroDivisionError, why:
         if why[0] != 12345:
-            raise ValueError, 'Why is wrong %s' % (why,)
+            raise ValueError('Why is wrong %s' % (why,))
         pass
     else:
-        raise ValueError, 'Failed to raise!'
+        raise ValueError('Failed to raise!')
 
 def _test_raise(c):
     c.resume_with_exc(ZeroDivisionError, 12345)
@@ -219,7 +219,7 @@ def do_tests(tests):
     for x in xrange(5):
         for func_name in tests:
             f = globals()[func_name]
-            if type(f) is types.FunctionType:
+            if isinstance(f, types.FunctionType):
                 if f.func_name.startswith('test_'):
                     coro.print_stderr('Running test %s...\n' % f.func_name)
                     start_ram = mstats.get_malloc_stats()['allocated_bytes']
@@ -228,7 +228,7 @@ def do_tests(tests):
                     coro.print_stderr('RAM difference: %s\n' % comma_group(end_ram - start_ram))
     coro._exit = 1
 
-if __name__=='__main__':
+if __name__ == '__main__':
     args = GetArg.GetArg()
     args.process(sys.argv[1:])
     if args.arguments:

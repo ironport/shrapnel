@@ -1,12 +1,13 @@
 # -*- Mode: Python -*-
-    
+
 import struct
 import coro
 import sys
 
 from coro.http import connection, tlslite_server, openssl_server, http_request
 from coro.http.protocol import header_set, http_file
-from coro.http.zspdy import inflator, deflator, unpack_control_frame, pack_control_frame, pack_data_frame, pack_http_header, unpack_http_header
+from coro.http.zspdy import inflator, deflator, unpack_control_frame, pack_control_frame
+from coro.http.zspdy import pack_data_frame, pack_http_header, unpack_http_header
 
 W = coro.write_stderr
 
@@ -37,7 +38,7 @@ class spdy_file (http_file):
         while 1:
             block = self.content_fifo.pop()
             if block is None:
-                #W ('gen_spdy: end of content\n')
+                # W ('gen_spdy: end of content\n')
                 self.done_cv.wake_all()
                 break
             else:
@@ -59,7 +60,7 @@ class spdy_server_request (http_request):
         path   = headers.get_one (':path')
         version = headers.get_one (':version')
         # XXX proxy
-        #url = '%s://%s/%s' % (scheme, host, path)
+        # url = '%s://%s/%s' % (scheme, host, path)
         url = path
         # XXX consider changing the api to take these as separate arguments
         request = '%s %s %s' % (method, url, version)
@@ -115,17 +116,17 @@ class spdy_server_request (http_request):
 class spdy_protocol:
 
     frame_types = {
-        1 : 'syn_stream',
-        2 : 'syn_reply',
-        3 : 'rst_stream',
-        4 : 'settings',
+        1: 'syn_stream',
+        2: 'syn_reply',
+        3: 'rst_stream',
+        4: 'settings',
         # removed in draft3
-        5 : 'noop',
-        6 : 'ping',
-        7 : 'goaway',
-        8 : 'headers',
-        9 : 'window_update',
-        }
+        5: 'noop',
+        6: 'ping',
+        7: 'goaway',
+        8: 'headers',
+        9: 'window_update',
+    }
 
     status_codes = {
         1: 'protocol_error',
@@ -135,7 +136,7 @@ class spdy_protocol:
         5: 'cancel',
         6: 'internal_error',
         7: 'flow_control_error',
-        }
+    }
 
     protocol = 'spdy/3'
 
@@ -167,7 +168,7 @@ class spdy_protocol:
     def read_control_frame (self, head):
         fversion, ftype, flags, length = unpack_control_frame (head)
         data = self.read_exact (length)
-        #W ('control: version=%d type=%d flags=%x length=%d\n' % (fversion, ftype, flags, length, ))
+        # W ('control: version=%d type=%d flags=%x length=%d\n' % (fversion, ftype, flags, length, ))
         assert (fversion == 3)
         method_name = 'frame_%s' % (self.frame_types.get (ftype, ''),)
         if method_name == 'frame_':
@@ -179,7 +180,7 @@ class spdy_protocol:
     def read_data_frame (self, head):
         stream_id, flags, length = unpack_data_frame (head)
         data = self.read_exact (length)
-        #W ('data: stream_id=%d flags=%x length=%d\n' % (stream_id, flags, length))
+        # W ('data: stream_id=%d flags=%x length=%d\n' % (stream_id, flags, length))
         self.handle_data_frame (stream_id, flags, data)
 
     spdy_version = 3
@@ -221,7 +222,7 @@ class spdy_connection (spdy_protocol, connection):
             self.read_frames()
         finally:
             self.ofifo.push (None)
-            
+
     def close (self):
         self.ofifo.push (None)
         self.conn.close()
@@ -236,7 +237,7 @@ class spdy_connection (spdy_protocol, connection):
                 self.obuf.release (len(block))
 
     def send_frame (self, frame):
-        #self.conn.send (frame)
+        # self.conn.send (frame)
         self.obuf.acquire (len(frame))
         self.ofifo.push (frame)
 
@@ -256,13 +257,13 @@ class spdy_connection (spdy_protocol, connection):
             flags = 0x01
         else:
             flags = 0x00
-        #W ('req.reply_headers=%r\n' % (str(req.reply_headers),))
+        # W ('req.reply_headers=%r\n' % (str(req.reply_headers),))
         name_vals = self.pack_http_header (req.reply_headers)
-        #W ('compressed name_vals=%r\n' % (name_vals,))
+        # W ('compressed name_vals=%r\n' % (name_vals,))
         frame = self.pack_control_frame (
             0x02, flags,
             ''.join ([struct.pack ('>L', req.stream_id), name_vals])
-            )
+        )
         self.send_frame (frame)
         req.output.sent += len (frame)
 
@@ -271,13 +272,13 @@ class spdy_connection (spdy_protocol, connection):
         # XXX do something with priority
         sid  &= 0x7fffffff
         asid &= 0x7fffffff
-        #W ('syn_stream: sid=%d asid=%d pri=%x ' % (sid, asid, pri))
+        # W ('syn_stream: sid=%d asid=%d pri=%x ' % (sid, asid, pri))
         headers = self.unpack_http_header (data[10:])
         req = spdy_server_request (flags, sid, self, headers)
-        #W ('%s\n' % req.request,)
+        # W ('%s\n' % req.request,)
         self.streams[sid] = req
         coro.spawn (self.handle_request, req)
-        
+
     def handle_data_frame (self, stream_id, flags, data):
         probe = self.streams.get (stream_id, None)
         if probe is not None:
@@ -303,18 +304,18 @@ class spdy_connection (spdy_protocol, connection):
 
     def frame_rst_stream (self, flags, data):
         stream_id, status_code = struct.unpack ('>LL', data)
-        #W ('reset: %x status=%d %s\n' % (stream_id, status_code, self.status_codes.get (status_code, 'unknown')))
+        # W ('reset: %x status=%d %s\n' % (stream_id, status_code, self.status_codes.get (status_code, 'unknown')))
         del self.streams[stream_id]
 
     def frame_goaway (self, flags, data):
         last_stream_id, = struct.unpack ('>L', data)
-        #W ('goaway last_stream_id=%d\n' % (last_stream_id,))
+        # W ('goaway last_stream_id=%d\n' % (last_stream_id,))
         # XXX arrange for the connection to close
         self.close()
 
     def frame_ping (self, flags, data):
         ping_id, = struct.unpack ('>L', data)
-        #W ('ping_id=%x\n' % (ping_id,))
+        # W ('ping_id=%x\n' % (ping_id,))
         self.send_frame (self.pack_control_frame (6, 0, data))
 
     def frame_settings (self, flags, data):
@@ -327,7 +328,7 @@ class spdy_tlslite_server (tlslite_server):
 
     def __init__ (self, addr, cert_path, key_path, settings=None):
         tlslite_server.__init__ (self, addr, cert_path, key_path, nextProtos=['spdy/3', 'http/1.1'], settings=settings)
-        
+
     def create_connection (self, conn, addr):
         if conn.next_proto == b'spdy/3':
             return spdy_connection (self, conn, addr)
@@ -376,7 +377,7 @@ class spdy_client (spdy_protocol, http_client.client):
         http_client.client.__init__ (self, host, port, conn, inflight)
         # replace the fifo with a dictionary (spdy is not serialized)
         self.pending = {}
-        
+
     def read_thread (self):
         try:
             self.read_frames()
@@ -399,7 +400,7 @@ class spdy_client (spdy_protocol, http_client.client):
         frame = self.pack_control_frame (
             0x01, flags,
             ''.join ([struct.pack ('>LLH', sid, asid, pri), name_vals])
-            )
+        )
         with self.send_mutex:
             self.send_frame (frame)
         return sid

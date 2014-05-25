@@ -55,8 +55,8 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
                 self.c2s.version_string = line
                 # See if there are any optional comments.
                 i = line.find(' ')
-                if i!=-1:
-                    self.c2s.comments = line[i+1:]
+                if i != -1:
+                    self.c2s.comments = line[i + 1:]
                     line = line[:i]
                 # Break up the identification string into its parts.
                 parts = line.split('-')
@@ -64,14 +64,14 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
                     self.send_disconnect (
                         ssh_transport.SSH_DISCONNECT_PROTOCOL_ERROR,
                         'server identification invalid: %r' % line
-                        )
+                    )
                 self.c2s.protocol_version = parts[1]
                 self.c2s.software_version = parts[2]
                 if self.c2s.protocol_version not in ('1.99', '2.0'):
                     self.send_disconnect (
                         ssh_transport.SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED,
                         'protocol version not supported: %r' % self.c2s.protocol_version
-                        )
+                    )
                 break
 
         self.send_kexinit()
@@ -113,7 +113,7 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
                     ssh_packet.PAYLOAD_MSG_SERVICE_ACCEPT, (
                         ssh_transport.SSH_MSG_SERVICE_ACCEPT,
                         'ssh-userauth',
-                        )
                     )
+                )
             )
             authenticator.authenticate (service_name)

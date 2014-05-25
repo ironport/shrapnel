@@ -43,11 +43,12 @@ class Channel_Open_Error(Exception):
         self.language = language
 
     def __str__(self):
-        if channel_open_error_strings.has_key(self.reason_code):
+        if self.reason_code in channel_open_error_strings:
             reason_code_str = ' (%s)' % channel_open_error_strings[self.reason_code]
         else:
             reason_code_str = ''
-        return 'Channel ID %i Open Error: %i%s: %r' % (self.channel_id, self.reason_code, reason_code_str, self.reason_text)
+        return 'Channel ID %i Open Error: %i%s: %r' % \
+               (self.channel_id, self.reason_code, reason_code_str, self.reason_text)
 
 class Channel_Closed_Error(Exception):
     pass
@@ -59,17 +60,17 @@ SSH_OPEN_UNKNOWN_CHANNEL_TYPE           = 3
 SSH_OPEN_RESOURCE_SHORTAGE              = 4
 
 channel_open_error_strings = {
-    SSH_OPEN_ADMINISTRATIVELY_PROHIBITED:   'administratively prohibited',
-    SSH_OPEN_CONNECT_FAILED:                'connect failed',
-    SSH_OPEN_UNKNOWN_CHANNEL_TYPE:          'unknown channel type',
-    SSH_OPEN_RESOURCE_SHORTAGE:             'resource shortage',
+    SSH_OPEN_ADMINISTRATIVELY_PROHIBITED: 'administratively prohibited',
+    SSH_OPEN_CONNECT_FAILED: 'connect failed',
+    SSH_OPEN_UNKNOWN_CHANNEL_TYPE: 'unknown channel type',
+    SSH_OPEN_RESOURCE_SHORTAGE: 'resource shortage',
 }
 
 class Channel:
     name = ''
     channel_id = 0
-    window_size = 131072 # 128k
-    max_packet_size = 131072 # 128k
+    window_size = 131072  # 128k
+    max_packet_size = 131072  # 128k
     # Additional ssh.util.packet data types used in the CHANNEL_OPEN message.
     additional_packet_data_types = ()
 
@@ -163,15 +164,15 @@ class Channel:
         if self.remote_channel.closed:
             raise Channel_Closed_Error
         pkt = packet.pack_payload(SSH_MSG_CHANNEL_REQUEST_PAYLOAD,
-                                            (SSH_MSG_CHANNEL_REQUEST,
-                                             self.remote_channel.channel_id,
-                                             request_type,
-                                             int(want_reply)))
+                                  (SSH_MSG_CHANNEL_REQUEST,
+                                   self.remote_channel.channel_id,
+                                   request_type,
+                                   int(want_reply)))
         pkt_data = packet.pack_payload(payload, data)
         self.transport.send_packet(pkt + pkt_data)
         if want_reply and default_reply_handler:
             # Wait for response.
-            assert len(self.channel_request_cv)==0, 'Concurrent channel requests not supported!'
+            assert len(self.channel_request_cv) == 0, 'Concurrent channel requests not supported!'
             if not self.channel_request_cv.wait():
                 raise Channel_Request_Failure
 
@@ -190,7 +191,7 @@ class Channel:
             if self.treat_extended_data_as_regular:
                 self.append_data_received(data)
             else:
-                if self.extended_recv_buffer.has_key(data_type_code):
+                if data_type_code in self.extended_recv_buffer:
                     self.extended_recv_buffer[data_type_code].write(data)
                 else:
                     b = Buffer()
@@ -210,8 +211,8 @@ class Channel:
         # Default is always to fail.  Specific channel types override this method.
         if want_reply:
             pkt = packet.pack_payload(SSH_MSG_CHANNEL_FAILURE_PAYLOAD,
-                                                        (SSH_MSG_CHANNEL_FAILURE,
-                                                         self.remote_channel.channel_id,))
+                                      (SSH_MSG_CHANNEL_FAILURE,
+                                       self.remote_channel.channel_id,))
             self.transport.send_packet(pkt)
 
     def open(self):
@@ -226,10 +227,10 @@ class Channel:
         additional_data = self.get_additional_open_data()
         packet_payload = SSH_MSG_CHANNEL_OPEN_PAYLOAD + self.additional_packet_data_types
         packet_data = (SSH_MSG_CHANNEL_OPEN,
-                             self.name,
-                             self.channel_id,
-                             self.window_size,
-                             self.max_packet_size) + additional_data
+                       self.name,
+                       self.channel_id,
+                       self.window_size,
+                       self.max_packet_size) + additional_data
         pkt = packet.pack_payload(packet_payload, packet_data)
         self.transport.send_packet(pkt)
         success, data = self.channel_open_cv.wait()
@@ -248,8 +249,8 @@ class Channel:
         if not self.remote_channel.closed:
             self.remote_channel.closed = 1
             pkt = packet.pack_payload(SSH_MSG_CHANNEL_CLOSE_PAYLOAD,
-                                                (SSH_MSG_CHANNEL_CLOSE,
-                                                 self.remote_channel.channel_id))
+                                      (SSH_MSG_CHANNEL_CLOSE,
+                                       self.remote_channel.channel_id))
             self.transport.send_packet(pkt)
 
             # We need to cause any threads that were trying to write on
@@ -266,9 +267,9 @@ class Channel:
     def send_window_adjustment(self, bytes_to_add):
         self.transport.debug.write(debug.DEBUG_2, 'sending window adjustment to add %i bytes', (bytes_to_add,))
         pkt = packet.pack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD,
-                                                (SSH_MSG_CHANNEL_WINDOW_ADJUST,
-                                                 self.remote_channel.channel_id,
-                                                 bytes_to_add))
+                                  (SSH_MSG_CHANNEL_WINDOW_ADJUST,
+                                   self.remote_channel.channel_id,
+                                   bytes_to_add))
         self.transport.send_packet(pkt)
         self.window_data_left += bytes_to_add
 
@@ -282,7 +283,7 @@ class Channel:
         if extended is None:
             b = self.recv_buffer
         else:
-            if self.extended_recv_buffer.has_key(extended):
+            if extended in self.extended_recv_buffer:
                 b = self.extended_recv_buffer[extended]
             else:
                 return False
@@ -292,7 +293,7 @@ class Channel:
             return False
 
     def _check_window_adjust(self):
-        if self.window_data_left < self.window_size/2:
+        if self.window_data_left < self.window_size / 2:
             # Increase the window so that the other side may send more data.
             self.send_window_adjustment(self.window_size - self.window_data_left)
 
@@ -307,7 +308,7 @@ class Channel:
                     Set to None to read normal data.
         """
         if extended is not None:
-            if not self.extended_recv_buffer.has_key(extended):
+            if extended not in self.extended_recv_buffer:
                 self.extended_recv_buffer[extended] = Buffer()
             b = self.extended_recv_buffer[extended]
         else:
@@ -329,7 +330,7 @@ class Channel:
                     Set to None to read normal data.
         """
         if extended is not None:
-            if not self.extended_recv_buffer.has_key(extended):
+            if extended not in self.extended_recv_buffer:
                 self.extended_recv_buffer[extended] = Buffer()
             b = self.extended_recv_buffer[extended]
         else:
@@ -362,7 +363,7 @@ class Channel:
         while data_start < len(data):
             if self.remote_channel.closed:
                 raise Channel_Closed_Error
-            while self.remote_channel.window_data_left==0:
+            while self.remote_channel.window_data_left == 0:
                 # Currently waiting for window update.
                 self.window_data_added_cv.wait()
                 # check again inside loop since if we're closed, the window
@@ -371,14 +372,16 @@ class Channel:
                     raise Channel_Closed_Error
             # Send what we can.
             max_size = min(self.remote_channel.window_data_left, self.remote_channel.max_packet_size)
-            data_to_send = data[data_start:data_start+max_size]
+            data_to_send = data[data_start:data_start + max_size]
             data_start += max_size
 
             pkt = packet.pack_payload(SSH_MSG_CHANNEL_DATA_PAYLOAD,
-                                                (SSH_MSG_CHANNEL_DATA,
-                                                 self.remote_channel.channel_id,
-                                                 data_to_send))
-            self.transport.debug.write(debug.DEBUG_3, 'channel %i window lowered by %i to %i', (self.remote_channel.channel_id, len(data_to_send), self.remote_channel.window_data_left))
+                                      (SSH_MSG_CHANNEL_DATA,
+                                       self.remote_channel.channel_id,
+                                       data_to_send))
+            self.transport.debug.write(debug.DEBUG_3, 'channel %i window lowered by %i to %i',
+                                       (self.remote_channel.channel_id, len(data_to_send),
+                                        self.remote_channel.window_data_left))
             self.remote_channel.window_data_left -= len(data_to_send)
             self.transport.send_packet(pkt)
 
@@ -391,7 +394,7 @@ class Channel:
         while data_start < len(data):
             if self.remote_channel.closed:
                 raise Channel_Closed_Error
-            while self.remote_channel.window_data_left==0:
+            while self.remote_channel.window_data_left == 0:
                 # Currently waiting for window update.
                 self.window_data_added_cv.wait()
                 # check again inside loop since if we're closed, the window
@@ -401,14 +404,14 @@ class Channel:
 
             # Send what we can.
             max_size = min(self.remote_channel.window_data_left, self.remote_channel.max_packet_size)
-            data_to_send = data[data_start:data_start+max_size]
+            data_to_send = data[data_start:data_start + max_size]
             data_start += max_size
 
             pkt = packet.pack_payload(SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD,
-                                                (SSH_MSG_CHANNEL_EXTENDED_DATA,
-                                                 self.remote_channel.channel_id,
-                                                 data_type_code,
-                                                 data_to_send))
+                                      (SSH_MSG_CHANNEL_EXTENDED_DATA,
+                                       self.remote_channel.channel_id,
+                                       data_type_code,
+                                       data_to_send))
             self.remote_channel.window_data_left -= len(data_to_send)
             self.transport.send_packet(pkt)
 
@@ -437,20 +440,20 @@ class Channel:
         <data> is a tuple of the data elements specific to this channel type.
         """
         # Default is to ignore any extra data.
-        assert len(self.channel_open_cv)==1
+        assert len(self.channel_open_cv) == 1
         self.channel_open_cv.wake_one((True, data))
 
     def channel_open_failure(self, reason_code, reason_text, language):
         """channel_open_failure(self, reason_code, reason_text, language) -> None
         This is called when opening a channel fails.
         """
-        assert len(self.channel_open_cv)==1
+        assert len(self.channel_open_cv) == 1
         self.channel_open_cv.wake_one((False, (reason_code, reason_text, language)))
 
 class Remote_Channel:
     channel_id = 0
-    window_size = 131072 # 128k
-    max_packet_size = 131072 # 128k
+    window_size = 131072  # 128k
+    max_packet_size = 131072  # 128k
 
     # This is how many bytes I can send to the remote side.
     # Once it hits zero, I start buffering data.

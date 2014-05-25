@@ -20,7 +20,7 @@ class client:
         self.ip = ip
         self.port = port
         self.username = username
-        
+
     def open (self):
         client = SSH_Client_Transport()
         transport = coro_socket_transport (self.ip, port=self.port, hostname=self.hostname)
@@ -60,4 +60,3 @@ if __name__ == '__main__':
     else:
         coro.spawn (go, *sys.argv[1:])
         coro.event_loop()
-    

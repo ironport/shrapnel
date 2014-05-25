@@ -80,7 +80,7 @@ class coro_socket_transport(l4_transport.Transport):
                     raise
             except coro.ClosedError:
                 raise EOFError
-            if len(chunk)==0:
+            if len(chunk) == 0:
                 raise EOFError
             count -= len(chunk)
             result.append(chunk)

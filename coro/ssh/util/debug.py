@@ -48,7 +48,7 @@ level_text = {ERROR: 'Error',
               DEBUG_1: 'Debug 1',
               DEBUG_2: 'Debug 2',
               DEBUG_3: 'Debug 3',
-             }
+              }
 
 import sys
 

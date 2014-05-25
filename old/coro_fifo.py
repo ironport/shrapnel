@@ -30,7 +30,7 @@ class circular_fifo:
     size to allow more data to be added.
     """
 
-    def __init__(self, default_size = 1024, data = None):
+    def __init__(self, default_size=1024, data=None):
         """circular_fifo(default_size = 1024, data = None) -> circular_fifo_object
         Default size is the number of slots you want to start with.
         data can be a list of elements to seed the fifo.
@@ -40,14 +40,14 @@ class circular_fifo:
             # Note that we need an extra element because
             # we need somewhere for tail to point to.
             if len(data) <= default_size:
-                default_size = len(data)+1
+                default_size = len(data) + 1
             self._fifo = copy.copy(data)
-            self._fifo.extend([None]*(default_size - len(data)))
+            self._fifo.extend([None] * (default_size - len(data)))
             self._tail = len(data)
             self._head = 0
             self._fifo_size = default_size
         else:
-            self._fifo = [None]*default_size
+            self._fifo = [None] * default_size
             self._tail = 0
             self._head = 0
             self._fifo_size = default_size
@@ -86,7 +86,7 @@ class circular_fifo:
                         # this is the entry to remove
                         self._remove(x)
                         return None
-        raise ValueError, "x not in list"
+        raise ValueError("x not in list")
 
     def _remove(self, index):
         """_remove(index) -> None
@@ -126,7 +126,7 @@ class circular_fifo:
             self._tail = 0
         if self._tail == self._head:
             # fifo is full...expand it
-            self._fifo[self._tail:self._tail] = [None]*self._fifo_size
+            self._fifo[self._tail:self._tail] = [None] * self._fifo_size
             self._head += self._fifo_size
             self._fifo_size *= 2
         self.cv.wake_all()
@@ -137,13 +137,13 @@ class circular_fifo:
         """
         if self._head == 0:
             # Wrap around.
-            self._head = self._fifo_size-1
+            self._head = self._fifo_size - 1
         else:
             self._head -= 1
         self._fifo[self._head] = data
         if self._head == self._tail:
             # fifo is full...expand it
-            self._fifo[self._tail:self._tail] = [None]*self._fifo_size
+            self._fifo[self._tail:self._tail] = [None] * self._fifo_size
             self._head += self._fifo_size
             self._fifo_size *= 2
         self.cv.wake_all()
@@ -157,7 +157,7 @@ class circular_fifo:
             self.cv.wait()
         data = self._fifo[self._head]
         self._fifo[self._head] = None
-        if self._head == self._fifo_size-1:
+        if self._head == self._fifo_size - 1:
             self._head = 0
         else:
             self._head += 1
@@ -169,7 +169,7 @@ class circular_fifo:
         Raises IndexError if the queue is empty.
         """
         if self._tail == self._head:
-            raise IndexError, 'peek from an empty fifo'
+            raise IndexError('peek from an empty fifo')
         return self._fifo[self._head]
 
     def poke(self, data):
@@ -177,7 +177,7 @@ class circular_fifo:
         Replaces the data at head of the fifo.
         """
         if self._tail == self._head:
-            raise IndexError, 'poke on an empty fifo'
+            raise IndexError('poke on an empty fifo')
         self._fifo[self._head] = data
         self.cv.wake_all()
 
@@ -200,13 +200,13 @@ class circular_fifo:
     def __getitem__(self, key):
         if self._tail >= self._head:
             if self._head + key >= self._tail:
-                raise IndexError, key
-            return self._fifo[self._head+key]
+                raise IndexError(key)
+            return self._fifo[self._head + key]
         else:
             if self._head + key >= self._fifo_size:
                 key -= (self._fifo_size - self._head)
                 if key >= self._tail:
-                    raise IndexError, key
+                    raise IndexError(key)
                 return self._fifo[key]
             return self._fifo[self._head + key]
 
@@ -233,7 +233,7 @@ class circular_fifo:
         self._head = 0
         self._tail = 0
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     import coro
     import random
@@ -256,34 +256,34 @@ if __name__=='__main__':
         bob.enqueue(4)
         bob.enqueue(5)
         bob.enqueue(6)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.dequeue()
         bob.dequeue()
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.enqueue(7)
         bob.enqueue(8)
         bob.enqueue(9)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.enqueue(10)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.enqueue(11)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.enqueue(12)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.enqueue(13)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
         bob.enqueue(14)
-        print '%i:%r' % (len(bob),bob)
+        print '%i:%r' % (len(bob), bob)
         gets(bob)
 
-        #sys.exit(0)
+        # sys.exit(0)
 
         coro.spawn(pusher)
         coro.spawn(popper)
@@ -291,15 +291,15 @@ if __name__=='__main__':
     def pusher():
         global finished, q, size
         total = size
-        while 1:
-            if total==1:
+        while True:
+            if total == 1:
                 to_do = 1
             else:
-                to_do = random.randint(1,total/2)
+                to_do = random.randint(1, total / 2)
             total -= to_do
             for x in xrange(to_do):
                 q.enqueue('some_data')
-            if total==0:
+            if total == 0:
                 break
             coro.sleep_relative(0)
         finished = 1
@@ -307,7 +307,7 @@ if __name__=='__main__':
     def popper():
         global finished, q, size
         for x in xrange(size):
-            while 1:
+            while True:
                 data = q.dequeue()
                 if data is not None:
                     break
@@ -326,17 +326,17 @@ if __name__=='__main__':
                 # If this raises an error, then we know something is broken
                 l = len(q)
                 q.remove(x)
-                if len(q) != l-1:
-                    raise Exception, 'didn\'t adjust size properly'
+                if len(q) != l - 1:
+                    raise Exception('didn\'t adjust size properly')
                 c -= 1
             if q.count(x) != 0:
-                raise Exception, 'failed to remove all entries for %i in %r' % (x, q)
+                raise Exception('failed to remove all entries for %i in %r' % (x, q))
         finished = 1
 
     def make_remove_test2(to_remove):
         global q, finished, size
         q = circular_fifo(10)
-        for x in xrange(1,9):
+        for x in xrange(1, 9):
             q.enqueue(x)
         q.dequeue()
         q.dequeue()

@@ -71,13 +71,13 @@ ssh1_key = CONCAT('^',
                   )
 
 ssh1_key_w_options = CONCAT('^',
-                  SPLAT(SPACE),
-                  OPTIONS, PLUS(SPACE),
-                  BITS, PLUS(SPACE),
-                  EXPONENT, PLUS(SPACE),
-                  MODULUS, SPLAT(SPACE),
-                  COMMENT
-                  )
+                            SPLAT(SPACE),
+                            OPTIONS, PLUS(SPACE),
+                            BITS, PLUS(SPACE),
+                            EXPONENT, PLUS(SPACE),
+                            MODULUS, SPLAT(SPACE),
+                            COMMENT
+                            )
 
 
 # The man page for OpenSSH specifies that "ssh-dss" and "ssh-rsa" are the only
@@ -97,12 +97,12 @@ ssh2_key = CONCAT('^',
                   )
 
 ssh2_key_w_options = CONCAT('^',
-                  SPLAT(SPACE),
-                  OPTIONS, PLUS(SPACE),
-                  KEYTYPE, PLUS(SPACE),
-                  BASE64_KEY, SPLAT(SPACE),
-                  COMMENT
-                  )
+                            SPLAT(SPACE),
+                            OPTIONS, PLUS(SPACE),
+                            KEYTYPE, PLUS(SPACE),
+                            BASE64_KEY, SPLAT(SPACE),
+                            COMMENT
+                            )
 
 ssh1_key_re = re.compile(ssh1_key)
 ssh2_key_re = re.compile(ssh2_key)
@@ -158,18 +158,17 @@ class OpenSSH_Authorized_Keys:
                 if not m:
                     m = ssh2_key_w_options_re.match(key)
                     if not m:
-                        raise ValueError, key
+                        raise ValueError(key)
 
         values = m.groupdict()
-        if ((values.has_key('keytype') and not values['keytype']) or
-            (values.has_key('base64_key') and not values['base64_key']) or
-            (values.has_key('bits') and not values['bits']) or
-            (values.has_key('exponent') and not values['exponent']) or
-            (values.has_key('modulus') and not values['modulus'])
-            ):
-            raise ValueError, key
+        if (('keytype' in values and not values['keytype']) or
+                ('base64_key' in values and not values['base64_key']) or
+                ('bits' in values and not values['bits']) or
+                ('exponent' in values and not values['exponent']) or
+                ('modulus' in values and not values['modulus'])):
+            raise ValueError(key)
         self._value_strip(values)
-        if not values.has_key('options') or not values['options']:
+        if 'options' not in values or not values['options']:
             # If it doesn't exist, or it exists as None, set it to the empty string.
             values['options'] = ''
         if not values['comment']:
@@ -190,20 +189,20 @@ class OpenSSH_Authorized_Keys:
         Checks if key (which is dict-format) is a duplicate.
         Raises DuplicateKeyError if it is.
         """
-        if key.has_key('bits'):
+        if 'bits' in key:
             # SSH1
             for x in self.keys:
-                if (x.has_key('bits') and
-                    x['bits'] == key['bits'] and
-                    x['exponent'] == key['exponent'] and
-                    x['modulus'] == key['modulus']):
+                if ('bits' in x and
+                        x['bits'] == key['bits'] and
+                        x['exponent'] == key['exponent'] and
+                        x['modulus'] == key['modulus']):
                     raise DuplicateKeyError
         else:
             # SSH2
             for x in self.keys:
-                if (x.has_key('keytype') and
-                    x['keytype'] == key['keytype'] and
-                    x['base64_key'] == key['base64_key']):
+                if ('keytype' in x and
+                        x['keytype'] == key['keytype'] and
+                        x['base64_key'] == key['base64_key']):
                     raise DuplicateKeyError
 
     def write(self):
@@ -213,8 +212,8 @@ class OpenSSH_Authorized_Keys:
         """
         # Avoid concurrent races here?
         tmp_filename = self.filename + '.tmp'
-        fd = os.open(tmp_filename, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0644)
-        write = lambda x,y=fd: os.write(y, x)
+        fd = os.open(tmp_filename, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0644)
+        write = lambda x, y=fd: os.write(y, x)
         map(write, map(self.keydict_to_string, self.keys))
         os.close(fd)
         os.rename(tmp_filename, self.filename)
@@ -230,7 +229,7 @@ class OpenSSH_Authorized_Keys:
         else:
             options = key['options']
             comment = key['comment']
-        if key.has_key('bits'):
+        if 'bits' in key:
             # SSH1
             bits = key['bits']
             exponent = key['exponent']

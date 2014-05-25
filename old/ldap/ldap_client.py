@@ -100,18 +100,18 @@ INQUIRY_TIMED_OUT = 'inquiry timed out'
 class Inquiry (object):
 
     __slots__ = \
-        ( 'birth',              # Time this inquiry was created, in coro ticks.
-          'timeout',            # Time this inquiry should live, in coro ticks.
-          'state',              # UNATTACHED, ATTACHED, or DONE
-          'rendered_request',   # Either None or a packed LDAP message, as string
-          'cv',                 # None or a condition variable
-          'result',             # None or a (success, result) tuple
-          'referrals',          # List of referrals to follow
-          'done_referrals',     # List of already followed referrals
-          'resolver',           # The ldap server "(host:port)" services this inquiry.
-                                # taken from the ldap_connection where this inquiry
-                                # is resolved
-        )
+        ('birth',              # Time this inquiry was created, in coro ticks.
+         'timeout',            # Time this inquiry should live, in coro ticks.
+         'state',              # UNATTACHED, ATTACHED, or DONE
+         'rendered_request',   # Either None or a packed LDAP message, as string
+         'cv',                 # None or a condition variable
+         'result',             # None or a (success, result) tuple
+         'referrals',          # List of referrals to follow
+         'done_referrals',     # List of already followed referrals
+         'resolver',           # The ldap server "(host:port)" services this inquiry.
+         # taken from the ldap_connection where this inquiry
+         # is resolved
+         )
     STATE_UNATTACHED = 0
     STATE_ATTACHED = 1
     STATE_DONE = 2
@@ -164,7 +164,7 @@ class Inquiry (object):
             return False
 
         while self.referrals and \
-              (len(self.done_referrals) < MAX_REFERRAL_DEPTH):
+                (len(self.done_referrals) < MAX_REFERRAL_DEPTH):
 
             # Referrals are FIFO
             params, ref = self.referrals.pop(0)
@@ -264,7 +264,6 @@ class Inquiry (object):
         __pychecker__ = 'unusednames=op,value'
         raise Exception("Implement process_response()")
 
-
     def update_from_referral(self, params, lurl):
         """update_from_referral(parameters, LDALUrl)
         Update this Inquiry with referral information.
@@ -272,7 +271,6 @@ class Inquiry (object):
         """
         __pychecker__ = 'unusednames=params,lurl'
         raise Exception("Implement update_from_referral()")
-
 
     def get_time_to_live(self):
         """Return how much time left (in seconds) before this inquiry should
@@ -287,6 +285,7 @@ class Inquiry (object):
 
 class Inquiry_StartTLS(Inquiry):
     """Inquiry_StartTLS - object to implement StartTLS handling."""
+
     def __init__(self, server_group, timeout):
         Inquiry.__init__(self, server_group, ldap.encode_starttls(), timeout)
 
@@ -326,6 +325,7 @@ class Inquiry_StartTLS(Inquiry):
 class Inquiry_Simple_Bind(Inquiry):
     """Inquiry_Simple_Bind - object to encapsulate BindRequest (with
     "simple" authentication) handling."""
+
     def __init__(self, server_group, user, pword, timeout):
         Inquiry.__init__(self, server_group,
                          ldap.encode_simple_bind(PROTOCOL_VERSION, user, pword),
@@ -366,6 +366,7 @@ class Inquiry_Simple_Bind(Inquiry):
 
 class Inquiry_Search(Inquiry):
     """Inquiry_Search - object to implement LDAP Search handling."""
+
     def __init__(self, server_group, base, query_str, look_for_attrs,
                  compatibility, timeout):
         encoded_req = ldap.encode_search_request(base, None,
@@ -379,7 +380,7 @@ class Inquiry_Search(Inquiry):
         self.look_for_attrs = look_for_attrs
         self.compatibility = compatibility
         self.search_results = []
-        self.continuations = [] # search-specific form of referral
+        self.continuations = []  # search-specific form of referral
         self.explored_continuations = []
 
     def get_parameters(self):
@@ -406,7 +407,7 @@ class Inquiry_Search(Inquiry):
                 # if the searched object does not exist and we are done
                 # searching, we should treat it as not-found, instead of
                 # server-error (return status of False indicate server error)
-                log.write('LDAP.DEBUG', value[2]) # log the error message
+                log.write('LDAP.DEBUG', value[2])  # log the error message
                 return (True, [])
             else:
                 return (False, value)
@@ -424,11 +425,13 @@ class Inquiry_Search(Inquiry):
         Search continuation handling hook.  Class Inquiry_Search
         overrides."""
         if self.continuations and not self.server_group:
-            log.write('LDAP.DEBUG', "Could not follow continuations: continuation returned for transport-layer LDAP operation")
+            log.write(
+                'LDAP.DEBUG',
+                "Could not follow continuations: continuation returned for transport-layer LDAP operation")
             return False
 
         while self.continuations and \
-              (len(self.explored_continuations) < MAX_REFERRAL_DEPTH):
+                (len(self.explored_continuations) < MAX_REFERRAL_DEPTH):
 
             # Continuations are FIFO
             params, c = self.continuations.pop(0)
@@ -441,7 +444,7 @@ class Inquiry_Search(Inquiry):
                 log.write('LDAP.DEBUG', "Query %s following continuation: %s" % (self.get_query_string(), c))
                 return True
             else:
-                log.write('LDAP.DEBUG', "Query %s could not follow continuation: %s" % (self.get_query_string(),c))
+                log.write('LDAP.DEBUG', "Query %s could not follow continuation: %s" % (self.get_query_string(), c))
 
         return False
 
@@ -539,7 +542,6 @@ class ldap_cache_entry:
                             sg_ctx.neg_cache = lru.lru(sg_ctx.cache_size)
                         sg_ctx.neg_cache[self.key] = self
 
-
     def _is_resolved(self):
         return (self.state == self.CACHE_STATE_RESOLVED)
 
@@ -636,7 +638,7 @@ class ldap_client:
     def create_server_group(self, name, behavior=CONNECT_BEHAVIOR_FAILOVER,
                             bind_ip=None):
         """ Create and return an empty server-group. """
-        if self.server_groups.has_key(name):
+        if name in self.server_groups:
             return None
         self.server_groups[name] = ldap_server_group(self, name, behavior,
                                                      bind_ip)
@@ -727,8 +729,8 @@ class ldap_server_group:    # server container
         self.worker_fifo = coro.fifo()      # For immediate consumption
         self.event_list = []                # For describing future events
         self._shutting_down = 0             # 0 - not shutting down
-                                            # 1 - shutting down servers
-                                            # 2 - dead
+        # 1 - shutting down servers
+        # 2 - dead
         self.cache_size = DEFAULT_CACHE_SIZE
         self.cache_ttl = DEFAULT_CACHE_TTL
         self.compatibility = DEFAULT_COMPATIBILITY
@@ -842,7 +844,7 @@ class ldap_server_group:    # server container
 
         # Figure out if we already have a cache entry for this
         cache_to_use = None
-        if self.new_cache.has_key(key):
+        if key in self.new_cache:
             entry = self.new_cache[key]
             # If the entry is stale (pending more than inquiry_timeout) then do not
             # use this inquiry as it will fail this query immediately
@@ -850,10 +852,10 @@ class ldap_server_group:    # server container
                 # new_cache is always not resolved yet, simply return it
                 return (False, entry)
         # Check the positive cache
-        elif self.pos_cache and self.pos_cache.has_key(key):
+        elif self.pos_cache and key in self.pos_cache:
             cache_to_use = self.pos_cache
         # Check the negative cache
-        elif self.neg_cache and self.neg_cache.has_key(key):
+        elif self.neg_cache and key in self.neg_cache:
             cache_to_use = self.neg_cache
 
         if cache_to_use:
@@ -883,7 +885,7 @@ class ldap_server_group:    # server container
         def __clear_cache_entry(cache):
             cache_entry_found = False
             if cache:
-                for (k,v) in cache.items():
+                for (k, v) in cache.items():
                     if k[0] == query_string:
                         del cache[k]
                         cache_entry_found = True
@@ -897,7 +899,6 @@ class ldap_server_group:    # server container
 
         log.write('LDAP.DEBUG', "Cache not found: %s" % (query_string,))
         return False
-
 
     # query API
     def enqueue_operation(self, operation):
@@ -920,7 +921,7 @@ class ldap_server_group:    # server container
             self.pending_bind_inquiries_event = True
             self.worker_fifo.push(self.cmd_bind_inquiries)
 
-    def search_query(self, query_string, base, look_for_attrs): # maybe timeout &
+    def search_query(self, query_string, base, look_for_attrs):  # maybe timeout &
         """search_query(query_string, base, look_for_attrs)
         XXX previously known as "query()" to ldap_api.  App doesn't care
         which of the underlying servers executes the "query" (LDAPSearch
@@ -936,7 +937,7 @@ class ldap_server_group:    # server container
                 # Get ourselves an appropriate Inquiry
                 the_inc = Inquiry_Search(self, base, query_string, look_for_attrs,
                                          self.compatibility, self.inquiry_timeout)
-            except ldap.QuerySyntaxError, e:
+            except ldap.QuerySyntaxError as e:
                 # Abort this operation
                 ctx.abort(self)
                 return ((False, str(e)), None)
@@ -956,7 +957,8 @@ class ldap_server_group:    # server container
 
         # Explicitly disallow 'unauthenticated bind'
         if username and not password.strip():
-            return ((False, "Failed binding with user '%s' and supplied password: Invalid credentials" % username), None)
+            return (
+                (False, "Failed binding with user '%s' and supplied password: Invalid credentials" % username), None)
 
         if self._shutting_down:
             return None
@@ -1050,7 +1052,7 @@ class ldap_server_group:    # server container
         else:
             # Unknown behavior
             log.write('LDAP.DEBUG', "Unknown connection behavior type: %d"
-                       % (self.connection_behavior))
+                      % (self.connection_behavior))
             return None
 
     def find_referral_server(self, host, port):
@@ -1138,7 +1140,7 @@ class ldap_server_group:    # server container
                 break
 
     def _add_event(self, server, wait_time, event):
-        for (t,e) in self.event_list:
+        for (t, e) in self.event_list:
             if e == event:
                 return
         if wait_time is None:
@@ -1177,7 +1179,6 @@ class ldap_server_group:    # server container
         else:
             return (time_to_sleep, [])
 
-
     def check_auth_failure(self):
         """Check if all servers in this server group has failed to connect
         due to authentication error
@@ -1192,7 +1193,6 @@ class ldap_server_group:    # server container
                 return False
                 break
         return (len(self.servers) > 0)
-
 
     def _inquiry_timeout_event(self, wake_time):
         self.event_list.append((wake_time, ldap_cmd.CmdInquiryTimeout()))
@@ -1284,10 +1284,10 @@ class ldap_server:
 
         self.connections = {}
         self.bind_connections = {}
-        self.next_connection_id = 1L
+        self.next_connection_id = 1
         self.next_conn_die_time = 0
-        self.most_recent_cid = 0L   # Used to round-robin connections
-                                    # when dispatching inquiries
+        self.most_recent_cid = 0   # Used to round-robin connections
+        # when dispatching inquiries
         self.ip_list = []
         self.ip_pos = 0
 
@@ -1340,7 +1340,7 @@ class ldap_server:
         # Find an existing connection:
         try:
             binder_conn_obj = self.get_conn_obj_for_bind()
-        except dns_exceptions.DNS_Error, e:
+        except dns_exceptions.DNS_Error as e:
             log.write('LDAP.ERROR', 'DNS', e)
             self.state = self.SRV_STATE_DOWN
             binder_conn_obj = None
@@ -1447,12 +1447,11 @@ class ldap_server:
 
         # Check to see if a TTL has expired.  If any TTL has expired,
         # we'll requery.
-        ttl_list = [ttl for ttl, value in self.ip_list]
-        ttl_list.sort()
+        ttl_list = sorted([ttl for ttl, value in self.ip_list])
         if coro.now > ttl_list[0]:
             try:
                 self.resolve_hostname_lookup()
-            except dns_exceptions.DNS_Error, e:
+            except dns_exceptions.DNS_Error as e:
                 log.write('LDAP.ERROR', 'DNS', e)
                 return None
 
@@ -1488,7 +1487,7 @@ class ldap_server:
         if self.next_conn_die_time > next_time:
             self.next_conn_die_time = next_time
             # CmdConnTimeout is self-generating, so we only need to have one copy of it
-            self.sg_context.event_list = filter((lambda (t,e) : not isinstance(e, ldap_cmd.CmdConnTimeout)),
+            self.sg_context.event_list = filter((lambda t_e: not isinstance(t_e[1], ldap_cmd.CmdConnTimeout)),
                                                 self.sg_context.event_list)
             self.sg_context.event_list.append((self.next_conn_die_time, ldap_cmd.CmdConnTimeout(self)))
 
@@ -1501,7 +1500,7 @@ class ldap_server:
         conn_dict = {
             'server_context': self,
             'birth': coro.now,
-            'conn_obj': None, # can't fill in now because of circular reference
+            'conn_obj': None,  # can't fill in now because of circular reference
             'conn_id': conn_id,
             'bind_ip': self.bind_ip,
             'max_requests': self.max_conn_requests,
@@ -1541,7 +1540,7 @@ class ldap_server:
         bind_conn_dict = {
             'server_context': self,
             'birth': coro.now,
-            'conn_obj': None, # can't fill in now because of circular reference
+            'conn_obj': None,  # can't fill in now because of circular reference
             'conn_id': conn_id,
             'bind_ip': self.bind_ip,
             'max_requests': self.max_conn_requests,
@@ -1553,11 +1552,11 @@ class ldap_server:
 
         # Create a connection and wrap it with all the trim'ns
         bind_conn_dict['conn_obj'] = ldap_binder_connection(bind_conn_dict,
-                                                    self.sg_context.get_name(),
-                                                    self.hostname,
-                                                    self.get_ip(),
-                                                    self.get_port(),
-                                                    self.ldap_op_timeout)
+                                                            self.sg_context.get_name(),
+                                                            self.hostname,
+                                                            self.get_ip(),
+                                                            self.get_port(),
+                                                            self.ldap_op_timeout)
 
         # Check for shutdown condition
         if self.shutdown_flag:
@@ -1577,7 +1576,7 @@ class ldap_server:
         lookup."""
         if not self.connection_spawner_thread:
             self.connection_spawner_thread = \
-                    coro.spawn(self.connection_spawner, bootstrap)
+                coro.spawn(self.connection_spawner, bootstrap)
 
     def connection_spawner(self, bootstrap):
         """connection_spawner()
@@ -1589,18 +1588,18 @@ class ldap_server:
 
             wait_time = 1
             while not self.shutdown_flag and \
-                (len(self.connections) < self.max_conns):
+                    (len(self.connections) < self.max_conns):
 
                 if bootstrap or not self.ip_list:
                     try:
                         self.resolve_hostname_lookup()
                         if self.ip_list:
                             bootstrap = False
-                    except dns_exceptions.DNS_Soft_Error, e:
+                    except dns_exceptions.DNS_Soft_Error as e:
                         log.write('LDAP.ERROR', 'DNS', e)
                         coro.sleep_relative(wait_time)
                         continue
-                    except dns_exceptions.DNS_Error, e:
+                    except dns_exceptions.DNS_Error as e:
                         log.write('LDAP.ERROR', 'DNS', e)
                         self.state = self.SRV_STATE_DOWN
                         coro.sleep_relative(self.reconnect_delay)
@@ -1663,7 +1662,7 @@ class ldap_server:
         if last_spawn_time is None:
             return None
         next_can_spawn_connection = last_spawn_time \
-                                    + (delay_time * coro.ticks_per_sec)
+            + (delay_time * coro.ticks_per_sec)
         if coro.now >= next_can_spawn_connection:
             return None
         else:
@@ -1713,7 +1712,7 @@ class ldap_server:
             wait_time = self.wait_time_until_spawn(self.last_spawned_bind_time)
             if wait_time is not None:
                 log.write('LDAP.DEBUG', 'Waiting period until next '
-                        'bind connection attempt is %d seconds' % wait_time)
+                          'bind connection attempt is %d seconds' % wait_time)
                 # Convert from "wait X secs" to absolute time
                 wake_time = (wait_time * coro.ticks_per_sec) + coro.now
 
@@ -1731,8 +1730,8 @@ class ldap_server:
         # Check connections
         stopped_something = False
         for conn_id in self.connections.keys():
-            if (self.connections[conn_id]['birth'] + \
-                (self.max_conn_time * coro.ticks_per_sec) < now_time):
+            if (self.connections[conn_id]['birth'] +
+                    (self.max_conn_time * coro.ticks_per_sec) < now_time):
                 self.connections[conn_id]['conn_obj'].teardown_connection(with_error=False)
                 stopped_something = True
         if stopped_something:
@@ -1741,8 +1740,8 @@ class ldap_server:
         # Check BIND connections
         stopped_something = False
         for conn_id in self.bind_connections.keys():
-            if (self.bind_connections[conn_id]['birth'] + \
-                (self.max_conn_time * coro.ticks_per_sec) < now_time):
+            if (self.bind_connections[conn_id]['birth'] +
+                    (self.max_conn_time * coro.ticks_per_sec) < now_time):
                 self.bind_connections[conn_id]['conn_obj'].teardown_connection(with_error=False)
                 stopped_something = True
         if stopped_something:
@@ -1843,7 +1842,7 @@ class ldap_server:
             next_cid = (next_cid + count) % conn_count
             conn_obj = self.connections.values()[next_cid]['conn_obj']
             if conn_obj and conn_obj.is_connected() and \
-                conn_obj.request_count() < self.max_conn_requests:
+                    conn_obj.request_count() < self.max_conn_requests:
                 self.most_recent_cid = next_cid
                 return conn_obj
 
@@ -1892,8 +1891,8 @@ class ldap_server:
         """build_log(msg)
         Dress up an error message with server info."""
         return '%s:%s(%s:%d) %s' % \
-                        (self.sg_context.get_name(), self.hostname,
-                         self.get_ip(), self.get_port(), msg)
+            (self.sg_context.get_name(), self.hostname,
+             self.get_ip(), self.get_port(), msg)
 
     ##################################################################
     # BOTTOM HALF
@@ -1905,7 +1904,6 @@ class ldap_server:
         amount of time that must pass before a server can be marked as
         down."""
         self.last_conn_read_time = coro.now
-
 
     def _set_srv_state(self, with_error, auth_error):
         # A dead connection means we're no longer fully connected
@@ -1935,7 +1933,6 @@ class ldap_server:
                     log.write('LDAP.DEBUG',
                               self.build_log('this server marked DOWN'))
                     self.state = self.SRV_STATE_DOWN
-
 
     def dead_connection(self, conn, with_error=False, auth_error=False):
         """dead_connection()
@@ -2119,22 +2116,22 @@ class ldap_connection:
         Server calls this to determine if this connection can take
         any more requests."""
         return self.completed_requests + \
-               len(self.out_fifo) + \
-               len(self.inflight_inquiries)
+            len(self.out_fifo) + \
+            len(self.inflight_inquiries)
 
     def setup_connection_thread(self):
         """Method to be called as thread to construct/connect socket.
         Doesn't do much except wrap everything in timeout code."""
         if self.shutdown_flag:
             return
-        #log.write('LDAP.DEBUG', self.build_last_err('creating a new connection'))
+        # log.write('LDAP.DEBUG', self.build_last_err('creating a new connection'))
         try:
             coro.with_timeout(setup_connection_timeout, self.setup_connection)
 
-        except coro.TimeoutError, e:
+        except coro.TimeoutError as e:
             # Log this timeout
             self.last_err = self.build_last_err(
-                                'Timeout attempting to connect: %s' % e)
+                'Timeout attempting to connect: %s' % e)
             log.write('LDAP.DEBUG', self.last_err)
 
             # Mark this connection as dead
@@ -2172,12 +2169,12 @@ class ldap_connection:
 
             self.s = sock
 
-        except sslip.Error, e:
+        except sslip.Error as e:
             self.last_err = self.build_last_err('SSL Error: %s' % e)
             log.write('LDAP.DEBUG', self.last_err)
             self.teardown_connection()
 
-        except OSError, e:
+        except OSError as e:
             self.last_err = self.build_last_err('Connection Error: %s' % e)
             log.write('LDAP.DEBUG', self.last_err)
             self.teardown_connection()
@@ -2247,12 +2244,12 @@ class ldap_connection:
                         try:
                             self.upgrade_connection_to_ssl()
 
-                        except sslip.Error, e:
+                        except sslip.Error as e:
                             self.last_err = self.build_last_err('SSL Error: %s' % e)
                             log.write('LDAP.DEBUG', self.last_err)
                             return False
 
-                        except OSError, e:
+                        except OSError as e:
                             self.last_err = self.build_last_err('Connection Error: %s' % e)
                             log.write('LDAP.DEBUG', self.last_err)
                             return False
@@ -2271,12 +2268,11 @@ class ldap_connection:
                     return False
         return True
 
-
     def authenticate_connection(self):
         """authenticate_connection()
         Authenticate a connection via 'anonymous' or 'password'."""
         if self.state != self.CONN_CONNECTING and \
-            self.state != self.CONN_CONNECTED:
+                self.state != self.CONN_CONNECTED:
             return False
 
         # Mark as authenticating
@@ -2286,14 +2282,14 @@ class ldap_connection:
             pass
         elif self.cookie['authtype'] == 'password':
             auth_inquiry = Inquiry_Simple_Bind(None,
-                            self.cookie['authdata']['user'],
-                            self.cookie['authdata']['password'],
-                            DEFAULT_INQUIRY_TIMEOUT * coro.ticks_per_sec)
+                                               self.cookie['authdata']['user'],
+                                               self.cookie['authdata']['password'],
+                                               DEFAULT_INQUIRY_TIMEOUT * coro.ticks_per_sec)
 
             response = self.send_inquiry_and_wait(auth_inquiry)
 
             # If 'response' is None, the connection has gone away.
-            if response == None:
+            if response is None:
                 log.write('LDAP.DEBUG', self.last_err)
                 return False
             else:
@@ -2309,7 +2305,7 @@ class ldap_connection:
         # --> support SASL here <---
         else:
             self.last_err = self.build_last_err('unknown auth type %r' %
-                                                  (self.cookie['authtype'],))
+                                                (self.cookie['authtype'],))
             return False
 
         return True
@@ -2355,19 +2351,19 @@ class ldap_connection:
             if message_id != new_msgid:
                 self.last_err = self.build_last_err(
                     'Received unexpected LDAP msg ID: %s, buffer: %s' %
-                     (message_id, self.buffer))
+                    (message_id, self.buffer))
                 return None
 
             # Return to caller.  Caller must process the response.
             return response
 
-        except OSError, e:
+        except OSError as e:
             self.last_err = self.build_last_err("Connection Error: %s" % e)
             return None
         except coro.ClosedError:
             self.last_err = self.build_last_err("Connection closed")
             return None
-        except sslip.Error, e:
+        except sslip.Error as e:
             self.last_err = self.build_last_err("SSL Error: %s" % e)
             return None
         except EOFError:
@@ -2388,7 +2384,7 @@ class ldap_connection:
         Determine if connection has waited self.read_timeout time for an
         inquiry to be processed."""
         if self.last_write and (coro.now >
-               (self.last_write + (self.read_timeout * coro.ticks_per_sec))):
+                                (self.last_write + (self.read_timeout * coro.ticks_per_sec))):
             return True
         return False
 
@@ -2442,7 +2438,7 @@ class ldap_connection:
                     if self.completed_requests >= self.cookie['max_requests']:
                         break
 
-                except OSError, e:
+                except OSError as e:
                     self.last_err = self.build_last_err("Connection Error: %s" % e)
                     log.write('LDAP.DEBUG', self.last_err)
                     break
@@ -2461,7 +2457,7 @@ class ldap_connection:
                     else:
                         # Idle connection, keep reading
                         pass
-                except sslip.Error, e:
+                except sslip.Error as e:
                     self.last_err = self.build_last_err("SSL Error: %s" % e)
                     log.write('LDAP.DEBUG', self.last_err)
                     break
@@ -2483,7 +2479,6 @@ class ldap_connection:
 
         finally:
             self.teardown_connection()
-
 
     def writer(self):
         """writer() - thread/method that writes to network"""
@@ -2509,12 +2504,12 @@ class ldap_connection:
                         self.last_write = coro.now
                     except:
                         # If problem while sending it over the wire, then requeue
-                        if self.inflight_inquiries.has_key(mid):
+                        if mid in self.inflight_inquiries:
                             del self.inflight_inquiries[mid]
                         self.out_fifo.push((mid, inqr))
                         raise
 
-                except OSError, e:
+                except OSError as e:
                     self.last_err = self.build_last_err("Connection Error: %s" % e)
                     log.write('LDAP.DEBUG', self.last_err)
                     break
@@ -2522,7 +2517,7 @@ class ldap_connection:
                     self.last_err = self.build_last_err("Connection closed")
                     log.write('LDAP.DEBUG', self.last_err)
                     break
-                except sslip.Error, e:
+                except sslip.Error as e:
                     self.last_err = self.build_last_err("SSL Error: %s" % e)
                     log.write('LDAP.DEBUG', self.last_err)
                     break
@@ -2578,12 +2573,12 @@ class ldap_connection:
         """next_ldap_msgid()
         Utility to return next msg ID for this connection."""
         ldap_msgid = self.next_ldap_msg_id
-        while 1:
+        while True:
             next_id = ldap_msgid + 1
             # Detect ID roll-over
             if next_id >= 0x40000000:
                 next_id = 1
-            if not self.inflight_inquiries.has_key(ldap_msgid):
+            if ldap_msgid not in self.inflight_inquiries:
                 break
             ldap_msgid = next_id
         self.next_ldap_msg_id = next_id
@@ -2593,15 +2588,16 @@ class ldap_connection:
         """build_last_err(msg)
         Dress up an error message with connection info."""
         return '%s:%s(%s:%d) (%d) %s' % \
-                        (self.sg_name, self.hostname, self.ip, self.port,
-                         self.cookie['conn_id'], msg)
+            (self.sg_name, self.hostname, self.ip, self.port,
+             self.cookie['conn_id'], msg)
 
     def _render_packet(self, message_id, request):
         return ldap.encode_message(message_id, request)
 
-    def _rendered_packet_from_inquiry(self, (message_id, inquiry)):
+    def _rendered_packet_from_inquiry(self, xxx_todo_changeme):
         """_render_operation_list()
         Convert a list of (id, inquiry) into a """
+        (message_id, inquiry) = xxx_todo_changeme
         return ldap.encode_message(message_id, inquiry.get_rendered_operation())
 
     def _need(self, n):
@@ -2621,7 +2617,7 @@ class ldap_connection:
         # length) detection here to get good buffering behavior
         self._need(2)
         tag = self.buffer[0]
-        if tag != '0': # SEQUENCE | STRUCTURED
+        if tag != '0':  # SEQUENCE | STRUCTURED
             self.last_err = self.build_last_err(
                 'Received invalid LDAP packet: invalid starting tag: %s' %
                 self.buffer)
@@ -2634,7 +2630,7 @@ class ldap_connection:
             # fetch length
             n = 0
             for i in xrange (ll):
-                n = (n << 8) | ord(self.buffer[2+i])
+                n = (n << 8) | ord(self.buffer[2 + i])
             if (n < 0) or (n > 1000000):
                 # let's be reasonable, folks
                 self.last_err = self.build_last_err(
@@ -2663,7 +2659,7 @@ class ldap_connection:
                 return (None, None)
             else:
                 return (message_id, answer)
-        except ldap.DecodeError, e:
+        except ldap.DecodeError as e:
             self.last_err = self.build_last_err(
                 'Received invalid LDAP packet: %s, %r' % (str(e), packet))
             return (None, None)
@@ -2710,12 +2706,12 @@ class ldap_binder_connection(ldap_connection):
 
             self.s = sock
 
-        except sslip.Error, e:
+        except sslip.Error as e:
             self.last_err = self.build_last_err('SSL Error: %s' % e)
             log.write('LDAP.DEBUG', self.last_err)
             self.teardown_connection()
 
-        except OSError, e:
+        except OSError as e:
             self.last_err = self.build_last_err('Connection Error: %s' % e)
             log.write('LDAP.DEBUG', self.last_err)
             self.teardown_connection()
@@ -2734,7 +2730,6 @@ class ldap_binder_connection(ldap_connection):
                 self.state = self.CONN_CONNECTED
                 self.writer_thread = coro.spawn(self.writer)
                 self.reader_thread = coro.spawn(self.reader)
-
 
     def reader(self):
         """reader() - thread/method that reads from network"""
@@ -2781,7 +2776,7 @@ class ldap_binder_connection(ldap_connection):
                     if self.completed_requests >= self.cookie['max_requests']:
                         break
 
-                except OSError, e:
+                except OSError as e:
                     self.last_err = self.build_last_err("Connection Error: %s" % e)
                     log.write('LDAP.DEBUG', self.last_err)
                     break
@@ -2800,7 +2795,7 @@ class ldap_binder_connection(ldap_connection):
                     else:
                         # Idle connection, keep reading
                         pass
-                except sslip.Error, e:
+                except sslip.Error as e:
                     self.last_err = self.build_last_err("SSL Error: %s" % e)
                     log.write('LDAP.DEBUG', self.last_err)
                     break
@@ -2899,7 +2894,7 @@ if __name__ == '__main__':
     log = QlogWrapperFake()
 
     bd_path = comm_path.mk_backdoor_path('ldap')
-    coro.spawn (backdoor.serve, unix_path = bd_path, global_dict=service.__dict__, thread_name='backdoor')
+    coro.spawn (backdoor.serve, unix_path=bd_path, global_dict=service.__dict__, thread_name='backdoor')
 
     # Make a client context
     client = ldap_client()
@@ -2909,11 +2904,11 @@ if __name__ == '__main__':
 
     # Add a server
     sg.add_server("localhost", 1111, 'password',
-                  {'user':'fakie', 'password':'mypass'},
+                  {'user': 'fakie', 'password': 'mypass'},
                   TRANSPORT_PLAINTEXT)
 
     sg.add_server("localhost", 1112, 'anonymous',
-                  {'user':'fakie', 'password':'mypass'},
+                  {'user': 'fakie', 'password': 'mypass'},
                   TRANSPORT_PLAINTEXT)
 
     # XXX modify max number of connections

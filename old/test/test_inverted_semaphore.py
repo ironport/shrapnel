@@ -37,7 +37,7 @@ def waiter():
     print 'waiter awoke'
     coro._exit = 1
 
-coro.spawn(worker,5)
-coro.spawn(worker,10)
+coro.spawn(worker, 5)
+coro.spawn(worker, 10)
 coro.spawn(waiter)
 coro.event_loop()

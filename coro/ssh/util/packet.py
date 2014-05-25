@@ -65,34 +65,34 @@ def unpack_payload_get_offset(format, payload, offset=0):
             result.append(ord(payload[i]) and 1 or 0)
             i += 1
         elif value_type is UINT32:
-            result.append(struct.unpack('>I', payload[i:i+4])[0])
+            result.append(struct.unpack('>I', payload[i:i + 4])[0])
             i += 4
         elif value_type is UINT64:
-            result.append(struct.unpack('>Q', payload[i:i+8])[0])
+            result.append(struct.unpack('>Q', payload[i:i + 8])[0])
             i += 8
         elif value_type is STRING:
-            str_len = struct.unpack('>I', payload[i:i+4])[0]
+            str_len = struct.unpack('>I', payload[i:i + 4])[0]
             i += 4
-            result.append(payload[i:i+str_len])
+            result.append(payload[i:i + str_len])
             i += str_len
         elif value_type is MPINT:
-            mpint_len = struct.unpack('>I', payload[i:i+4])[0]
+            mpint_len = struct.unpack('>I', payload[i:i + 4])[0]
             i += 4
-            value = payload[i:i+mpint_len]
+            value = payload[i:i + mpint_len]
             i += mpint_len
             result.append(mpint.unpack_mpint(value))
         elif value_type is NAME_LIST:
-            list_len = struct.unpack('>I', payload[i:i+4])[0]
+            list_len = struct.unpack('>I', payload[i:i + 4])[0]
             i += 4
-            result.append(payload[i:i+list_len].split(','))
+            result.append(payload[i:i + list_len].split(','))
             i += list_len
-        elif type(value_type) is types.TupleType:
+        elif isinstance(value_type, types.TupleType):
             if value_type[0] is FIXED_STRING:
                 str_len = value_type[1]
-                result.append(payload[i:i+str_len])
+                result.append(payload[i:i + str_len])
                 i += str_len
         else:
-            raise ValueError, value_type
+            raise ValueError(value_type)
     return result, i
 
 def pack_payload(format, values):
@@ -108,7 +108,7 @@ def pack_payload(format, values):
     i = 0
     for value_type in format:
         if value_type is BYTE:
-            if type(values[i]) is types.StringType:
+            if isinstance(values[i], types.StringType):
                 if __debug__:
                     assert(len(values[i]) == 1)
                 packet[i] = values[i]
@@ -131,10 +131,10 @@ def pack_payload(format, values):
             # contain commas.
             s = ','.join(values[i])
             packet[i] = struct.pack('>I', len(s)) + s
-        elif type(value_type) is types.TupleType and value_type[0] is FIXED_STRING:
+        elif isinstance(value_type, types.TupleType) and value_type[0] is FIXED_STRING:
             packet[i] = values[i]
         else:
-            raise ValueError, value_type
+            raise ValueError(value_type)
         i += 1
     return ''.join(packet)
 
@@ -144,28 +144,28 @@ PAYLOAD_MSG_DISCONNECT = (
     UINT32,   # reason code
     STRING,   # description
     STRING    # language tag
-    )
+)
 
 PAYLOAD_MSG_IGNORE = (
     BYTE,
     STRING    # data
-    )
+)
 
 PAYLOAD_MSG_UNIMPLEMENTED = (
     BYTE,
     UINT32     # packet sequence number of rejected message
-    )
+)
 
 PAYLOAD_MSG_DEBUG = (
     BYTE,
     BOOLEAN,   # always_display
     STRING,    # message
     STRING     # language tag
-    )
+)
 
 PAYLOAD_MSG_KEXINIT = (
     BYTE,
-    (FIXED_STRING, 16),# cookie
+    (FIXED_STRING, 16),  # cookie
     NAME_LIST,        # kex_algorithms
     NAME_LIST,        # server_host_key_algorithms
     NAME_LIST,        # encryption_algorithms_client_to_server
@@ -178,7 +178,7 @@ PAYLOAD_MSG_KEXINIT = (
     NAME_LIST,        # languages_server_to_client
     BOOLEAN,          # first_kex_packet_follows
     UINT32            # 0 (reserved for future extension)
-    )
+)
 
 PAYLOAD_MSG_NEWKEYS = (BYTE,)
 PAYLOAD_MSG_SERVICE_REQUEST = (BYTE, STRING)     # service name
@@ -193,7 +193,7 @@ class unpack_test_case(ssh_packet_test_case):
 
     def runTest(self):
         # KEXINIT packet grabbed from my OpenSSH server.
-        sample_packet = '\024\212a\330\261\300}.\252b%~\006j\242\356\367\000\000\000=diffie-hellman-group-exchange-sha1,diffie-hellman-group1-sha1\000\000\000\007ssh-dss\000\000\000\207aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,arcfour,aes192-cbc,aes256-cbc,rijndael-cbc@lysator.liu.se,aes128-ctr,aes192-ctr,aes256-ctr\000\000\000\207aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,arcfour,aes192-cbc,aes256-cbc,rijndael-cbc@lysator.liu.se,aes128-ctr,aes192-ctr,aes256-ctr\000\000\000Uhmac-md5,hmac-sha1,hmac-ripemd160,hmac-ripemd160@openssh.com,hmac-sha1-96,hmac-md5-96\000\000\000Uhmac-md5,hmac-sha1,hmac-ripemd160,hmac-ripemd160@openssh.com,hmac-sha1-96,hmac-md5-96\000\000\000\011none,zlib\000\000\000\011none,zlib\000\000\000\000\000\000\000\000\000\000\000\000\000'
+        sample_packet = '\024\212a\330\261\300}.\252b%~\006j\242\356\367\000\000\000=diffie-hellman-group-exchange-sha1,diffie-hellman-group1-sha1\000\000\000\007ssh-dss\000\000\000\207aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,arcfour,aes192-cbc,aes256-cbc,rijndael-cbc@lysator.liu.se,aes128-ctr,aes192-ctr,aes256-ctr\000\000\000\207aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,arcfour,aes192-cbc,aes256-cbc,rijndael-cbc@lysator.liu.se,aes128-ctr,aes192-ctr,aes256-ctr\000\000\000Uhmac-md5,hmac-sha1,hmac-ripemd160,hmac-ripemd160@openssh.com,hmac-sha1-96,hmac-md5-96\000\000\000Uhmac-md5,hmac-sha1,hmac-ripemd160,hmac-ripemd160@openssh.com,hmac-sha1-96,hmac-md5-96\000\000\000\011none,zlib\000\000\000\011none,zlib\000\000\000\000\000\000\000\000\000\000\000\000\000'  # noqa
         msg, cookie, kex_algorithms, server_host_key_algorithms, encryption_algorithms_c2s, \
             encryption_algorithms_s2c, mac_algorithms_c2s, mac_algorithms_s2c, \
             compression_algorithms_c2s, compression_algorithms_s2c, \

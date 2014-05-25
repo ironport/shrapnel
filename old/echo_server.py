@@ -9,7 +9,7 @@ import socket
 the_timer = coro_bench.real_timer()
 
 def service_client (conn, addr):
-    while 1:
+    while True:
         try:
             data = coro.with_timeout (10, conn.recv, 8192)
         except coro.TimeoutError:
@@ -37,8 +37,8 @@ def service_client (conn, addr):
                     conn.send (
                         coro_bench.format_rusage (
                             the_timer.bench()
-                            ) + '\r\n\000'
-                        )
+                        ) + '\r\n\000'
+                    )
                 elif data == '!stats\r\n':
                     conn.send ('ok\r\n')
                     coro_bench.dump_stats()
@@ -52,7 +52,7 @@ def serve (port):
     s.set_reuse_addr()
     s.bind (('', port))
     s.listen (8192)
-    while 1:
+    while True:
         conn, addr = s.accept()
         coro.spawn (service_client, conn, addr)
 

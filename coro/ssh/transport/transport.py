@@ -119,14 +119,14 @@ class SSH_Transport:
         #     to decide which callbacks to register?  Or should that be done
         #     by the subclass?
         self.register_callbacks('__base__',
-                {SSH_MSG_IGNORE: self.msg_ignore,
-                 SSH_MSG_DEBUG: self.msg_debug,
-                 SSH_MSG_DISCONNECT:self.msg_disconnect,
-                 SSH_MSG_UNIMPLEMENTED:self.msg_unimplemented,
-                 #SSH_MSG_KEXINIT:self.msg_kexinit,
-                 SSH_MSG_NEWKEYS:self.msg_newkeys,
-                }
-                )
+                                {SSH_MSG_IGNORE: self.msg_ignore,
+                                 SSH_MSG_DEBUG: self.msg_debug,
+                                 SSH_MSG_DISCONNECT: self.msg_disconnect,
+                                 SSH_MSG_UNIMPLEMENTED: self.msg_unimplemented,
+                                 # SSH_MSG_KEXINIT:self.msg_kexinit,
+                                 SSH_MSG_NEWKEYS: self.msg_newkeys,
+                                 }
+                                )
 
     def unregister_callbacks(self, module_name):
         """unregister_callbacks(self, module_name) -> None
@@ -178,20 +178,21 @@ class SSH_Transport:
     def send_disconnect(self, reason_code, description):
         """send_disconnect(self, reason_code, description) -> None
         """
-        self.debug.write(ssh_debug.DEBUG_3, 'send_disconnect(reason_code=%r, description=%r)', (reason_code, description))
+        self.debug.write(
+            ssh_debug.DEBUG_3, 'send_disconnect(reason_code=%r, description=%r)', (reason_code, description))
         # Language tag currently set to the empty string.
         language_tag = ''
         self.send_packet(
             ssh_packet.pack_payload (
                 ssh_packet.PAYLOAD_MSG_DISCONNECT,
-                  (SSH_MSG_DISCONNECT,
-                    reason_code,
-                    description,
-                    language_tag)
-                )
+                (SSH_MSG_DISCONNECT,
+                 reason_code,
+                 description,
+                 language_tag)
             )
+        )
         self.disconnect()
-        raise SSH_Protocol_Error, (reason_code, description)
+        raise SSH_Protocol_Error(reason_code, description)
 
     def send (self, format, values):
         self.send_packet (ssh_packet.pack_payload (format, values))
@@ -255,9 +256,9 @@ class SSH_Transport:
         self.self2remote.inc_packet_sequence_number()
         self.debug.write(ssh_debug.DEBUG_2, 'send_packet: mac=%r', (mac,))
 
-        #self.debug.write(ssh_debug.DEBUG_2, 'send_packet: chunk=%r', (chunk,))
+        # self.debug.write(ssh_debug.DEBUG_2, 'send_packet: chunk=%r', (chunk,))
         encrypted_chunk = self.self2remote.cipher.encrypt(chunk)
-        #self.debug.write(ssh_debug.DEBUG_2, 'send_packet: encrypted_chunk=%r', (encrypted_chunk,))
+        # self.debug.write(ssh_debug.DEBUG_2, 'send_packet: encrypted_chunk=%r', (encrypted_chunk,))
 
         self.transport.write(encrypted_chunk + mac)
 
@@ -268,7 +269,7 @@ class SSH_Transport:
         <wait_till>: List of message types that you are looking for.
         """
         if not self._receive_thread:
-            raise SSH_Protocol_Error, 'receive thread not running'
+            raise SSH_Protocol_Error('receive thread not running')
         self.tmc.add(coro.current(), wait_till)
         try:
             return coro._yield()
@@ -299,7 +300,7 @@ class SSH_Transport:
         the socket.
         """
         exc_type = exc_data = exc_tb = None
-        while 1:
+        while True:
             try:
                 packet, sequence_number = self._receive_packet()
             except Stop_Receiving_Exception:
@@ -311,7 +312,7 @@ class SSH_Transport:
                 # This can only happen during the beginning of the
                 # connection, so we don't need to worry about multiple
                 # threads since there can be only 1.
-                assert(len(self.tmc.processing_threads)<=1)
+                assert(len(self.tmc.processing_threads) <= 1)
                 self.debug.write(ssh_debug.DEBUG_1, 'receive_thread: ignoring first packet')
                 self.ignore_first_packet = False
                 continue
@@ -328,10 +329,10 @@ class SSH_Transport:
             # XXX: We should check here for SSH_MSG_KEXINIT.
             #      If we see it, then we should lock down and prevent any
             #      other messages other than those for the key exchange.
-            #if message_type == SSH_MSG_KEXINIT:
+            # if message_type == SSH_MSG_KEXINIT:
 
             # Wake up anyone waiting for their message.
-            if self.tmc.processing_messages.has_key(message_type):
+            if message_type in self.tmc.processing_messages:
                 thread = self.tmc.processing_messages[message_type]
                 try:
                     self.debug.write(ssh_debug.DEBUG_2, 'receive_thread: waiting thread waking up')
@@ -357,8 +358,8 @@ class SSH_Transport:
         self.tmc.clear()
 
     def _handle_packet(self, message_type, packet, sequence_number):
-        if not self.tmc.processing_messages.has_key(message_type):
-            if self.message_callbacks.has_key(message_type):
+        if message_type not in self.tmc.processing_messages:
+            if message_type in self.message_callbacks:
                 f = self.message_callbacks[message_type]
                 self.debug.write(ssh_debug.DEBUG_2, 'receive_thread: calling registered function %s', (f.__name__,))
                 f(packet)
@@ -384,10 +385,10 @@ class SSH_Transport:
         self.debug.write(ssh_debug.DEBUG_3, 'send_unimplemented(sequence_number=%i)', (sequence_number,))
         self.send_packet(
             ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_UNIMPLEMENTED,
-                                        (SSH_MSG_UNIMPLEMENTED,
-                                        sequence_number)
+                                    (SSH_MSG_UNIMPLEMENTED,
+                                     sequence_number)
                                     )
-                        )
+        )
 
     def _receive_packet(self):
         """_receive_packet(self) -> payload, sequence_number
@@ -403,14 +404,16 @@ class SSH_Transport:
         packet_length = struct.unpack('>I', first_chunk[:4])[0]
         min_packet_length = max(16, self.remote2self.cipher.block_size)
         # +4 to include the length field.
-        if packet_length+4 < min_packet_length:
-            self.debug.write(ssh_debug.WARNING, 'receive_packet: packet length too small (len=%i)', (packet_length+4,))
+        if packet_length + 4 < min_packet_length:
+            self.debug.write(
+                ssh_debug.WARNING, 'receive_packet: packet length too small (len=%i)', (packet_length + 4,))
             self.send_disconnect(SSH_DISCONNECT_PROTOCOL_ERROR, 'packet length too small: %i' % packet_length)
-        if packet_length+4 > 1048576: # 1 megabyte
-            self.debug.write(ssh_debug.WARNING, 'receive_packet: packet length too big (len=%i)', (packet_length+4,))
+        if packet_length + 4 > 1048576:  # 1 megabyte
+            self.debug.write(ssh_debug.WARNING, 'receive_packet: packet length too big (len=%i)', (packet_length + 4,))
             self.send_disconnect(SSH_DISCONNECT_PROTOCOL_ERROR, 'packet length too big: %i' % packet_length)
 
-        self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: reading rest of packet (packet_length=%i)', (packet_length,))
+        self.debug.write(
+            ssh_debug.DEBUG_3, 'receive_packet: reading rest of packet (packet_length=%i)', (packet_length,))
         rest_of_packet = self.transport.read(packet_length - len(first_chunk) + 4 + self.remote2self.mac.digest_size)
         if self.remote2self.mac.digest_size == 0:
             mac = ''
@@ -422,7 +425,7 @@ class SSH_Transport:
 
         padding_len = ord(packet[4])
         self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: padding_length=%i', (padding_len,))
-        payload = packet[5:packet_length+4-padding_len]
+        payload = packet[5:packet_length + 4 - padding_len]
 
         packet_sequence_number = self.remote2self.packet_sequence_number
         self.debug.write(ssh_debug.DEBUG_3, 'receive_packet: packet=%r', (packet,))
@@ -431,7 +434,8 @@ class SSH_Transport:
         self.remote2self.inc_packet_sequence_number()
 
         if computed_mac != mac:
-            self.debug.write(ssh_debug.WARNING, 'receive_packet: mac did not match: computed=%r actual=%r', (computed_mac, mac))
+            self.debug.write(
+                ssh_debug.WARNING, 'receive_packet: mac did not match: computed=%r actual=%r', (computed_mac, mac))
             self.send_disconnect(SSH_DISCONNECT_MAC_ERROR, 'mac did not match')
 
         return payload, packet_sequence_number
@@ -439,10 +443,10 @@ class SSH_Transport:
     def msg_disconnect(self, packet):
         msg, reason_code, description, language = ssh_packet.unpack_payload (ssh_packet.PAYLOAD_MSG_DISCONNECT, packet)
         self.disconnect()
-        raise SSH_Protocol_Error, (reason_code, description)
+        raise SSH_Protocol_Error(reason_code, description)
 
     def msg_ignore(self, packet):
-        #msg, data = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_IGNORE, packet)
+        # msg, data = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_IGNORE, packet)
         pass
 
     def msg_debug(self, packet):
@@ -463,20 +467,20 @@ class SSH_Transport:
 
         self.remote2self.proactive_kex = first_kex_packet_follows
 
-        self.c2s.set_supported( kex_algorithms,
-                                server_host_key_algorithms,
-                                encryption_algorithms_c2s,
-                                mac_algorithms_c2s,
-                                compression_algorithms_c2s,
-                                languages_c2s,
-                                1)  # Prefer client's list.
-        self.s2c.set_supported( kex_algorithms,
-                                server_host_key_algorithms,
-                                encryption_algorithms_s2c,
-                                mac_algorithms_s2c,
-                                compression_algorithms_s2c,
-                                languages_s2c,
-                                0)  # Prefer client's list.
+        self.c2s.set_supported(kex_algorithms,
+                               server_host_key_algorithms,
+                               encryption_algorithms_c2s,
+                               mac_algorithms_c2s,
+                               compression_algorithms_c2s,
+                               languages_c2s,
+                               1)  # Prefer client's list.
+        self.s2c.set_supported(kex_algorithms,
+                               server_host_key_algorithms,
+                               encryption_algorithms_s2c,
+                               mac_algorithms_s2c,
+                               compression_algorithms_s2c,
+                               languages_s2c,
+                               0)  # Prefer client's list.
 
         # The algorithm that we use is the first item that is on the client's
         # list that is also on the server's list.
@@ -488,12 +492,12 @@ class SSH_Transport:
 
         # See if we guessed the kex properly.
         if self.remote2self.proactive_kex and \
-            self.remote2self.key_exchange.name != self.key_exchange.name:
+                self.remote2self.key_exchange.name != self.key_exchange.name:
             # Remote side sent an incorrect initial kex packet...ignore it.
             self.ignore_first_packet = True
 
         if self.self2remote.proactive_kex and \
-            self.self2remote.key_exchange.name != self.key_exchange.name:
+                self.self2remote.key_exchange.name != self.key_exchange.name:
             # We sent an invalid initial kex packet.
             # Resend proper kex packet.
             self.debug.write(ssh_debug.DEBUG_1, 'msg_kexinit: Resending initial kex packet due to incorrect guess')
@@ -513,13 +517,16 @@ class SSH_Transport:
         self.self2remote.server_key = self.server_key
 
         # Make sure kex algorithm has the information it needs.
-        self.key_exchange.set_info(self.c2s.version_string, self.s2c.version_string, self.c2s.kexinit_packet, self.s2c.kexinit_packet, self.s2c.supported_server_keys)
+        self.key_exchange.set_info(self.c2s.version_string, self.s2c.version_string,
+                                   self.c2s.kexinit_packet, self.s2c.kexinit_packet, self.s2c.supported_server_keys)
 
     def _matchup(self, what):
         if getattr(self.remote2self, what) is None:
-            self.send_disconnect(SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'We do not support any of the remote side\'s %ss.' % what)
+            self.send_disconnect(
+                SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'We do not support any of the remote side\'s %ss.' % what)
         if getattr(self.self2remote, what) is None:
-            self.send_disconnect(SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'The remote side does not support any of our %ss.' % what)
+            self.send_disconnect(
+                SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'The remote side does not support any of our %ss.' % what)
 
     def _matchup_kex_and_key(self):
         """_matchup_kex_and_key(self) -> None
@@ -561,7 +568,7 @@ class SSH_Transport:
                     # See if we both have key types that match the requirements of this kex algorithm.
                     for server_host_key_type in self.s2c.supported_server_keys:
                         if (server_kex_algorithm.wants_encryption_host_key and not server_host_key_type.supports_encryption) or \
-                           (server_kex_algorithm.wants_signature_host_key  and not server_host_key_type.supports_signature):
+                           (server_kex_algorithm.wants_signature_host_key and not server_host_key_type.supports_signature):  # noqa
                             # This host key is not appropriate.
                             continue
                         else:
@@ -576,7 +583,8 @@ class SSH_Transport:
                     break
             else:
                 # None of the kex algorithms worked.
-                self.send_disconnect(SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Could not find matching key exchange algorithm.')
+                self.send_disconnect(
+                    SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Could not find matching key exchange algorithm.')
         else:
             # We have agreement on the kex algorithm to use.
             # See if we have agreement on the server host key type.
@@ -589,7 +597,7 @@ class SSH_Transport:
                         # We both support this server key algorithm.
                         # See if it matches our kex algorithm requirements.
                         if (self.remote2self.key_exchange.wants_encryption_host_key and not server_server_key_type.supports_encryption) or \
-                           (self.remote2self.key_exchange.wants_signature_host_key  and not server_server_key_type.supports_signature):
+                           (self.remote2self.key_exchange.wants_signature_host_key and not server_server_key_type.supports_signature):  # noqa
                             # This server key type is not appropriate.
                             continue
                         else:
@@ -597,8 +605,12 @@ class SSH_Transport:
                             break
                 else:
                     # None of the server key types worked.
-                    self.send_disconnect(SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Could not find matching server key type for %s key exchange.' % self.remote2self.key_exchange.name)
-            self.debug.write (ssh_debug.DEBUG_3, 'msg_kexinit: set_key_exchange: %r' % (self.remote2self.server_key.name,))
+                    self.send_disconnect(
+                        SSH_DISCONNECT_KEY_EXCHANGE_FAILED,
+                        'Could not find matching server key type for %s key exchange.' %
+                        self.remote2self.key_exchange.name)
+            self.debug.write (ssh_debug.DEBUG_3, 'msg_kexinit: set_key_exchange: %r' %
+                              (self.remote2self.server_key.name,))
             self.set_key_exchange(self.remote2self.key_exchange.name, self.remote2self.server_key.name)
 
     def set_key_exchange(self, key_exchange=None, server_host_key_type=None):
@@ -616,10 +628,10 @@ class SSH_Transport:
         """
         kex = pick_from_list(key_exchange, self.self2remote.supported_key_exchanges)
         if kex is None:
-            raise ValueError, 'Unknown key exchange algorithm: %s' % key_exchange
+            raise ValueError('Unknown key exchange algorithm: %s' % key_exchange)
         key = pick_from_list(server_host_key_type, self.self2remote.supported_server_keys)
         if key is None:
-            raise ValueError, 'Unknown server key type: %s' % server_host_key_type
+            raise ValueError('Unknown server key type: %s' % server_host_key_type)
         self.key_exchange = kex
         self.server_key = key
         if self.is_server:
@@ -652,23 +664,23 @@ class SSH_Transport:
         server_keys = [x.name for x in self.self2remote.supported_server_keys]
         server_keys.reverse()
         packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_KEXINIT,
-                                    (SSH_MSG_KEXINIT,
-                                     cookie,
-                                     [x.name for x in self.self2remote.supported_key_exchanges],
-                                     #[x.name for x in self.self2remote.supported_server_keys],
-                                     server_keys,
-                                     [x.name for x in self.c2s.supported_ciphers],
-                                     [x.name for x in self.s2c.supported_ciphers],
-                                     [x.name for x in self.c2s.supported_macs],
-                                     [x.name for x in self.s2c.supported_macs],
-                                     [x.name for x in self.c2s.supported_compressions],
-                                     [x.name for x in self.s2c.supported_compressions],
-                                     [x.name for x in self.c2s.supported_languages],
-                                     [x.name for x in self.s2c.supported_languages],
-                                     self.self2remote.proactive_kex, # first_kex_packet_follows
-                                     0  # reserved
-                                    )
-                               )
+                                         (SSH_MSG_KEXINIT,
+                                          cookie,
+                                          [x.name for x in self.self2remote.supported_key_exchanges],
+                                             # [x.name for x in self.self2remote.supported_server_keys],
+                                             server_keys,
+                                             [x.name for x in self.c2s.supported_ciphers],
+                                             [x.name for x in self.s2c.supported_ciphers],
+                                             [x.name for x in self.c2s.supported_macs],
+                                             [x.name for x in self.s2c.supported_macs],
+                                             [x.name for x in self.c2s.supported_compressions],
+                                             [x.name for x in self.s2c.supported_compressions],
+                                             [x.name for x in self.c2s.supported_languages],
+                                             [x.name for x in self.s2c.supported_languages],
+                                             self.self2remote.proactive_kex,  # first_kex_packet_follows
+                                             0  # reserved
+                                          )
+                                         )
         self.self2remote.kexinit_packet = packet
         return packet
 
@@ -703,7 +715,7 @@ class One_Way_SSH_Transport:
     # the remote side supports our preferred algorithms.
     proactive_kex = 0
 
-    packet_sequence_number = 0L
+    packet_sequence_number = 0
 
     def __init__(self, transport):
         # Instantiate all components.
@@ -715,10 +727,10 @@ class One_Way_SSH_Transport:
         self.supported_ciphers = [Triple_DES_CBC(),
                                   Blowfish_CBC(),
                                   Cipher_None(),
-                                 ]
+                                  ]
         self.supported_macs = [HMAC_SHA1(),
                                MAC_None(),
-                              ]
+                               ]
         self.supported_languages = []
 
         self.set_none()
@@ -728,7 +740,7 @@ class One_Way_SSH_Transport:
         Raises the packet sequence number by one.
         """
         self.packet_sequence_number += 1
-        if self.packet_sequence_number == 4294967296L:
+        if self.packet_sequence_number == 4294967296:
             self.packet_sequence_number = 0
 
     def set_none(self):
@@ -743,7 +755,7 @@ class One_Way_SSH_Transport:
         self.mac = MAC_None()
         self.language = None
 
-    def set_preferred(self, what = None):
+    def set_preferred(self, what=None):
         """set_preferred(self, what = None) -> None
         Sets the "preferred" pointers to the first element of the appropriate
         lists.
@@ -776,7 +788,7 @@ class One_Way_SSH_Transport:
                                   If false, prefers the order of the given lists.
         """
         def _filter(feature_list, algorithm_list, prefer_self):
-            algorithm_list[:] = filter(lambda x,y=feature_list: x.name in y, algorithm_list)
+            algorithm_list[:] = filter(lambda x, y=feature_list: x.name in y, algorithm_list)
             if not prefer_self:
                 # Change the order to match that of <feature_list>
                 new_list = []
@@ -823,7 +835,7 @@ class Thread_Message_Callbacks:
         Remove a thread that is being tracked.
         """
         thread_id = coro_object.thread_id()
-        if self.processing_threads.has_key(thread_id):
+        if thread_id in self.processing_threads:
             messages = self.processing_threads[thread_id]
             for m in messages:
                 assert(self.processing_messages[m] == coro_object)
@@ -839,8 +851,8 @@ class Thread_Message_Callbacks:
         """
         self.processing_threads[coro_object.thread_id()] = messages_waiting_for
         for m in messages_waiting_for:
-            if self.processing_messages.has_key(m):
-                raise AssertionError, 'Can\'t register message %i with multiple threads.' % m
+            if m in self.processing_messages:
+                raise AssertionError('Can\'t register message %i with multiple threads.' % m)
             self.processing_messages[m] = coro_object
 
 class Stop_Receiving_Exception(Exception):

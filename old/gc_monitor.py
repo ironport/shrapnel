@@ -32,14 +32,14 @@ def safe_repr (x):
         return '<%s object at %x>' % (str(type(x)), id(x))
 
 def monitor_thread():
-    while 1:
+    while True:
         if gc.garbage:
             coro.print_stderr (
                 "Warning: possible memory leak: len(gc.garbage)=%d\n" % (len(gc.garbage),)
-                )
+            )
             coro.print_stderr (
                 "\tFirst %d objects in gc.garbage:\n" % (len(gc.garbage[:5]))
-                )
+            )
             for x in gc.garbage[:5]:
                 coro.print_stderr ("\t  %s\n" % (safe_repr (x),))
         coro.sleep_relative (monitor_sleep_interval)

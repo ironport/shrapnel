@@ -39,7 +39,7 @@ from coro.ssh.keys import parse_public_key
 from coro.ssh.util.mpint import pack_mpint
 
 # 2**1024 - 2**960 - 1 + 2**64 * floor( 2**894 Pi + 129093 )
-DH_PRIME = 179769313486231590770839156793787453197860296048756011706444423684197180216158519368947833795864925541502180565485980503646440548199239100050792877003355816639229553136239076508735759914822574862575007425302077447712589550957937778424442426617334727629299387668709205606050270810842907692932019128194467627007L
+DH_PRIME = 179769313486231590770839156793787453197860296048756011706444423684197180216158519368947833795864925541502180565485980503646440548199239100050792877003355816639229553136239076508735759914822574862575007425302077447712589550957937778424442426617334727629299387668709205606050270810842907692932019128194467627007L  # noqa
 DH_GENERATOR = 2L
 
 SSH_MSG_KEXDH_INIT      = 30
@@ -49,10 +49,10 @@ def hexdump(src, length=16):
     FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
     lines = []
     for c in xrange(0, len(src), length):
-        chars = src[c:c+length]
+        chars = src[c:c + length]
         hex = ' '.join(["%02x" % ord(x) for x in chars])
         printable = ''.join(["%s" % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
-        lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
+        lines.append("%04x  %-*s  %s\n" % (c, length * 3, hex, printable))
     return ''.join(lines)
 
 class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
@@ -65,7 +65,7 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
 
     client_random_value = ''    # x
     client_exchange_value = 0L  # e
-    server_public_host_key = None # k_s
+    server_public_host_key = None  # k_s
 
     server_random_value = ''    # y
     server_exchange_value = 0L  # f
@@ -80,9 +80,9 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         # compute e=g**x mod p
         self.client_exchange_value = pow(DH_GENERATOR, self.client_random_value, DH_PRIME)
         return ssh_packet.pack_payload(KEXDH_INIT_PAYLOAD,
-                                            (SSH_MSG_KEXDH_INIT,
-                                             self.client_exchange_value)
-                                           )
+                                       (SSH_MSG_KEXDH_INIT,
+                                        self.client_exchange_value)
+                                       )
 
     def get_initial_server_kex_packet(self):
         return None
@@ -122,7 +122,7 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
             self.client_exchange_value,
             self.server_exchange_value,
             self.shared_secret
-            )
+        )
         H = ssh_packet.pack_payload (KEXDH_HASH_PAYLOAD, payload_inputs)
         self.exchange_hash = hashlib.sha1(H).digest()
         if self.session_id is None:
@@ -135,15 +135,16 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
                 K_S,
                 self.server_exchange_value,
                 H_sig
-                )
             )
+        )
         self.transport.send_packet (packet)
 
     def msg_kexdh_reply(self, packet):
         # string    server public host key and certificates (K_S)
         # mpint     f
         # string    signature of H
-        msg, public_host_key, server_exchange_value, signature_of_h = ssh_packet.unpack_payload(KEXDH_REPLY_PAYLOAD, packet)
+        msg, public_host_key, server_exchange_value, signature_of_h = ssh_packet.unpack_payload(
+            KEXDH_REPLY_PAYLOAD, packet)
 
         # Create a SSH_Public_Private_Key instance from the packed string.
         self.server_public_host_key = parse_public_key(public_host_key)
@@ -152,8 +153,10 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         self.transport.verify_public_host_key(self.server_public_host_key)
 
         # Make sure f is a valid number
-        if server_exchange_value <= 1 or server_exchange_value >= DH_PRIME-1:
-            self.transport.send_disconnect(constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed: Server exchange value not valid.')
+        if server_exchange_value <= 1 or server_exchange_value >= DH_PRIME - 1:
+            self.transport.send_disconnect(
+                constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED,
+                'Key exchange did not succeed: Server exchange value not valid.')
 
         # K = f**x mod p
         self.shared_secret = pow(server_exchange_value, self.client_random_value, DH_PRIME)
@@ -167,14 +170,14 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
         # mpint     f, exchange value sent by the server
         # mpint     K, the shared secret
         H = ssh_packet.pack_payload(KEXDH_HASH_PAYLOAD,
-                                 (self.c2s_version_string,
-                                 self.s2c_version_string,
-                                 self.c2s_kexinit_packet,
-                                 self.s2c_kexinit_packet,
-                                 public_host_key,
-                                 self.client_exchange_value,
-                                 server_exchange_value,
-                                 self.shared_secret))
+                                    (self.c2s_version_string,
+                                     self.s2c_version_string,
+                                     self.c2s_kexinit_packet,
+                                     self.s2c_kexinit_packet,
+                                     public_host_key,
+                                     self.client_exchange_value,
+                                     server_exchange_value,
+                                     self.shared_secret))
         # Double check that the signature from the server matches our signature.
         hash = hashlib.sha1(H)
         self.exchange_hash = hash.digest()
@@ -183,27 +186,28 @@ class Diffie_Hellman_Group1_SHA1(SSH_Key_Exchange):
             self.session_id = self.exchange_hash
 
         if not self.server_public_host_key.verify(self.exchange_hash, signature_of_h):
-            self.transport.send_disconnect(constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed:  Signature did not match.')
+            self.transport.send_disconnect(
+                constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, 'Key exchange did not succeed:  Signature did not match.')
 
         # Finished...
-        #self.transport.send_newkeys()
+        # self.transport.send_newkeys()
 
 KEXDH_REPLY_PAYLOAD = (ssh_packet.BYTE,
                        ssh_packet.STRING,      # public host key and certificates (K_S)
                        ssh_packet.MPINT,       # f
                        ssh_packet.STRING       # signature of H
-                      )
+                       )
 
 KEXDH_INIT_PAYLOAD = (ssh_packet.BYTE,
                       ssh_packet.MPINT    # e
-                     )
+                      )
 
-KEXDH_HASH_PAYLOAD = (ssh_packet.STRING, # V_C, the client's version string (CR and NL excluded)
-                      ssh_packet.STRING, # V_S, the server's version string (CR and NL excluded)
-                      ssh_packet.STRING, # I_C, the payload of the client's SSH_MSG_KEXINIT
-                      ssh_packet.STRING, # I_S, the payload of the server's SSH_MSG_KEXINIT
-                      ssh_packet.STRING, # K_S, the host key
+KEXDH_HASH_PAYLOAD = (ssh_packet.STRING,  # V_C, the client's version string (CR and NL excluded)
+                      ssh_packet.STRING,  # V_S, the server's version string (CR and NL excluded)
+                      ssh_packet.STRING,  # I_C, the payload of the client's SSH_MSG_KEXINIT
+                      ssh_packet.STRING,  # I_S, the payload of the server's SSH_MSG_KEXINIT
+                      ssh_packet.STRING,  # K_S, the host key
                       ssh_packet.MPINT,  # e, exchange value sent by the client
                       ssh_packet.MPINT,  # f, exchange value sent by the server
                       ssh_packet.MPINT   # K, the shared secret
-                     )
+                      )

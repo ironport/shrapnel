@@ -50,11 +50,11 @@ class smtp_client:
 
     def get_response (self):
         result = ''
-        while 1:
+        while True:
             line = self.read_line()
             m = self.response_re.match (line)
             if not m:
-                raise ProtocolError, repr(line)
+                raise ProtocolError(repr(line))
             else:
                 code, cont, text = m.groups()
                 result = result + text + '\n'
@@ -76,7 +76,7 @@ def smtp_session (ip, port, nm, nr):
     for x in range(nm):
         code, text = s.command ('MAIL FROM:<fred@hell.org>')
         for y in range(nr):
-            code, text = s.command ('RCPT TO:<fred%d@hell.org>' %y)
+            code, text = s.command ('RCPT TO:<fred%d@hell.org>' % y)
         # we need to check the reply codes...
         code, text = s.command ('DATA')
         s.send (
@@ -84,14 +84,14 @@ def smtp_session (ip, port, nm, nr):
             "This is message #%d\r\n" % x +
             "BCNU\r\n"
             "\r\n.\r\n"
-            )
+        )
         code, text = s.get_response()
         sys.stderr.write ('m')
     s.command ('QUIT')
     sys.stderr.write('-')
     global count
     count = count - 1
-    #print 'count =',count
+    # print 'count =',count
     if count == 0:
         coro.set_exit()
 

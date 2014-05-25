@@ -25,17 +25,17 @@
 # (there are six) and then generalize.  simplify the
 # expression and you get this.  (trust me 8^)
 
-def region_intersect_p (a,b):
+def region_intersect_p (a, b):
     return (a[2] >= b[0]) and \
            (b[2] >= a[0]) and \
            (a[3] >= b[1]) and \
            (b[3] >= a[1])
 
-def point_in_region_p (x,y,r):
+def point_in_region_p (x, y, r):
     return (r[0] <= x <= r[2]) and (r[1] <= y <= r[3])
 
 # does region <a> fully contain region <b>?
-def region_contains_region_p (a,b):
+def region_contains_region_p (a, b):
     return (a[0] <= b[0]) and \
            (a[2] >= b[2]) and \
            (a[1] <= b[1]) and \
@@ -49,4 +49,4 @@ def union (a, b):
         min (y0, y2),
         max (x1, x3),
         max (y1, y3)
-        )
+    )

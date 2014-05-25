@@ -24,17 +24,17 @@ from Pyrex.Distutils.build_ext import build_ext
 import os
 
 include_dir = os.path.join(
-                os.getenv('IPROOT'),
-                'phoebe',
-                'python_modules'
-              )
+    os.getenv('IPROOT'),
+    'phoebe',
+    'python_modules'
+)
 
 setup (
     name='Test AIO',
-    ext_modules = [
+    ext_modules=[
         PyrexExtension ('t_aio', ['t_aio.pyx'],
                         pyrex_include_dirs=[include_dir],
-                       ),
+                        ),
     ],
     cmdclass={'build_ext': build_ext},
 )

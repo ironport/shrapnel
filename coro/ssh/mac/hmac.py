@@ -56,7 +56,7 @@ class SSH_HMAC(SSH_MAC_Method):
 
         ipad = '\x36' * self.block_size
         opad = '\x5C' * self.block_size
-        padded_key = self.key + '\0' * (self.block_size-len(self.key))
+        padded_key = self.key + '\0' * (self.block_size - len(self.key))
 
         self._enc_ipad = str_xor(padded_key, ipad)
         self._enc_opad = str_xor(padded_key, opad)

@@ -8,9 +8,9 @@ import coro.backdoor
 from coro.ssl import openssl
 
 ctx = coro.ssl.new_ctx (
-    cert = openssl.x509 (open('../cert/server.crt').read()),
-    key  = openssl.pkey (open('../cert/server.key').read(), private=True),
-    )
+    cert=openssl.x509 (open('../cert/server.crt').read()),
+    key=openssl.pkey (open('../cert/server.key').read(), private=True),
+)
 
 server = coro.http.openssl_server (ctx)
 server.push_handler (coro.http.handlers.coro_status_handler())

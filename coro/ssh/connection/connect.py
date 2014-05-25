@@ -65,7 +65,7 @@ class Connection_Service(SSH_Service):
                      SSH_MSG_CHANNEL_OPEN_FAILURE: self.msg_channel_open_failure,
                      # server side
                      SSH_MSG_CHANNEL_OPEN: self.msg_channel_open,
-                    }
+                     }
         self.transport.register_callbacks('ssh-connection', callbacks)
 
     def register_channel(self, channel):
@@ -74,7 +74,7 @@ class Connection_Service(SSH_Service):
         local_channels dictionary and to set the channel id.
         """
         channel.channel_id = self.next_channel_id
-        assert not self.local_channels.has_key(channel.channel_id)
+        assert channel.channel_id not in self.local_channels
         self.next_channel_id += 1               # XXX: Overflow?
         self.local_channels[channel.channel_id] = channel
 
@@ -88,7 +88,9 @@ class Connection_Service(SSH_Service):
         msg, channel_id, bytes_to_add = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         channel.remote_channel.window_data_left += bytes_to_add
-        self.transport.debug.write(ssh_debug.DEBUG_3, 'channel %i window increased by %i to %i', (channel.remote_channel.channel_id, bytes_to_add, channel.remote_channel.window_data_left))
+        self.transport.debug.write(ssh_debug.DEBUG_3, 'channel %i window increased by %i to %i',
+                                   (channel.remote_channel.channel_id, bytes_to_add,
+                                    channel.remote_channel.window_data_left))
         channel.window_data_added_cv.wake_all()
 
     def msg_channel_data(self, pkt):
@@ -96,7 +98,8 @@ class Connection_Service(SSH_Service):
         channel = self.local_channels[channel_id]
         # XXX: In theory, we should verify that len(data) <= channel.max_packet_size
         if len(data) > channel.window_data_left:
-            self.transport.debug.write(ssh_debug.WARNING, 'channel %i %i bytes overflowed window of %i', (channel.channel_id, len(data), channel.remote_channel.window_data_left))
+            self.transport.debug.write(ssh_debug.WARNING, 'channel %i %i bytes overflowed window of %i',
+                                       (channel.channel_id, len(data), channel.remote_channel.window_data_left))
             # Data is ignored.
         else:
             channel.window_data_left -= len(data)
@@ -106,7 +109,8 @@ class Connection_Service(SSH_Service):
         msg, channel_id, data_type_code, data = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_EXTENDED_DATA_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         if len(data) > channel.window_data_left:
-            self.transport.debug.write(ssh_debug.WARNING, 'channel %i %i bytes overflowed window of %i', (channel.channel_id, len(data), channel.remote_channel.window_data_left))
+            self.transport.debug.write(ssh_debug.WARNING, 'channel %i %i bytes overflowed window of %i',
+                                       (channel.channel_id, len(data), channel.remote_channel.window_data_left))
             # Data is ignored.
         else:
             channel.window_data_left -= len(data)
@@ -149,14 +153,17 @@ class Connection_Service(SSH_Service):
     def msg_channel_open_confirmation(self, pkt):
         data, offset = ssh_packet.unpack_payload_get_offset(SSH_MSG_CHANNEL_OPEN_CONFIRMATION_PAYLOAD, pkt)
         msg, recipient_channel, sender_channel, window_size, max_packet_size = data
-        self.transport.debug.write(ssh_debug.DEBUG_1, 'channel %i open confirmation sender_channel=%i window_size=%i max_packet_size=%i', (recipient_channel, sender_channel, window_size, max_packet_size))
+        self.transport.debug.write(
+            ssh_debug.DEBUG_1,
+            'channel %i open confirmation sender_channel=%i window_size=%i max_packet_size=%i',
+            (recipient_channel, sender_channel, window_size, max_packet_size))
         channel = self.local_channels[recipient_channel]
         # XXX: Assert that the channel is not already open?
         channel.closed = 0
         channel.eof = 0
         channel.remote_channel.closed = 0
         channel.remote_channel.channel_id = sender_channel
-        assert not self.remote_channels.has_key(sender_channel)
+        assert sender_channel not in self.remote_channels
         self.remote_channels[sender_channel] = channel.remote_channel
         channel.remote_channel.window_size = window_size
         channel.remote_channel.window_data_left = window_size
@@ -165,7 +172,8 @@ class Connection_Service(SSH_Service):
         channel.channel_open_success(additional_data)
 
     def msg_channel_open_failure(self, pkt):
-        msg, channel_id, reason_code, reason_text, language = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_OPEN_FAILURE_PAYLOAD, pkt)
+        msg, channel_id, reason_code, reason_text, language = ssh_packet.unpack_payload(
+            SSH_MSG_CHANNEL_OPEN_FAILURE_PAYLOAD, pkt)
         channel = self.local_channels[channel_id]
         # XXX: Assert that the channel is not already open?
         channel.channel_open_failure(reason_code, reason_text, language)
@@ -174,7 +182,8 @@ class Connection_Service(SSH_Service):
     # server side
     # --------------------------------------------------------------------------------
     def msg_channel_open (self, pkt):
-        _, channel_type, remote_id, initial_window, max_packet_size = ssh_packet.unpack_payload (SSH_MSG_CHANNEL_OPEN_PAYLOAD, pkt)
+        _, channel_type, remote_id, initial_window, max_packet_size = ssh_packet.unpack_payload (
+            SSH_MSG_CHANNEL_OPEN_PAYLOAD, pkt)
         channel = self.new_channel_class (self)
         self.register_channel (channel)
         channel.remote_channel.closed = 0
@@ -185,11 +194,11 @@ class Connection_Service(SSH_Service):
                 channel.channel_id,
                 initial_window,
                 max_packet_size,
-                )
             )
+        )
         self.transport.debug.write (
             ssh_debug.DEBUG_1,
             'channel %i open confirmation sender_channel=%i window_size=%i max_packet_size=%i', (
                 remote_id, channel.channel_id, initial_window, max_packet_size
-                )
             )
+        )

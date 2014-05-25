@@ -233,7 +233,7 @@ class socket(object):
             pass
         else:
             # non-blocking
-            #self.timeout = 0
+            # self.timeout = 0
             raise AssertionError('Non-blocking mode not yet supported.')
 
     def settimeout(self, value):
@@ -280,7 +280,7 @@ def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=N
             if sock is not None:
                 sock.close()
 
-    raise error, msg
+    raise error(msg)
 
 def fromfd(fd, family, type, proto=0):
     with _error_converter:

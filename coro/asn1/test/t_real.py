@@ -20,4 +20,3 @@ print go (1e300)
 print go (-1e300)
 print go (1e-5)
 print go (-1e-5)
-

@@ -18,8 +18,8 @@ class writer:
         self.size = 0
         self.chunk_size = chunk_size
         self.append ('PGCOPY\n\xff\r\n\x00')
-        self.append (struct.pack ('>L', 0)) # flags
-        self.append (struct.pack ('>L', 0)) # ext len
+        self.append (struct.pack ('>L', 0))  # flags
+        self.append (struct.pack ('>L', 0))  # ext len
         self.count = 0
 
     def append (self, data):
@@ -45,7 +45,7 @@ class writer:
                 row_data.append (data)
         self.count += 1
         self.append (''.join (row_data,))
-        
+
     def done (self):
         self.append (struct.pack ('>h', -1))
         self.flush()
@@ -61,7 +61,7 @@ def t0():
     db.query ('copy squares from stdin binary;')
     w = writer (('i', 'i'), db.putline)
     for i in range (1000):
-        w.write_row ([i, i*i])
+        w.write_row ([i, i * i])
     w.done()
     db.endcopy()
 

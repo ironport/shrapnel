@@ -70,7 +70,7 @@ class SSH_Public_Private_Key:
         m = hashlib.md5(self.get_public_key_blob())
         # hexdigest returns lowercase already, but I just wanted to be careful.
         fingerprint = m.hexdigest().lower()
-        pieces = [ fingerprint[x]+fingerprint[x+1] for x in xrange(0, len(fingerprint), 2) ]
+        pieces = [fingerprint[x] + fingerprint[x + 1] for x in xrange(0, len(fingerprint), 2)]
         return ':'.join(pieces)
 
     # XXX: encrypt functions...

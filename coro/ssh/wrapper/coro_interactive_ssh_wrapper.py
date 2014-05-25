@@ -46,8 +46,10 @@ class Coro_Interactive_SSH_Wrapper:
     def __init__(self):
         pass
 
-    def connect(self, username, remote_address, remote_port=22, password=None, command=None, debug_level=coro.ssh.util.debug.WARNING):
-        """connect(self, username, remote_address, remote_port=22, password=None, command=None, debug_level=coro.ssh.util.debug.WARNING) -> None
+    def connect(self, username, remote_address, remote_port=22, password=None,
+                command=None, debug_level=coro.ssh.util.debug.WARNING):
+        """connect(self, username, remote_address, remote_port=22, password=None,
+                   command=None, debug_level=coro.ssh.util.debug.WARNING) -> None
         The opens a connection to the remote side and authenticates.
 
         <username> - The remote username to log into.
@@ -94,7 +96,7 @@ class Coro_Interactive_SSH_Wrapper:
                     break
             else:
                 # This should never happen.
-                raise ValueError, 'Expected password auth method in Userauth class'
+                raise ValueError('Expected password auth method in Userauth class')
             if password is DISABLE_PASSWORD:
                 del auth_method.methods[x]
             else:

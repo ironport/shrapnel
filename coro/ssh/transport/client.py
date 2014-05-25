@@ -75,17 +75,19 @@ class SSH_Client_Transport(transport.SSH_Transport):
                 self.s2c.version_string = line
                 # See if there are any optional comments.
                 i = line.find(' ')
-                if i!=-1:
-                    self.s2c.comments = line[i+1:]
+                if i != -1:
+                    self.s2c.comments = line[i + 1:]
                     line = line[:i]
                 # Break up the identification string into its parts.
                 parts = line.split('-')
                 if len(parts) != 3:
-                    self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'server identification invalid: %r' % line)
+                    self.send_disconnect(
+                        transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'server identification invalid: %r' % line)
                 self.s2c.protocol_version = parts[1]
                 self.s2c.software_version = parts[2]
                 if self.s2c.protocol_version not in ('1.99', '2.0'):
-                    self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED, 'protocol version not supported: %r' % self.s2c.protocol_version)
+                    self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_VERSION_NOT_SUPPORTED,
+                                         'protocol version not supported: %r' % self.s2c.protocol_version)
                 break
 
         self.send_kexinit()
@@ -130,8 +132,8 @@ class SSH_Client_Transport(transport.SSH_Transport):
         # Ask the remote side if it is OK to use this authentication service.
         self.debug.write(debug.DEBUG_3, 'authenticate: sending service request (%s)', (authentication_method.name,))
         service_request_packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_SERVICE_REQUEST,
-                                                (transport.SSH_MSG_SERVICE_REQUEST,
-                                                authentication_method.name))
+                                                         (transport.SSH_MSG_SERVICE_REQUEST,
+                                                          authentication_method.name))
         self.send_packet(service_request_packet)
         # Server will disconnect if it doesn't like our service request.
         self.debug.write(debug.DEBUG_3, 'authenticate: waiting for SERVICE_ACCEPT')
@@ -139,7 +141,9 @@ class SSH_Client_Transport(transport.SSH_Transport):
         msg, accepted_service_name = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_SERVICE_ACCEPT, packet)
         self.debug.write(debug.DEBUG_3, 'authenticate: got SERVICE_ACCEPT')
         if accepted_service_name != authentication_method.name:
-            self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR, 'accepted service does not match requested service "%s"!="%s"' % (authentication_method.name, accepted_service_name))
+            self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR,
+                                 'accepted service does not match requested service "%s"!="%s"' %
+                                 (authentication_method.name, accepted_service_name))
         # This authetnication service is OK, try to authenticate.
         authentication_method.authenticate(service_name)
 
@@ -149,7 +153,7 @@ class SSH_Client_Transport(transport.SSH_Transport):
         If the service is not available, then a disconnect will be sent.
         <service_instance> is a SSH_Service class instance.
         """
-        #SSH_MSG_SERVICE_REQUEST
+        # SSH_MSG_SERVICE_REQUEST
         pass
 
     def msg_service_request_response(self, packet):

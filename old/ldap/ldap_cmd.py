@@ -27,6 +27,7 @@ class ServerGroupShutdown(Exception):
 
 class Cmd(object):
     """The base command class for controlling the worker thread main loop """
+
     def __eq__(self, other):
         return (self is other)
 
@@ -43,6 +44,7 @@ class CmdBootstrap(Cmd):
     """This command is initiated at the start of the worker thread.  Its
     purpose is to do any needed initialization.
     """
+
     def run(self, sg_ctx):
         # Populate the periodic 'inquiry_timeout_event'
         sg_ctx._inquiry_timeout_event(sg_ctx.inquiry_timeout + coro.now)
@@ -52,10 +54,12 @@ class CmdConn(Cmd):
     def __init__(self, server, via_event=False):
         self.server = server
         self.via_event = via_event
+
     def __eq__(self, other):
-        return (self.__class__ == other.__class__ and \
-                self.server == other.server and \
+        return (self.__class__ == other.__class__ and
+                self.server == other.server and
                 self.via_event == other.via_event)
+
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.server)
 
@@ -130,6 +134,7 @@ class CmdShutdownConn(Cmd):
     def __init__(self, srv, conn):
         self.srv = srv
         self.conn = conn
+
     def __repr__(self):
         return '<CmdShutdownConn: %s>' % (self.conn,)
 
@@ -320,17 +325,18 @@ class CmdBindInquiryList(Cmd):
 class CmdServerConnected(Cmd):
     def __init__(self, server):
         self.server = server
+
     def __repr__(self):
         return '<CmdServerConnected: %s>' % (self.server,)
 
     def run(self, sg_ctx):
         # A server has completely connected
         if not sg_ctx.pending_inquiries_event and \
-               sg_ctx.unattached_inquiries:
+                sg_ctx.unattached_inquiries:
             sg_ctx.pending_inquiries_event = True
             sg_ctx.worker_fifo.push(CmdInquiries())
         if not sg_ctx.pending_bind_inquiries_event and \
-               sg_ctx.unattached_bind_inquiries:
+                sg_ctx.unattached_bind_inquiries:
             sg_ctx.pending_bind_inquiries_event = True
             sg_ctx.worker_fifo.push(CmdBindInquiries())
 
@@ -389,4 +395,3 @@ class CmdInquiryTimeout(Cmd):
                     sg_ctx.event_list[rindex] = (wake_time, event)
         if add_event:
             sg_ctx._inquiry_timeout_event(wake_time)
-

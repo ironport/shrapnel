@@ -49,8 +49,8 @@ class coro_status_handler:
         return request.path.split ('/')[1] == 'status'
 
     def clean (self, s):
-        s = s.replace ('<','&lt;')
-        s = s.replace ('>','&gt;')
+        s = s.replace ('<', '&lt;')
+        s = s.replace ('>', '&gt;')
         return s
 
     def handle_request (self, request):
@@ -60,13 +60,13 @@ class coro_status_handler:
             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '
             '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">'
             '<html xmlns="http://www.w3.org/1999/xhtml">\r\n'
-            )
+        )
         request.push ('<head><title>status</title></head><body>\r\n')
         request.push ('<p>Listening on\r\n')
         request.push (repr (request.server.addr))
         request.push ('</p>\r\n')
         request.push ('<table border="1">\r\n')
-        all_threads = ( (x, coro.where(x)) for x in coro.all_threads.values() )
+        all_threads = ((x, coro.where(x)) for x in coro.all_threads.values())
         for thread, traceback in all_threads:
             request.push ('<tr><td>%s\r\n' % self.clean (repr(thread)))
             request.push ('<pre>\r\n')
@@ -139,7 +139,7 @@ class file_handler:
                 f = open (filename, 'rb')
                 block = f.read (self.block_size)
                 if not block:
-                    request.error (204) # no content
+                    request.error (204)  # no content
                 else:
                     while 1:
                         request.push (block)
@@ -169,7 +169,7 @@ sample = (
     'AAAAAAAAAAAAAAD/+K///8AH//+iI///QAH//r4g//x3AH//Z6J//UABP/ovgD/458Ef+u+wv/Tn'
     '0R/+79if9OXZH/6gCJ/2BwAf/u/8n/h33R/7Z7kf/ReQH/+qu7//BUW//7vrv//RR3//7r///80d'
     '///pq///8EP//+rH///d9///6j///9Af/w=='
-    ).decode ('base64')
+).decode ('base64')
 
 zsample = zlib.compress (sample, 9)
 
@@ -219,7 +219,7 @@ class auth_handler:
     def match (self, request):
         # by default, use the given handler's matcher
         return self.handler.match (request)
-                
+
     def parse_authorization (self, h):
         parts = h.split()
         kind = parts[0].lower()
@@ -239,7 +239,7 @@ class auth_handler:
                     return {}
                 else:
                     key = part[:i]
-                    val = part[i+1:]
+                    val = part[i + 1:]
                     # strip quotes
                     val = val.replace ('"', ' ').strip()
                     d[key.lower()] = val
@@ -262,7 +262,7 @@ class auth_handler:
                 return True
             else:
                 return False
-        
+
     def handle_request (self, request):
         # authorize a request before handling it...
         h = request['authorization']
@@ -274,7 +274,7 @@ class auth_handler:
                 self.handle_unauthorized (request)
         else:
             self.handle_unauthorized (request)
-        
+
     def get_nonce (self):
         return hashlib.sha1 (os.urandom(16)).hexdigest()[:16]
 
@@ -286,5 +286,5 @@ class auth_handler:
         request['WWW-Authenticate'] = ','.join ([
             'Digest realm="%s"' % self.realm,
             'nonce="%s"' % (nonce,),
-            ])
+        ])
         request.error (401)

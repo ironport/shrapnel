@@ -73,23 +73,23 @@ class kexinit_test_case(ssh_transport_test_case):
         a._send_kexinit()
         # Create a fake packet.
         fake_kexinit_packet = coro.ssh.util.packet.pack_payload(
-                coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
-                    SSH_MSG_KEXINIT,
-                    'A'*16, # cookie
-                    ['diffie-hellman-group1-sha1'],
-                    ['ssh-dss'],
-                    ['3des-cbc'],
-                    ['3des-cbc'],
-                    ['hmac-sha1'],
-                    ['hmac-sha1'],
-                    ['none'],
-                    ['none'],
-                    [],
-                    [],
-                    0,  # first_kex_packet_follows
-                    0   # reserved
-                    )
-                   )
+            coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
+                SSH_MSG_KEXINIT,
+                'A' * 16,  # cookie
+                ['diffie-hellman-group1-sha1'],
+                ['ssh-dss'],
+                ['3des-cbc'],
+                ['3des-cbc'],
+                ['hmac-sha1'],
+                ['hmac-sha1'],
+                ['none'],
+                ['none'],
+                [],
+                [],
+                0,  # first_kex_packet_follows
+                0   # reserved
+            )
+        )
         a.msg_kexinit(fake_kexinit_packet)
         # Set preferred algorithms.
         a.send_newkeys()
@@ -110,23 +110,23 @@ class kexinit_test_case(ssh_transport_test_case):
         a._send_kexinit()
         # Create a fake packet.
         fake_kexinit_packet = coro.ssh.util.packet.pack_payload(
-                coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
-                    SSH_MSG_KEXINIT,
-                    'A'*16, # cookie
-                    ['foobar', 'diffie-hellman-group1-sha1'],
-                    ['fake-server-key-type', 'ssh-dss'],
-                    ['encrypt-this', '3des-cbc'],
-                    ['xor', '3des-cbc'],
-                    ['none', 'hmac-sha1'],
-                    ['mac-daddy', 'hmac-sha1'],
-                    ['zzz', 'none'],
-                    ['aaa', 'none'],
-                    ['pig-latin'],
-                    [],
-                    0,  # first_kex_packet_follows
-                    0   # reserved
-                    )
-                   )
+            coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
+                SSH_MSG_KEXINIT,
+                'A' * 16,  # cookie
+                ['foobar', 'diffie-hellman-group1-sha1'],
+                ['fake-server-key-type', 'ssh-dss'],
+                ['encrypt-this', '3des-cbc'],
+                ['xor', '3des-cbc'],
+                ['none', 'hmac-sha1'],
+                ['mac-daddy', 'hmac-sha1'],
+                ['zzz', 'none'],
+                ['aaa', 'none'],
+                ['pig-latin'],
+                [],
+                0,  # first_kex_packet_follows
+                0   # reserved
+            )
+        )
         a.msg_kexinit(fake_kexinit_packet)
         # Set preferred algorithms.
         a.send_newkeys()
@@ -145,29 +145,29 @@ class kexinit_test_case(ssh_transport_test_case):
             def __init__(self, transport):
                 self.supported_macs.reverse()
                 One_Way_SSH_Transport.__init__(self, transport)
-        a = ssh_client.SSH_Client_Transport(client_transport = funky_one_way())
+        a = ssh_client.SSH_Client_Transport(client_transport=funky_one_way())
         a.transport = Null_Transport()
         # Prepare kexinit packet.
         a._send_kexinit()
         # Create a fake packet.
         fake_kexinit_packet = coro.ssh.util.packet.pack_payload(
-                coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
-                    SSH_MSG_KEXINIT,
-                    'A'*16, # cookie
-                    ['foobar', 'diffie-hellman-group1-sha1'],
-                    ['fake-server-key-type', 'ssh-dss'],
-                    ['encrypt-this', '3des-cbc'],
-                    ['xor', '3des-cbc'],
-                    ['hmac-sha1', 'none'],
-                    ['mac-daddy', 'hmac-sha1'],
-                    ['zzz', 'none'],
-                    ['aaa', 'none'],
-                    ['pig-latin'],
-                    [],
-                    0,  # first_kex_packet_follows
-                    0   # reserved
-                    )
-                   )
+            coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
+                SSH_MSG_KEXINIT,
+                'A' * 16,  # cookie
+                ['foobar', 'diffie-hellman-group1-sha1'],
+                ['fake-server-key-type', 'ssh-dss'],
+                ['encrypt-this', '3des-cbc'],
+                ['xor', '3des-cbc'],
+                ['hmac-sha1', 'none'],
+                ['mac-daddy', 'hmac-sha1'],
+                ['zzz', 'none'],
+                ['aaa', 'none'],
+                ['pig-latin'],
+                [],
+                0,  # first_kex_packet_follows
+                0   # reserved
+            )
+        )
         a.msg_kexinit(fake_kexinit_packet)
         # Set preferred algorithms.
         a.send_newkeys()
@@ -190,29 +190,29 @@ class kexinit_test_case(ssh_transport_test_case):
         class funky_one_way2(One_Way_SSH_Transport):
             supported_server_keys = [bogus_ssh_server_key]
 
-        a = ssh_client.SSH_Client_Transport(client_transport = funky_one_way2())
+        a = ssh_client.SSH_Client_Transport(client_transport=funky_one_way2())
         a.transport = Null_Transport()
         # Prepare kexinit packet.
         a._send_kexinit()
         # Create a fake packet.
         fake_kexinit_packet = coro.ssh.util.packet.pack_payload(
-                coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
-                    SSH_MSG_KEXINIT,
-                    'A'*16, # cookie
-                    ['foobar', 'diffie-hellman-group1-sha1'],
-                    ['fake-server-key-type', 'ssh-dss'],
-                    ['encrypt-this', '3des-cbc'],
-                    ['xor', '3des-cbc'],
-                    ['hmac-sha1', 'none'],
-                    ['mac-daddy', 'hmac-sha1'],
-                    ['zzz', 'none'],
-                    ['aaa', 'none'],
-                    ['pig-latin'],
-                    [],
-                    0,  # first_kex_packet_follows
-                    0   # reserved
-                    )
-                   )
+            coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
+                SSH_MSG_KEXINIT,
+                'A' * 16,  # cookie
+                ['foobar', 'diffie-hellman-group1-sha1'],
+                ['fake-server-key-type', 'ssh-dss'],
+                ['encrypt-this', '3des-cbc'],
+                ['xor', '3des-cbc'],
+                ['hmac-sha1', 'none'],
+                ['mac-daddy', 'hmac-sha1'],
+                ['zzz', 'none'],
+                ['aaa', 'none'],
+                ['pig-latin'],
+                [],
+                0,  # first_kex_packet_follows
+                0   # reserved
+            )
+        )
         self.assertRaises(coro.ssh.transport.SSH_Protocol_Error, a.msg_kexinit, fake_kexinit_packet)
 
         # Mismatch Test2
@@ -224,23 +224,23 @@ class kexinit_test_case(ssh_transport_test_case):
                                                'wants_sig': 1},
                                        'two': {'wants_enc': 1,
                                                'wants_sig': 1},
-                                      },
+                                       },
                                       {'a': {'enc': 0,
                                              'sig': 1},
                                        'b': {'enc': 1,
                                              'sig': 0},
                                        'c': {'enc': 1,
                                              'sig': 1}
-                                      },
+                                       },
                                       1,    # Expects exception.
                                       None, None)
 
     def test_matchup_kex_and_key(self, c2s_kex_supported, s2c_kex_supported,
-                                       c2s_key_supported, s2c_key_supported,
-                                       kex_features, key_features,
-                                       expected_exception,
-                                       expected_kex,
-                                       expected_key):
+                                 c2s_key_supported, s2c_key_supported,
+                                 kex_features, key_features,
+                                 expected_exception,
+                                 expected_kex,
+                                 expected_key):
         import new
         c2s_kex = []
         for kex in c2s_kex_supported:
@@ -286,23 +286,23 @@ class kexinit_test_case(ssh_transport_test_case):
         a._send_kexinit()
         # Create a fake packet.
         fake_kexinit_packet = coro.ssh.util.packet.pack_payload(
-                coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
-                    SSH_MSG_KEXINIT,
-                    'A'*16, # cookie
-                    s2c_kex_supported,
-                    s2c_key_supported,
-                    ['3des-cbc'],
-                    ['3des-cbc'],
-                    ['hmac-sha1'],
-                    ['hmac-sha1'],
-                    ['none'],
-                    ['none'],
-                    [],
-                    [],
-                    0,  # first_kex_packet_follows
-                    0   # reserved
-                    )
-                   )
+            coro.ssh.util.packet.PAYLOAD_MSG_KEXINIT, (
+                SSH_MSG_KEXINIT,
+                'A' * 16,  # cookie
+                s2c_kex_supported,
+                s2c_key_supported,
+                ['3des-cbc'],
+                ['3des-cbc'],
+                ['hmac-sha1'],
+                ['hmac-sha1'],
+                ['none'],
+                ['none'],
+                [],
+                [],
+                0,  # first_kex_packet_follows
+                0   # reserved
+            )
+        )
         if expected_exception:
             self.assertRaises(coro.ssh.transport.SSH_Protocol_Error, a.msg_kexinit, fake_kexinit_packet)
         else:

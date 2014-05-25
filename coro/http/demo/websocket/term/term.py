@@ -36,11 +36,11 @@ class terminal (websocket):
     def handle_packet (self, p):
         data = p.unpack()
         event = p.unpack().split (',')
-        #W ('packet = %r event=%r\n' % (p, event))
+        # W ('packet = %r event=%r\n' % (p, event))
         if event[0] == 'K':
             ascii = int (event[1])
-            #W ('ascii=%d\n' % (ascii,))
-            if ascii in (10, 13): # lf cr
+            # W ('ascii=%d\n' % (ascii,))
+            if ascii in (10, 13):  # lf cr
                 ascii = 10
                 line = ''.join (self.line)
                 self.history.append (line)
@@ -48,9 +48,9 @@ class terminal (websocket):
                 self.send_text ('C')
                 self.send_text ('D' + escape (line) + '\n')
                 self.repl.inlines.push (line)
-            elif ascii == 4: # ctrl-d
+            elif ascii == 4:  # ctrl-d
                 self.repl.inlines.push (None)
-            elif ascii in (16, 14): # ctrl-p, ctrl-n
+            elif ascii in (16, 14):  # ctrl-p, ctrl-n
                 if ascii == 16:
                     self.history_index = (self.history_index + 1) % len(self.history)
                 else:
@@ -115,26 +115,26 @@ if __name__ == '__main__':
     ih = coro.http.handlers.favicon_handler()
     sh = coro.http.handlers.coro_status_handler()
     th = handler ('/term', terminal)
-    th.auth_dict = {'foo':'bar'}
+    th.auth_dict = {'foo': 'bar'}
     # serve files out of this directory
     fh = coro.http.handlers.file_handler (os.getcwd())
     handlers = [th, ih, sh, fh]
-    #server = coro.http.server()
-    #server = coro.http.tlslite_server (
-    #    # should point to the test cert in coro/http/cert/
+    # server = coro.http.server()
+    # server = coro.http.tlslite_server (
+    # should point to the test cert in coro/http/cert/
     #    '../../../cert/server.crt',
     #    '../../../cert/server.key',
     #    )
     import coro.ssl
     from coro.ssl import openssl
     ctx = coro.ssl.new_ctx (
-        cert = openssl.x509 (open('../../../cert/server.crt').read()),
-        key  = openssl.pkey (open('../../../cert/server.key').read(), private=True),
-        )
+        cert=openssl.x509 (open('../../../cert/server.crt').read()),
+        key=openssl.pkey (open('../../../cert/server.key').read(), private=True),
+    )
     server = coro.http.openssl_server (ctx)
     for h in handlers:
         server.push_handler (h)
-    #coro.spawn (server.start)
+    # coro.spawn (server.start)
     coro.spawn (server.start, ('0.0.0.0', 9001))
     coro.spawn (coro.backdoor.serve, unix_path='/tmp/ws.bd')
     coro.event_loop (30.0)

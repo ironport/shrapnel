@@ -19,7 +19,7 @@ def testpacker():
         '********************\x01f\x03ISI\x04ARPA\x00'
         '********\x03Foo\xc0\x14******************\xc0\x1a'
         '**************************\x00'
-        )
+    )
     u = dns.Unpacker (packet)
     res = (
         u.getbytes(20),
@@ -30,7 +30,7 @@ def testpacker():
         u.getname(),
         u.getbytes(26),
         u.getname(),
-        )
+    )
     assert res == (
         '********************',
         'f.isi.arpa',
@@ -40,7 +40,7 @@ def testpacker():
         'arpa',
         '**************************',
         ''
-        )
+    )
 
 def test_packer_2 ():
     p = dns.Packer()
@@ -96,7 +96,7 @@ def t2():
 
 # XXX make this into a real unit test.
 if __name__ == '__main__':
-    #import coro.backdoor
-    #coro.spawn (coro.backdoor.serve, unix_path='/tmp/xx.bd')
-    #coro.event_loop()
+    # import coro.backdoor
+    # coro.spawn (coro.backdoor.serve, unix_path='/tmp/xx.bd')
+    # coro.event_loop()
     test_packer_2()

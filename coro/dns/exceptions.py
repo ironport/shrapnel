@@ -39,20 +39,22 @@ class DNS_Soft_Error (DNS_Error):
         """DNS_Soft_Error(qname, qtype, ip, error_string)"""
         DNS_Error.__init__ (*args)
         self, self.qname, self.qtype, self.nameserver, self.error_string = args
+
     def __str__(self):
         return 'DNS Soft Error looking up %s (%s) while asking %s. Error was: %s' % (
             self.qname, self.qtype, self.nameserver, self.error_string
-            )
+        )
 
 class DNS_Hard_Error (DNS_Error):
     def __init__(*args):
         """DNS_Hard_Error(qname, qtype, (dnsrcode, error_string))"""
         DNS_Error.__init__ (*args)
         self, self.qname, self.qtype, (self.dnsrcode, self.error_string) = args
+
     def __str__(self):
         return 'DNS Hard Error looking up %s (%s):  %s' % (
             self.qname, self.qtype, self.error_string
-            )
+        )
 
 class DNS_Many_Errors (DNS_Error):
     """A container class for multiple DNS errors.
@@ -65,6 +67,7 @@ class DNS_Many_Errors (DNS_Error):
     system (and mainly to log files) that there were two queries attempted and
     they both failed.
     """
+
     def __init__(self, exceptions):
         """Initialize ourselves.
 
@@ -135,14 +138,15 @@ class DNS_Lame_Error (DNS_Soft_Error):
         self.ns_names = ', '.join(map(lambda x: x[1], ns_names))
         DNS_Soft_Error.__init__ (
             self, qname, qtype, self.ns_names, 'Lame Delegation Error'
-            )
+        )
+
     def __str__(self):
         return (
             'DNS Lame Delegation Error looking up %s (%s).'
             '  Nameserver list was: %s.' % (
                 self.qname, self.qtype, self.ns_names
-                )
             )
+        )
 
 class DNS_Runaway_Query_Error(DNS_Soft_Error):
     def __init__(self, qname, qtype, ns_name):
@@ -150,12 +154,13 @@ class DNS_Runaway_Query_Error(DNS_Soft_Error):
         self.ns_name = ns_name
         DNS_Soft_Error.__init__ (
             self, qname, qtype, ns_name, 'Runaway Error'
-            )
+        )
+
     def __str__(self):
         return (
             'DNS Runaway Error looking up %s (%s).'
             '  Nameserver was: %s.' % (self.qname, self.qtype, self.ns_name)
-            )
+        )
 
 class DNS_Malformed_Qname_Error (DNS_Hard_Error):
     def __str__(self):
@@ -164,11 +169,13 @@ class DNS_Malformed_Qname_Error (DNS_Hard_Error):
 class DNS_Missing_Root_Data_Error (DNS_Soft_Error):
     def __init__(self):
         DNS_Soft_Error.__init__ (self, '', '', '', 'Missing Root Data Error')
+
     def __str__(self):
         return 'Failed to get root nameserver.'
 
 class DNS_No_Local_Resolvers (DNS_Soft_Error):
     def __init__(self):
         DNS_Soft_Error.__init__ (self, '', '', '', 'No local DNS resolvers are running')
+
     def __str__(self):
         return 'No local DNS resolvers are running.'

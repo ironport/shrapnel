@@ -20,7 +20,7 @@ def format_rusage (l):
         "nsignals:%d "
         "nvcsw:%d "
         "nivcsw:%d" % tuple(l[3:])
-        )
+    )
     return string.join (times + [nums], '|')
 
 def diff_timeval (a, b):
@@ -52,7 +52,7 @@ def diff_rusage (a, b):
         b[14] - a[14],  # nsignals
         b[15] - a[15],  # nvcsw
         b[16] - a[16],  # nivcsw
-        )
+    )
 
 class real_timer:
     def __init__ (self):
@@ -68,7 +68,7 @@ class real_timer:
 def dump_stats_by_line():
     import sys
     d = sys.statistical_profiling_data.items()
-    d.sort (lambda a,b: cmp(b[1],a[1]))
+    d.sort (lambda a, b: cmp(b[1], a[1]))
     for (co, line), count in d[:100]:
         print '%6d %s:%s:%s' % (count, co.co_filename, co.co_name, line)
 
@@ -80,6 +80,6 @@ def dump_stats_by_fun():
         n = d2.get (co, 0)
         d2[co] = count + n
     d2 = d2.items()
-    d2.sort (lambda a,b: cmp(b[1],a[1]))
+    d2.sort (lambda a, b: cmp(b[1], a[1]))
     for co, count in d2[:100]:
         print '%6d %s:%s' % (count, co.co_filename, co.co_name)

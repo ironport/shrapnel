@@ -37,7 +37,7 @@ class LDAP:
     SearchRequest               = 3
     SearchResultEntry           = 4
     SearchResultDone            = 5
-    SearchResultReference       = 19 # <--- NOT IN SEQUENCE
+    SearchResultReference       = 19  # <--- NOT IN SEQUENCE
     ModifyRequest               = 6
     ModifyResponse              = 7
     AddRequest                  = 8
@@ -49,7 +49,7 @@ class LDAP:
     CompareRequest              = 14
     CompareResponse             = 15
     AbandonRequest              = 16
-    ExtendedRequest             = 23 # <--- NOT IN SEQUENCE
+    ExtendedRequest             = 23  # <--- NOT IN SEQUENCE
     ExtendedResponse            = 24
 
 class SCOPE:
@@ -73,7 +73,7 @@ def encode_search_request (
     filter,
     which_attrs=None,
     compatibility={}
-    ):
+):
     if scope is None:
         scope = compatibility.get('scope', SCOPE.SUBTREE)
     if which_attrs is None:
@@ -87,7 +87,7 @@ def encode_search_request (
         # different here, hence the lookup in the compatibility dict.
         which_attrs = SEQUENCE (
             OCTET_STRING (compatibility.get ('no_attr_attr', '1.1'))
-            )
+        )
     else:
         which_attrs = SEQUENCE (*[OCTET_STRING (x) for x in which_attrs])
     return TLV (
@@ -100,7 +100,7 @@ def encode_search_request (
         BOOLEAN (types_only),
         parse_query (filter),
         which_attrs,
-        )
+    )
 
 class AUTH:
     # 1 and 2 are reserved
@@ -187,7 +187,7 @@ class Error (Exception):
 RESULT._reverse_map = r = {}
 for attr in dir(RESULT):
     value = getattr (RESULT, attr)
-    if (type(value) == type(0)):
+    if (isinstance(value, type(0))):
         r[value] = attr
 
 def result_string (result):
@@ -203,7 +203,7 @@ def encode_bind_request (version, name, auth_data):
         INTEGER (version),
         OCTET_STRING (name),
         auth_data
-        )
+    )
 
 def encode_simple_bind (version, name, login):
     return encode_bind_request (
@@ -212,8 +212,8 @@ def encode_simple_bind (version, name, login):
         TLV (
             CHOICE (AUTH.simple, 0),
             login
-            )
         )
+    )
 
 def encode_sasl_bind (version, name, mechanism, credentials=''):
     if credentials:
@@ -227,8 +227,8 @@ def encode_sasl_bind (version, name, mechanism, credentials=''):
             CHOICE (AUTH.sasl),
             OCTET_STRING (mechanism),
             cred
-            )
         )
+    )
 
 def encode_starttls ():
     # encode STARTTLS request: RFC 2830, 2.1
@@ -238,7 +238,7 @@ def encode_starttls ():
     return TLV (
         APPLICATION(LDAP.ExtendedRequest),
         TLV (CHOICE (0, 0), '1.3.6.1.4.1.1466.20037')
-        )
+    )
 
 def encode_abandon(message_id):
     return TLV(APPLICATION(LDAP.AbandonRequest),
@@ -246,8 +246,8 @@ def encode_abandon(message_id):
 
 def encode_message (message_id, data):
     "encode/wrap an LDAP protocol message"
-    #controls = SEQUENCE() # controls NYI, optional
-    #return SEQUENCE (INTEGER (message_id), data, controls)
+    # controls = SEQUENCE() # controls NYI, optional
+    # return SEQUENCE (INTEGER (message_id), data, controls)
     return SEQUENCE (INTEGER (message_id), data)
 
 def match_leaf(path, scope, leaf, base):
@@ -308,11 +308,11 @@ if __name__ == '__main__':
             0,
             0,
             '(&(objectclass=inetorgperson)(userid=srushing))',
-            #'(&(objectclass=inetorgperson)(userid=newton))',
+            # '(&(objectclass=inetorgperson)(userid=newton))',
             # ask for these specific attributes only
             ['mailAlternateAddress', 'rfc822ForwardingMailbox']
-            )
         )
+    )
 
     import pprint
     import socket

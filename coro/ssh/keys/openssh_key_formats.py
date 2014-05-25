@@ -31,22 +31,22 @@ SPACE = '[ \t]'
 NUMBER = '\d'
 LIST_OF_HOSTS = NAME('list_of_hosts', PLUS('[^ \t]'))
 COMMENT = OPTIONAL(
-                   PLUS(SPACE),
-                   NAME('comment', PLUS('.'))
-                  )
+    PLUS(SPACE),
+    NAME('comment', PLUS('.'))
+)
 
 ssh1_key = re.compile(
-                CONCAT('^',
-                       LIST_OF_HOSTS,
-                       PLUS(SPACE),
-                       NAME('number_of_bits', PLUS(NUMBER)),
-                       PLUS(SPACE),
-                       NAME('exponent', PLUS(NUMBER)),
-                       PLUS(SPACE),
-                       NAME('modulus', PLUS(NUMBER)),
-                       COMMENT
-                      )
-                     )
+    CONCAT('^',
+           LIST_OF_HOSTS,
+           PLUS(SPACE),
+           NAME('number_of_bits', PLUS(NUMBER)),
+           PLUS(SPACE),
+           NAME('exponent', PLUS(NUMBER)),
+           PLUS(SPACE),
+           NAME('modulus', PLUS(NUMBER)),
+           COMMENT
+           )
+)
 
 # The man page for OpenSSH specifies that "ssh-dss" and "ssh-rsa" are the only
 # valid types, but the code actually checks for this list of types.  Let's
@@ -58,21 +58,21 @@ KEYTYPE = NAME('keytype', OR('ssh-dss', 'ssh-rsa', 'rsa1', 'rsa', 'dsa'))
 BASE64_KEY = NAME('base64_key', PLUS('[a-zA-Z0-9+/=]'))
 
 ssh2_key = re.compile(
-                    CONCAT('^',
-                           KEYTYPE,
-                           PLUS(SPACE),
-                           BASE64_KEY,
-                           COMMENT
-                          )
-                     )
+    CONCAT('^',
+           KEYTYPE,
+           PLUS(SPACE),
+           BASE64_KEY,
+           COMMENT
+           )
+)
 
 ssh2_known_hosts_entry = re.compile(
-                CONCAT('^',
-                       LIST_OF_HOSTS,
-                       PLUS(SPACE),
-                       KEYTYPE,
-                       PLUS(SPACE),
-                       BASE64_KEY,
-                       COMMENT
-                      )
-                     )
+    CONCAT('^',
+           LIST_OF_HOSTS,
+           PLUS(SPACE),
+           KEYTYPE,
+           PLUS(SPACE),
+           BASE64_KEY,
+           COMMENT
+           )
+)

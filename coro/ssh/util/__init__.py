@@ -48,7 +48,7 @@ def pick_from_list(name, algorithms):
     return None
 
 nonprintable = ''.join ([x for x in map (chr, range(256)) if x not in string.printable])
-nonprintable_replacement = '$'*len(nonprintable)
+nonprintable_replacement = '$' * len(nonprintable)
 nonprintable_table = string.maketrans(nonprintable, nonprintable_replacement)
 
 def safe_string(s):

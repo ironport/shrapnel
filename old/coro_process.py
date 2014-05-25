@@ -95,7 +95,7 @@ def capture(command, tie_out_err=True, cwd=None, env=None, timeout=0, pgrp=0):
     result = []
 
     def do_read():
-        while 1:
+        while True:
             block = p.stdout.read(1024)
             if block:
                 result.append(block)
@@ -108,10 +108,10 @@ def capture(command, tie_out_err=True, cwd=None, env=None, timeout=0, pgrp=0):
             status = coro.with_timeout(timeout, do_read)
         else:
             status = do_read()
-    except BaseException, e:
+    except BaseException as e:
         try:
             p.killpg(signal.SIGKILL)
-        except OSError, kill_exc:
+        except OSError as kill_exc:
             if kill_exc.errno != errno.ESRCH:
                 raise
         # Make sure we clean up the zombie.
@@ -166,7 +166,7 @@ def capture_with_stderr(command, cwd=None, env=None, timeout=0, pgrp=0):
     p = spawn_job_bg(command, stdin=DEV_NULL, stdout=PIPE, stderr=PIPE, cwd=cwd, env=env, pgrp=pgrp)
 
     def do_read(s, result):
-        while 1:
+        while True:
             block = s.read(1024)
             if block:
                 result.append(block)
@@ -185,10 +185,10 @@ def capture_with_stderr(command, cwd=None, env=None, timeout=0, pgrp=0):
             status = coro.with_timeout(timeout, do_work)
         else:
             status = do_work()
-    except BaseException, e:
+    except BaseException as e:
         try:
             p.killpg(signal.SIGKILL)
-        except OSError, kill_exc:
+        except OSError as kill_exc:
             if kill_exc.errno != errno.ESRCH:
                 raise
         # Make sure we clean up the zombie.

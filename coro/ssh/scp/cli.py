@@ -83,7 +83,6 @@ class CLI:
             print usage
             sys.exit(0)
 
-
         if options.action_from:
             scp = self._get_scp()
             scp.verbosity = options.verbosity
@@ -92,7 +91,7 @@ class CLI:
             scp.send(options.preserve,
                      options.recursive,
                      arguments
-                    )
+                     )
             sys.exit(int(scp.had_errors))
 
         elif options.action_to:
@@ -105,7 +104,7 @@ class CLI:
                         options.recursive,
                         options.target_should_be_dir,
                         arguments[0]
-                       )
+                        )
             sys.exit(int(scp.had_errors))
         else:
             print 'Function unavailable.'
@@ -115,7 +114,7 @@ class CLI:
                         options.recursive,
                         options.verbosity,
                         arguments
-                       )
+                        )
 
     def _get_scp(self):
         return core.SCP()

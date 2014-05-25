@@ -30,7 +30,7 @@ class ftp_client:
         self.local_ip = local_ip
         self.s = coro.make_socket (socket.AF_INET, socket.SOCK_STREAM)
         if local_ip:
-            self.s.bind((local_ip,0))
+            self.s.bind((local_ip, 0))
         self.stream = read_stream.stream_reader (self.recv)
 
     def recv (self, size):
@@ -49,7 +49,7 @@ class ftp_client:
     def connect (self, host):
         global connect_timeout
         if not self.ip_re.match (host):
-            ip = dnsqr.query(host,'A')
+            ip = dnsqr.query(host, 'A')
             if ip:
                 # pull out the ip of the first entry
                 ip = ip[0][1]
@@ -64,7 +64,7 @@ class ftp_client:
     def _read_response (self):
         multiline = 0
         response = []
-        while 1:
+        while True:
             line, eof = self.stream.read_line()
             if eof:
                 raise EOFError
@@ -80,12 +80,12 @@ class ftp_client:
                 response.append (line[4:])
                 multiline = 1
             else:
-                raise ftp_error, line
+                raise ftp_error(line)
 
     def read_response (self, expect):
         code, response = self._read_response()
         if code[0] != expect:
-            raise ftp_error, (code, response)
+            raise ftp_error(code, response)
         else:
             return response
 
@@ -107,13 +107,13 @@ class ftp_client:
     def parse_pasv_reply (self, reply):
         m = self.pasv_re.match (reply[-1])
         if not m:
-            raise ftp_error, "unable to parse PASV reply: %r" % reply
+            raise ftp_error("unable to parse PASV reply: %r" % reply)
         else:
             nums = m.groups()[0].split (',')
             ip = nums[:4]
             ip = '.'.join (nums[:4])
             port = map (int, nums[4:6])
-            port = port[0]<< 8 | port[1]
+            port = port[0] << 8 | port[1]
             return ip, port
 
     def make_data_channel (self):
@@ -129,11 +129,11 @@ class ftp_client:
             coro.with_timeout (connect_timeout, dc.connect, (ip, port))
             return dc
         else:
-            raise ftp_error, "non-pasv transfers not yet implemented"
+            raise ftp_error("non-pasv transfers not yet implemented")
 
     def read_from_data_channel (self, dc, block_reader):
         global recv_timeout
-        while 1:
+        while True:
             block = coro.with_timeout (recv_timeout, dc.recv, 8192)
             if not block:
                 break
@@ -143,7 +143,7 @@ class ftp_client:
     def write_to_data_channel (self, dc, block_writer):
         global send_timeout
         try:
-            while 1:
+            while True:
                 block = block_writer()
                 if not block:
                     break
@@ -197,9 +197,9 @@ def test1():
     f.cmd_list (blocks.append)
     coro.print_stderr ("done.\n")
     f.cmd_quit()
-    coro.print_stderr ('-'*20 + '\n')
+    coro.print_stderr ('-' * 20 + '\n')
     coro.print_stderr (''.join (blocks))
-    coro.print_stderr ('-'*20 + '\n')
+    coro.print_stderr ('-' * 20 + '\n')
 
 def test2():
     coro.sleep_relative (5)

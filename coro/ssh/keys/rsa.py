@@ -44,26 +44,26 @@ class SSH_RSA(public_private_key.SSH_Public_Private_Key):
     def set_public_key(self, public_key):
         rsa, e, n = packet.unpack_payload(RSA_PUBLIC_KEY_PAYLOAD, public_key)
         if rsa != 'ssh-rsa':
-            raise ValueError, rsa
+            raise ValueError(rsa)
         self.public_key = (e, n)
 
     def set_private_key(self, private_key):
         rsa, n, e, d, p, q = packet.unpack_payload(RSA_PRIVATE_KEY_PAYLOAD, private_key)
         if rsa != 'ssh-rsa':
-            raise ValueError, rsa
+            raise ValueError(rsa)
         self.public_key = (n, e, d, p, q)
 
     def get_public_key_blob(self):
         e, n = self.public_key
         return packet.pack_payload(RSA_PUBLIC_KEY_PAYLOAD,
-                        ('ssh-rsa',
-                         e, n))
+                                   ('ssh-rsa',
+                                    e, n))
 
     def get_private_key_blob(self):
         n, e, d, p, q = self.public_key
         return packet.pack_payload(RSA_PRIVATE_KEY_PAYLOAD,
-                        ('ssh-rsa',
-                         n, e, d, p, q))
+                                   ('ssh-rsa',
+                                    n, e, d, p, q))
 
     def emsa_pkcs1_v1_5_encode(self, message, n_len):
         """emsa_pkcs1_v1_5_encode(self, message, n_len) -> encoded_message
@@ -75,39 +75,39 @@ class SSH_RSA(public_private_key.SSH_Public_Private_Key):
         hash = hashlib.sha1(message).digest()
         T = SHA1_Digest_Info + hash
         if __debug__:
-            assert n_len >= len(T)+11
+            assert n_len >= len(T) + 11
         # PKCS spec says that it's -3...I do not understand why that doesn't work.
-        PS = '\xff'*(n_len - len(T) - 2)
+        PS = '\xff' * (n_len - len(T) - 2)
         if __debug__:
             assert len(PS) >= 8
         return '\x00\x01' + PS + '\x00' + T
 
     def sign(self, message):
         n, e, d, p, q = self.private_key
-        rsa_obj = RSA.construct( (n, e, d, p, q) )
-        modulus_n_length_in_octets = rsa_obj.size()/8
+        rsa_obj = RSA.construct((n, e, d, p, q))
+        modulus_n_length_in_octets = rsa_obj.size() / 8
         encoded_message = self.emsa_pkcs1_v1_5_encode(message, modulus_n_length_in_octets)
         signature = rsa_obj.sign(encoded_message, '')[0]    # Returns tuple of 1 element.
         signature = number.long_to_bytes(signature)
         return packet.pack_payload(RSA_SIG_PAYLOAD,
-                                ('ssh-rsa',
-                                 signature))
+                                   ('ssh-rsa',
+                                    signature))
 
     def verify(self, message, signature):
         e, n = self.public_key
         rsa, blob = packet.unpack_payload(RSA_SIG_PAYLOAD, signature)
         if rsa != 'ssh-rsa':
-            raise ValueError, rsa
+            raise ValueError(rsa)
         s = number.bytes_to_long(blob)
-        rsa_obj = RSA.construct( (n, e) )
-        modulus_n_length_in_octets = rsa_obj.size()/8
+        rsa_obj = RSA.construct((n, e))
+        modulus_n_length_in_octets = rsa_obj.size() / 8
         encoded_message = self.emsa_pkcs1_v1_5_encode(message, modulus_n_length_in_octets)
         return rsa_obj.verify(encoded_message, (s,))
 
 RSA_PUBLIC_KEY_PAYLOAD = (packet.STRING,  # "ssh-rsa"
                           packet.MPINT,   # e
                           packet.MPINT    # n
-                         )
+                          )
 
 RSA_PRIVATE_KEY_PAYLOAD = (packet.STRING,  # "ssh-rsa"
                            packet.MPINT,   # n
@@ -115,8 +115,8 @@ RSA_PRIVATE_KEY_PAYLOAD = (packet.STRING,  # "ssh-rsa"
                            packet.MPINT,   # d
                            packet.MPINT,   # p
                            packet.MPINT,   # q
-                          )
+                           )
 
 RSA_SIG_PAYLOAD = (packet.STRING,  # "ssh-rsa"
                    packet.STRING   # signature_key_blob
-                  )
+                   )

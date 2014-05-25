@@ -5,6 +5,6 @@ from Cython.Distutils import build_ext
 setup (
     name='quadtree',
     description='Quad Tree - Spatial Search Data Structure',
-    cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension ("quadtree", ["quadtree.pyx"],)]
-    )
+    cmdclass={'build_ext': build_ext},
+    ext_modules=[Extension ("quadtree", ["quadtree.pyx"],)]
+)

@@ -28,7 +28,7 @@ def do_mask (data, mask):
     r = bytearray (n)
     i = 0
     while i < len (data):
-        r[i] = chr (ord (data[i]) ^ mask[i%4])
+        r[i] = chr (ord (data[i]) ^ mask[i % 4])
         i += 1
     return bytes (r)
 
@@ -39,6 +39,7 @@ class ws_packet:
     plen = 0
     masking = []
     payload = ''
+
     def __repr__ (self):
         return '<fin=%r opcode=%r mask=%r plen=%r masking=%r payload=%d bytes>' % (
             self.fin,
@@ -47,7 +48,7 @@ class ws_packet:
             self.plen,
             self.masking,
             len (self.payload),
-            )
+        )
 
     def unpack (self):
         if self.mask:
@@ -62,7 +63,7 @@ class handler:
     def __init__ (self, path, factory):
         self.path = path
         self.factory = factory
-                  
+
     def match (self, request):
         # try to catch both versions of the protocol
         return (
@@ -70,10 +71,10 @@ class handler:
             and request.method == 'get'
             and request['upgrade']
             and request['upgrade'].lower() == 'websocket'
-            )
+        )
 
     def h76_frob (self, key):
-        digits = int (''.join ([ x for x in key if x in '0123456789' ]))
+        digits = int (''.join ([x for x in key if x in '0123456789']))
         spaces = key.count (' ')
         return digits / spaces
 
@@ -90,14 +91,14 @@ class handler:
                 'Upgrade: websocket',
                 'Connection: Upgrade',
                 'Sec-WebSocket-Accept: %s' % (reply,),
-                ]
+            ]
             if rh.has_key ('sec-websocket-protocol'):
                 # XXX verify this
                 r.append (
                     'Sec-WebSocket-Protocol: %s' % (
                         rh.get_one ('sec-websocket-protocol')
-                        )
                     )
+                )
             conn.send ('\r\n'.join (r) + '\r\n\r\n')
             protocol = 'rfc6455'
         else:
@@ -117,7 +118,7 @@ class handler:
                 'Connection: Upgrade',
                 'Sec-WebSocket-Origin: http://%s' % (host,),
                 'Sec-WebSocket-Location: ws://%s%s' % (host, request.uri),
-                ]
+            ]
             all = '\r\n'.join (r) + '\r\n\r\n' + reply
             conn.send (all)
             protocol = 'hixie_76'
@@ -160,7 +161,7 @@ class websocket:
         finally:
             self.handle_close()
             self.conn.close()
-        
+
     def read_packet (self):
         head = self.stream.read_exact (2)
         if not head:
@@ -175,10 +176,10 @@ class websocket:
             pass
         elif plen == 126:
             plen, = struct.unpack ('>H', self.stream.read_exact (2))
-        else: # plen == 127:
+        else:  # plen == 127:
             plen, = struct.unpack ('>Q', self.stream.read_exact (8))
         p.plen = plen
-        if plen > 1<<20:
+        if plen > 1 << 20:
             raise TooMuchData (plen)
         if p.mask:
             p.masking = struct.unpack ('>BBBB', self.stream.read_exact (4))
@@ -192,7 +193,7 @@ class websocket:
             return True
         elif p.opcode == 9:
             # ping
-            assert (p.fin) # probably up to no good...
+            assert (p.fin)  # probably up to no good...
             self.send_pong (self, p.payload)
             return False
         else:
@@ -212,7 +213,7 @@ class websocket:
                     break
         finally:
             self.conn.close()
-        
+
     def read_packet_hixie_76 (self):
         ftype = self.stream.read_exact (1)
         if not ftype:
@@ -225,7 +226,7 @@ class websocket:
                 length = (length << 7) | (b & 0x7f)
                 if not b & 0x80:
                     break
-                if length > 1<<20:
+                if length > 1 << 20:
                     raise TooMuchData (length)
             if length:
                 payload = self.stream.read_exact (length)
@@ -240,7 +241,7 @@ class websocket:
                 p.mask = None
                 p.payload = data[:-1]
                 self.handle_packet (p)
-        
+
     # ---
 
     def handle_packet (self, p):
@@ -270,13 +271,13 @@ class websocket:
             ld = len (data)
             if ld < 126:
                 head |= ld
-                p = [ struct.pack ('>H', head), data ]
-            elif ld < 1<<16:
+                p = [struct.pack ('>H', head), data]
+            elif ld < 1 << 16:
                 head |= 126
-                p = [ struct.pack ('>HH', head, ld), data ]
-            elif ld < 1<<32:
+                p = [struct.pack ('>HH', head, ld), data]
+            elif ld < 1 << 32:
                 head |= 127
-                p = [ struct.pack ('>HQ', head, ld), data ]
+                p = [struct.pack ('>HQ', head, ld), data]
             else:
                 raise TooMuchData (ld)
             # RFC6455: A server MUST NOT mask any frames that it sends to the client.

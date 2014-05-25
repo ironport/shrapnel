@@ -62,7 +62,6 @@ class abstract_filesystem:
         "Change to the parent of the current directory."
         pass
 
-
     def longify (self, path):
         """Return a 'long' representation of the filename
         [for the output of the LIST command]"""
@@ -97,17 +96,17 @@ def safe_stat (path):
 import glob
 
 def collapse_double_slashes(filename_string):
-    while 1:
+    while True:
         double_slash = filename_string.count('//')
         if double_slash > 0:
-            filename_string = string.replace(filename_string,'//','/')
+            filename_string = string.replace(filename_string, '//', '/')
         else:
             return filename_string
 
 def strip_leading_directory_string(filename_string):
     last_slash_index = filename_string.rfind('/')
     if last_slash_index > 0:
-        return filename_string[last_slash_index+1:]
+        return filename_string[last_slash_index + 1:]
     else:
         return filename_string
 
@@ -132,7 +131,7 @@ def get_leading_directory_string(filename_string):
 # combined. However, I am not tinkering with the ls_filter code at present.
 class AccessChecker:
 
-    _acl_delete = {'configuration' : True}
+    _acl_delete = {'configuration': True}
 
     def _check_exists(self, list, resource):
         return (resource in list)
@@ -165,7 +164,7 @@ class os_filesystem:
     def __init__ (self, root, wd='/', access_checker=None):
         self.root = root
         self.wd = wd
-        if access_checker == None:
+        if access_checker is None:
             self.access_checker = AccessChecker()
         else:
             self.access_checker = access_checker
@@ -212,11 +211,11 @@ class os_filesystem:
         try:
             # It was suggested that we glob...  and that we glob
             # in the current directory only.  So it shall be.
-            os.chdir(self.root+self.wd)
+            os.chdir(self.root + self.wd)
             # Glob path
             try:
                 if os.path.isdir(translated_path):
-                    ld = glob.glob(translated_path+'/*')
+                    ld = glob.glob(translated_path + '/*')
                 else:
                     ld = glob.glob(translated_path)
             except Exception:
@@ -232,12 +231,12 @@ class os_filesystem:
                 # This list should contain only 'files'.
                 ld = filter(os.path.isfile, ld)
                 if (os.path.isdir(translated_path)):
-                    prefix = collapse_double_slashes(path+'/')
+                    prefix = collapse_double_slashes(path + '/')
                 elif (path == '.') or (get_leading_directory_string(path) == ''):
                     prefix = ''
                 else:
-                    prefix = collapse_double_slashes(get_leading_directory_string(path)+'/')
-                ld = map( lambda filename,prefix=prefix: prefix+strip_leading_directory_string(filename), ld )
+                    prefix = collapse_double_slashes(get_leading_directory_string(path) + '/')
+                ld = map(lambda filename, prefix=prefix: prefix + strip_leading_directory_string(filename), ld)
                 return list_producer(ld, 0, None)
         finally:
             os.chdir (old_dir)
@@ -280,7 +279,7 @@ class os_filesystem:
             # this is probably ENOENT, which would be a Good Thing
             pass
 
-        fd = os.open(p, os.O_RDWR|os.O_CREAT|os.O_EXCL, 0640)
+        fd = os.open(p, os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o640)
         return (tmp_path, os.fdopen(fd, mode))
 
     def rename(self, from_path, to_path):
@@ -301,10 +300,10 @@ class os_filesystem:
         if self.access_checker:
             # Checking for basename(p) and not the entire path.
             # I am making this similar to the behavior of ls_filter
-            if not self.access_checker.check_access(\
-                                                    os.path.basename(p),\
-                                                    [self.access_checker.access_delete]\
-                                                    ):
+            if not self.access_checker.check_access(
+                os.path.basename(p),
+                [self.access_checker.access_delete]
+            ):
                 raise OSError
         return os.rmdir (p)
 
@@ -328,20 +327,20 @@ class os_filesystem:
         p = self.normalize (self.path_module.join (self.root, p[1:]))
         return p
 
-    def longify (self, (path, stat_info)):
+    def longify (self, xxx_todo_changeme):
+        (path, stat_info) = xxx_todo_changeme
         return unix_longify (path, stat_info)
 
     def __repr__ (self):
         return '<unix-style fs root:%s wd:%s>' % (
             self.root,
             self.wd
-            )
+        )
 
 if os.name == 'posix':
 
     class unix_filesystem (os_filesystem):
         pass
-
 
     class schiz_wrapper:
 
@@ -352,7 +351,7 @@ if os.name == 'posix':
         def __call__ (self, *args, **kwargs):
             try:
                 self.schiz.become_persona()
-                return apply (self.fun, args, kwargs)
+                return self.fun(*args, **kwargs)
             finally:
                 self.schiz.become_nobody()
 
@@ -397,7 +396,7 @@ if os.name == 'posix':
 #   import select
 #   import asyncore
 #
-#   # pipes /bin/ls for directory listings.
+# pipes /bin/ls for directory listings.
 #   class unix_filesystem (os_filesystem):
 #       pass
 #       path_module = posixpath
@@ -412,7 +411,7 @@ if os.name == 'posix':
 #               fd = os.popen (command, 'rt')
 #               return pipe_channel (fd)
 #
-#   # this is both a dispatcher, _and_ a producer
+# this is both a dispatcher, _and_ a producer
 #   class pipe_channel (asyncore.file_dispatcher):
 #       buffer_size = 4096
 #
@@ -425,14 +424,14 @@ if os.name == 'posix':
 #       def handle_read (self):
 #           if len (self.data) < self.buffer_size:
 #               self.data = self.data + self.fd.read (self.buffer_size)
-#           #print '%s.handle_read() => len(self.data) == %d' % (self, len(self.data))
+# print '%s.handle_read() => len(self.data) == %d' % (self, len(self.data))
 #
 #       def handle_expt (self):
-#           #print '%s.handle_expt()' % self
+# print '%s.handle_expt()' % self
 #           self.done = 1
 #
 #       def ready (self):
-#           #print '%s.ready() => %d' % (self, len(self.data))
+# print '%s.ready() => %d' % (self, len(self.data))
 #           return ((len (self.data) > 0) or self.done)
 #
 #       def more (self):
@@ -445,7 +444,7 @@ if os.name == 'posix':
 #               r = ''
 #           else:
 #               r = None
-#           #print '%s.more() => %s' % (self, (r and len(r)))
+# print '%s.more() => %s' % (self, (r and len(r)))
 #           return r
 
 # For the 'real' root, we could obtain a list of drives, and then
@@ -453,7 +452,8 @@ if os.name == 'posix':
 # [yes, I think something like this "\\.\c\windows"]
 
 class msdos_filesystem (os_filesystem):
-    def longify (self, (path, stat_info)):
+    def longify (self, xxx_todo_changeme1):
+        (path, stat_info) = xxx_todo_changeme1
         return msdos_longify (path, stat_info)
 
 # A merged filesystem will let you plug other filesystems together.
@@ -482,7 +482,7 @@ def msdos_longify (file, stat_info):
         dir,
         stat_info[stat.ST_SIZE],
         file
-        )
+    )
 
 def msdos_date (t):
     try:
@@ -498,25 +498,25 @@ def msdos_date (t):
     return '%02d-%02d-%02d  %02d:%02d%s' % (
         info[1],
         info[2],
-        info[0]%100,
+        info[0] % 100,
         info[3],
         info[4],
         merid
-        )
+    )
 
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 mode_table = {
-    '0':'---',
-    '1':'--x',
-    '2':'-w-',
-    '3':'-wx',
-    '4':'r--',
-    '5':'r-x',
-    '6':'rw-',
-    '7':'rwx'
-    }
+    '0': '---',
+    '1': '--x',
+    '2': '-w-',
+    '3': '-wx',
+    '4': 'r--',
+    '5': 'r-x',
+    '6': 'rw-',
+    '7': 'rwx'
+}
 
 import time
 
@@ -546,7 +546,7 @@ def unix_longify (file, stat_info):
         stat_info[stat.ST_SIZE],
         date,
         file
-        )
+    )
 
 # Emulate the unix 'ls' command's date field.
 # it has two formats - if the date is more than 180
@@ -563,17 +563,17 @@ def ls_date (now, t):
     # 15,600,000 == 86,400 * 180
     if (now - t) > 15600000:
         return '%s %2d  %d' % (
-            months[info[1]-1],
+            months[info[1] - 1],
             info[2],
             info[0]
-            )
+        )
     else:
         return '%s %2d %02d:%02d' % (
-            months[info[1]-1],
+            months[info[1] - 1],
             info[2],
             info[3],
             info[4]
-            )
+        )
 
 # ===========================================================================
 # Producers

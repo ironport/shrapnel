@@ -64,8 +64,8 @@ if USING_LISTIO:
         USING_LISTIO = 0
 
 # 512 bytes
-DISK_BLOCK_SIZE = (1<<9)
-DISK_BLOCK_MASK = ((1<<9)-1)
+DISK_BLOCK_SIZE = (1 << 9)
+DISK_BLOCK_MASK = ((1 << 9) - 1)
 
 # fall 512 bytes shy of a full 64K, this will avoid wasting an entire
 # 32K malloc block to hold the extra 24 bytes of Python object
@@ -114,7 +114,7 @@ class TestAIO:
         try:
             try:
                 self._main()
-            except SystemExit, e:
+            except SystemExit as e:
                 if e.code is not None:
                     if not isinstance(e.code, int):
                         print e.code
@@ -126,62 +126,64 @@ class TestAIO:
         parser = optparse.OptionParser(usage=usage)
         parser.add_option('-v', '--verbose', action='count',
                           help='Verbose output.  Specify multiple times for more verbosity.'
-                         )
+                          )
         parser.add_option('--blocks', type='int', action='store', default=1048576,
-                          metavar=`1048576`,
+                          metavar=repr(1048576),
                           help='The size of the file in blocks.'
-                         )
+                          )
         parser.add_option('--num-writers', type='int', action='store', default=50,
-                          metavar=`50`,
+                          metavar=repr(50),
                           help='The number of writer threads.'
-                         )
+                          )
         parser.add_option('--num-readers', type='int', action='store', default=50,
-                          metavar=`50`,
+                          metavar=repr(50),
                           help='The number of reader threads.'
-                         )
-        parser.add_option('--max-num-blocks', type='int', action='store', default=100*1024,
-                          metavar=`100*1024`,
+                          )
+        parser.add_option('--max-num-blocks', type='int', action='store', default=100 * 1024,
+                          metavar=repr(100 * 1024),
                           help='The maximum number of blocks to write.'
-                         )
+                          )
         parser.add_option('--block-size', type='int', action='store', default=1,
-                          metavar=`1`,
+                          metavar=repr(1),
                           help='The size of a block.'
-                         )
+                          )
         parser.add_option('--duration', type='int', action='store', default=60,
-                          metavar=`60`,
+                          metavar=repr(60),
                           help='How long to run the test in seconds.'
-                         )
+                          )
         parser.add_option('--reader-delay', type='int', action='store', default=10000,
-                          metavar=`10000`,
+                          metavar=repr(10000),
                           help='How many writes to wait to finish before starting the readers.'
-                         )
+                          )
         parser.add_option('--greediness', type='int', action='store', default=10,
-                          metavar=`10`,
+                          metavar=repr(10),
                           help='Number of consecutive reads or writes to perform before yielding.'
-                         )
+                          )
         parser.add_option('--cancel-percent', type='int', action='store', default=10,
-                          metavar=`10`,
+                          metavar=repr(10),
                           help='The percent of operations to try to cancel.'
-                         )
+                          )
         parser.add_option('--lio', action='store_true',
                           help='Use LIO instead of AIO.'
-                         )
+                          )
         parser.add_option('--min-lio', type='int', action='store', default=1,
-                          metavar=`1`,
+                          metavar=repr(1),
                           help='The minimum number of events per LIO submit.'
-                         )
+                          )
         parser.add_option('--max-lio', type='int', action='store', default=MAX_LIO,
-                          metavar=`MAX_LIO`,
+                          metavar=repr(MAX_LIO),
                           help='The maximum number of events per LIO submit.'
-                         )
+                          )
         parser.add_option('--max-lio-size', type='int', action='store', default=MAX_LIO_SIZE,
-                          metavar=`MAX_LIO_SIZE`,
-                          help='The maximum size of a block of data in a LIO request.  Do not change unless you know what you are doing.  This is used instead of --max-num-blocks when using LIO.'
-                         )
+                          metavar=repr(MAX_LIO_SIZE),
+                          help=('The maximum size of a block of data in a LIO request. '
+                                'Do not change unless you know what you are doing. '
+                                'This is used instead of --max-num-blocks when using LIO.')
+                          )
         parser.add_option('--num-lio-workers', type='int', action='store', default=50,
-                          metavar=`50`,
+                          metavar=repr(50),
                           help='The number of workers to use for LIO (used instead of --num-readers and --num-writers).'
-                         )
+                          )
         # blocked
         # interrupt percentage
         self.options, arguments = parser.parse_args()
@@ -191,17 +193,20 @@ class TestAIO:
         # Check for valid settings.
         if self.options.lio:
             if not USING_LISTIO:
-                parser.error('Unable to use LIO.  Either lio_listio is not compiled, or the sysctl p1003_1b.aio_listio_max is not set.')
+                parser.error((
+                    'Unable to use LIO.  Either lio_listio is not compiled, '
+                    'or the sysctl p1003_1b.aio_listio_max is not set.'))
             if self.options.max_lio > MAX_LIO:
-                parser.error('Maximum number of LIO events cannot be set above the p1003_1b.aio_listio_max sysctl value (currently %i).' % (MAX_LIO,))
+                parser.error((
+                    'Maximum number of LIO events cannot be set above the p1003_1b.aio_listio_max '
+                    'sysctl value (currently %i).') % (MAX_LIO,))
             if self.options.min_lio > self.options.max_lio:
                 parser.error('--min-lio cannot be set above --max-lio')
             if self.options.max_lio_size % self.options.block_size:
                 parser.error('--max-lio-size is not a multiple of --block-size')
         else:
-            if self.options.max_num_blocks > self.options.blocks/2:
+            if self.options.max_num_blocks > self.options.blocks / 2:
                 parser.error('max_num_blocks cannot be greater than the file size divided by 2.')
-
 
         self._size = self.options.blocks * self.options.block_size
 
@@ -234,10 +239,10 @@ class TestAIO:
     def create(self):
         if not os.path.exists(self.path) or os.path.isfile(self.path):
             self.log(0, 'Creating %r', self.path)
-            fd = os.open(self.path, os.O_RDWR|os.O_CREAT|os.O_TRUNC)
+            fd = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
             try:
                 size = self.options.blocks * self.options.block_size
-                os.lseek(fd, size-1, 0)
+                os.lseek(fd, size - 1, 0)
                 os.write(fd, '\0')
             finally:
                 os.close(fd)
@@ -252,7 +257,7 @@ class TestAIO:
             self._worker_semaphore.acquire()
             coro.spawn(self._writer, x)
 
-        while 1:
+        while True:
             # Spin lock.
             status = 'Waiting for writers to ramp up %i/%i.' % (self._writes_finished, self.options.reader_delay)
             self.main_thread_state = status
@@ -292,13 +297,13 @@ class TestAIO:
 
     def _get_to_write(self):
         attempts = 0
-        while 1:
+        while True:
             # Pick a random location to read from.
             attempts += 1
             if not attempts % 3:
                 self.log(2, 'Failed to pick write location 3 times.')
                 coro.sleep_relative(0)
-            block_pos = random.randint(1, self.options.blocks)-1
+            block_pos = random.randint(1, self.options.blocks) - 1
             pos = block_pos * self.options.block_size
 
             if self.options.lio:
@@ -311,10 +316,10 @@ class TestAIO:
             num_blocks = random.randint(1, max_num_blocks)
             size = num_blocks * self.options.block_size
 
-            area = (pos, pos+size)
+            area = (pos, pos + size)
 
             if (self._write_locks.search(area) or
-                self._read_locks.search(area)):
+                    self._read_locks.search(area)):
                 # Someone is currently writing to this position.
                 self.log(2, 'writer skipping lock %r', area)
             else:
@@ -325,16 +330,16 @@ class TestAIO:
 
     def _get_to_read(self):
         attempts = 0
-        while 1:
+        while True:
             # Pick a random location that has been written.
             # Don't pick anything that overlaps with stuff being written.
             attempts += 1
             if not attempts % 3:
                 self.log(2, 'Failed to pick read location 3 times.')
                 coro.sleep_relative(0)
-            block_index = random.randint(0, len(self._written)-1)
+            block_index = random.randint(0, len(self._written) - 1)
             pos, size = self._written[block_index]
-            area = (pos, pos+size)
+            area = (pos, pos + size)
             if self._write_locks.search(area):
                 self.log(2, 'reader skipping write lock %r', area)
             else:
@@ -349,8 +354,8 @@ class TestAIO:
         self._num_live_writers += 1
         self.writer_status[writer_num] = 'Starting.'
         try:
-            while 1:
-                if coro.get_now() > self._start_time + self.options.duration*coro.ticks_per_sec:
+            while True:
+                if coro.get_now() > self._start_time + self.options.duration * coro.ticks_per_sec:
                     self.writer_status[writer_num] = 'Finished.'
                     return
                 if not selfish_acts % self.options.greediness:
@@ -362,7 +367,7 @@ class TestAIO:
                 self.log(3, '%i: write(%i, %i)', writer_num, size, pos)
                 data = t_aio.make_data(pos, size)
                 try:
-                    if random.random() < self.options.cancel_percent/100.0:
+                    if random.random() < self.options.cancel_percent / 100.0:
                         try:
                             self.writer_status[writer_num] = 'Writing with cancel.'
                             num_written = coro.with_timeout(0, coro.aio_write, self._fd, data, long(pos))
@@ -382,7 +387,7 @@ class TestAIO:
                 finally:
                     self._write_locks.delete(area)
                 selfish_acts += 1
-                #print len(self._written)
+                # print len(self._written)
                 self._writes_finished += 1
                 self._bytes_written += size
         finally:
@@ -395,7 +400,7 @@ class TestAIO:
             return False
         # Because we can read faster than we can write, we do not want
         # the amount of available data to fall too low.
-        if len(self._written) < self.options.reader_delay/2 and self._num_live_writers:
+        if len(self._written) < self.options.reader_delay / 2 and self._num_live_writers:
             self.log(3, 'Reader is backing off.')
             return False
         return True
@@ -404,8 +409,8 @@ class TestAIO:
         selfish_acts = 1
         self.reader_status[reader_num] = 'Starting.'
         try:
-            while 1:
-                if coro.get_now() > self._start_time + self.options.duration*coro.ticks_per_sec:
+            while True:
+                if coro.get_now() > self._start_time + self.options.duration * coro.ticks_per_sec:
                     self.reader_status[reader_num] = 'Finished.'
                     return
                 if not selfish_acts % self.options.greediness:
@@ -419,7 +424,7 @@ class TestAIO:
 
                 self.log(3, '%i: read(%i, %i)', reader_num, size, pos)
                 try:
-                    if random.random() < self.options.cancel_percent/100.0:
+                    if random.random() < self.options.cancel_percent / 100.0:
                         try:
                             self.reader_status[reader_num] = 'Reading with cancel.'
                             data = coro.with_timeout(0, coro.aio_read, self._fd, size, long(pos))
@@ -452,8 +457,8 @@ class TestAIO:
         self._num_live_writers += 1
         self.lio_status[worker_num] = 'Starting.'
         try:
-            while 1:
-                if coro.get_now() > self._start_time + self.options.duration*coro.ticks_per_sec:
+            while True:
+                if coro.get_now() > self._start_time + self.options.duration * coro.ticks_per_sec:
                     self.lio_status[worker_num] = 'Finished.'
                     return
                 if not selfish_acts % self.options.greediness:
@@ -497,7 +502,7 @@ class TestAIO:
                         lio_op = coro.lio_write
 
                 try:
-                    if random.random() < self.options.cancel_percent/100.0:
+                    if random.random() < self.options.cancel_percent / 100.0:
                         try:
                             if do_read:
                                 self.lio_status[worker_num] = 'Doing LIO READ with cancel.'
@@ -523,12 +528,14 @@ class TestAIO:
 
                 if do_read:
                     if len(result) != len(expected_result):
-                        self.log(0, 'ERROR: Length of result (%i) is not expected (%i).', len(result), len(expected_result))
+                        self.log(0, 'ERROR: Length of result (%i) is not expected (%i).',
+                                 len(result), len(expected_result))
                         continue
 
                     for result_value, expected_value in zip(result, expected_result):
                         if result_value != expected_value:
-                            self.log(0, 'ERROR: Expected read of %i bytes, got %i bytes not equal.', len(expected_value), len(result_value))
+                            self.log(0, 'ERROR: Expected read of %i bytes, got %i bytes not equal.',
+                                     len(expected_value), len(result_value))
                         else:
                             self._reads_finished += 1
                             self._bytes_read += len(expected_value)
@@ -546,16 +553,15 @@ class TestAIO:
             self._num_live_writers -= 1
             self._worker_semaphore.release()
 
-
     def prep(self):
-        size = self.options.blocks*self.options.block_size
+        size = self.options.blocks * self.options.block_size
         self.log(1, 'Writing out %i bytes.', size)
         # Not sure if we should have a command-line flag to try with or without
         # O_DIRECT.  Not sure if it makes a difference.
         # XXX: Add O_FSYNC for testing.
-        self._fd = os.open(self.path, os.O_RDWR|os.O_DIRECT|os.O_FSYNC)
-        block = '\0'*1024*1024
-        num_blocks = size/len(block)
+        self._fd = os.open(self.path, os.O_RDWR | os.O_DIRECT | os.O_FSYNC)
+        block = '\0' * 1024 * 1024
+        num_blocks = size / len(block)
         for unused in xrange(num_blocks):
             os.write(self._fd, block)
         # Write any partial data.
@@ -568,20 +574,17 @@ class TestAIO:
         print 'Current read pool size: %i' % (len(self._written),)
         if self.writer_status:
             print 'Writer status:'
-            items = self.writer_status.items()
-            items.sort()
+            items = sorted(self.writer_status.items())
             for i, status in items:
                 print '%i: %s' % (i, status)
         if self.reader_status:
             print 'Reader status:'
-            items = self.reader_status.items()
-            items.sort()
+            items = sorted(self.reader_status.items())
             for i, status in items:
                 print '%i: %s' % (i, status)
         if self.lio_status:
             print 'LIO status:'
-            items = self.lio_status.items()
-            items.sort()
+            items = sorted(self.lio_status.items())
             for i, status in items:
                 print '%i: %s' % (i, status)
 
@@ -590,7 +593,7 @@ if __name__ == '__main__':
     coro.set_print_exit_string(False)
     coro.install_signal_handlers = 0
     bd_path = comm_path.mk_backdoor_path('test_aio_lio')
-    coro.spawn(backdoor.serve, unix_path = bd_path).set_name('backdoor')
+    coro.spawn(backdoor.serve, unix_path=bd_path).set_name('backdoor')
     coro.signal_handler.register_signal_handler (signal.SIGINT, shutdown)
     coro.signal_handler.register_signal_handler (signal.SIGTERM, shutdown)
     coro.signal_handler.register_signal_handler (signal.SIGHUP, t.print_status)

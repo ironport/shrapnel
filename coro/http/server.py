@@ -28,7 +28,7 @@ class request_stream:
         self.timeout = conn.server.client_timeout
         self.conn = conn
         self.stream = stream
-        
+
     def get_request (self):
         request_line = self.stream.read_line()
         if not request_line:
@@ -142,7 +142,7 @@ class http_request:
         self.request_headers = headers
         self.client = client
         self.server = client.server
-        self.tstart = time.time() # XXX use coro.now
+        self.tstart = time.time()  # XXX use coro.now
         self.peer = client.peer
         self.output = buffered_output (self.client.conn)
         self.done_cv = latch()
@@ -260,7 +260,7 @@ class http_request:
         ho = self.reply_headers
         connection = hi.get_one('connection')
         if connection:
-            connection_tokens = [ x.strip() for x in connection.split(',') ]
+            connection_tokens = [x.strip() for x in connection.split(',')]
         else:
             connection_tokens = ()
         close_it = False
@@ -319,7 +319,7 @@ class http_request:
             self.reply_code,
             self.output.sent,
             now - self.tstart,
-            )
+        )
 
     responses = {
         100: "Continue",
@@ -359,7 +359,7 @@ class http_request:
         503: "Service Unavailable",
         504: "Gateway Time-out",
         505: "HTTP Version not supported"
-        }
+    }
 
     # Default error message
     DEFAULT_ERROR_MESSAGE = '\r\n'.join ([
@@ -375,7 +375,7 @@ class http_request:
         '</body>',
         '</html>',
         ''
-        ])
+    ])
 
 # chunking works thus:
 #    <data>
@@ -494,10 +494,10 @@ class server:
         self.thread_id = coro.current().thread_id()
         while not self.shutdown_flag:
             try:
-               conn, addr = self.accept()
-               client = self.create_connection (conn, addr)
-               c = coro.spawn (client.run)
-               c.set_name ('%s connection on %r' % (self.__class__.__name__, addr,))
+                conn, addr = self.accept()
+                client = self.create_connection (conn, addr)
+                c = coro.spawn (client.run)
+                c.set_name ('%s connection on %r' % (self.__class__.__name__, addr,))
             except coro.Shutdown:
                 break
             except:
@@ -527,7 +527,7 @@ class server:
             thread = coro.get_thread_by_id (self.thread_id)
             thread.shutdown()
         except KeyError:
-            return # already exited
+            return  # already exited
 
 class tlslite_server (server):
 
@@ -569,7 +569,7 @@ class tlslite_server (server):
         self.private = tlslite.parsePEMKey (
             open (self.key_path).read(),
             private=True
-            )
+        )
 
 class openssl_server (server):
 

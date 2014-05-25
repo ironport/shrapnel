@@ -5,7 +5,7 @@
 #                        All Rights Reserved.
 #
 
-RCS_ID =  '$Id$
+RCS_ID = '$Id$
 
 # An extensible, configurable, asynchronous FTP server.
 #
@@ -58,12 +58,12 @@ from counter import counter
 class ftp_channel:
 
     # defaults for a reliable __repr__
-    addr = ('unknown','0')
+    addr = ('unknown', '0')
 
     # unset this in a derived class in order
     # to enable the commands in 'self.write_commands'
     read_only = 1
-    write_commands = ['appe','dele','mkd','rmd','rnfr','rnto','stor','stou']
+    write_commands = ['appe', 'dele', 'mkd', 'rmd', 'rnfr', 'rnto', 'stor', 'stou']
 
     restart_position = 0
 
@@ -104,8 +104,8 @@ class ftp_channel:
         return (" server: %r current_mode: %s addr: %r conn: %r "
                 "session_id: %r thread_id: %r closing: %r authorized: %r "
                 "user: %r" % (self.server, self.current_mode, self.addr,
-                self.conn, self.session_id, self.thread_id, self.closing,
-                self.authorized, self.user))
+                              self.conn, self.session_id, self.thread_id, self.closing,
+                              self.authorized, self.user))
 
     def read (self, size):
         return self.conn.recv (size)
@@ -162,7 +162,7 @@ class ftp_channel:
                 # We've been asked to shutdown
                 return
             except:
-                qlog.write('COMMON.APP_FAILURE', tb.traceback_string() + `self`)
+                qlog.write('COMMON.APP_FAILURE', tb.traceback_string() + repr(self))
         finally:
             if self.user:
                 qlog.write('FTPD.LOGOUT', self.session_id, self.user)
@@ -176,11 +176,11 @@ class ftp_channel:
 
     def send_greeting(self):
         self.respond (
-                '220 %s IronPort FTP server (V%s) ready.' % (
-                    self.server.hostname,
-                    self.get_version()
-                    )
-                )
+            '220 %s IronPort FTP server (V%s) ready.' % (
+                self.server.hostname,
+                self.get_version()
+            )
+        )
 
     def _run (self):
         self.thread_id = coro.current().thread_id()
@@ -216,7 +216,7 @@ class ftp_channel:
                 if command != 'pass':
                     qlog.write('FTPD.RECV', self.session_id, repr(orig_line)[1:-1])
                 else:
-                    qlog.write('FTPD.RECV', self.session_id, line[0]+' <password>')
+                    qlog.write('FTPD.RECV', self.session_id, line[0] + ' <password>')
                 self.in_buffer = ''
                 if not hasattr (self, fun_name):
                     self.command_not_understood (line[0])
@@ -250,7 +250,7 @@ class ftp_channel:
                     except:
                         self.server.total_exceptions.increment()
                         qlog.write('COMMON.APP_FAILURE', tb.traceback_string() +
-                            ' fun: ' + `fun` + ' line: ' + `line`)
+                                   ' fun: ' + repr(fun) + ' line: ' + repr(line))
                         self.respond ('451 Server Error')
                         self.close_passive_acceptor()
                     else:
@@ -287,7 +287,7 @@ class ftp_channel:
         errno.EHOSTDOWN,
         errno.EPIPE,
         errno.ETIMEDOUT
-        )
+    )
 
     def close_passive_acceptor (self):
         if self.passive_acceptor:
@@ -367,8 +367,8 @@ class ftp_channel:
         self.respond (
             "530 You are not authorized to perform the '%s' command" % (
                 command
-                )
             )
+        )
 
     def make_data_channel (self):
         # In PASV mode, the connection may or may _not_ have been made
@@ -398,18 +398,18 @@ class ftp_channel:
             return cdc, self.client_addr
 
     type_map = {
-        'a':'ASCII',
-        'i':'Binary',
-        'e':'EBCDIC',
-        'l':'Binary'
-        }
+        'a': 'ASCII',
+        'i': 'Binary',
+        'e': 'EBCDIC',
+        'l': 'Binary'
+    }
 
     type_mode_map = {
-        'a':'t',
-        'i':'b',
-        'e':'b',
-        'l':'b'
-        }
+        'a': 't',
+        'i': 'b',
+        'e': 'b',
+        'l': 'b'
+    }
 
     # --------------------------------------------------
     # command methods
@@ -417,12 +417,13 @@ class ftp_channel:
 
     _help_type = 'specify data transfer type'
     _syntax_type = 'type (a|i|l)$'
+
     def cmd_type (self, line):
         # ascii, ebcdic, image, local <byte size>
         t = string.lower (line[1])
         # no support for EBCDIC
         # if t not in ['a','e','i','l']:
-        if t not in ['a','i','l']:
+        if t not in ['a', 'i', 'l']:
             self.command_not_understood (string.join (line))
         elif t == 'l' and (len(line) > 2 and line[2] != '8'):
             self.respond ('504 Byte size must be 8')
@@ -432,12 +433,14 @@ class ftp_channel:
 
     _help_quit = 'terminate session'
     _syntax_quit = 'quit$'
+
     def cmd_quit (self, line):
         self.respond ('221 Goodbye.')
         return 'quit'
 
     _help_port = 'specify data connection port'
     _syntax_port = 'port ([0-9]{1,3},){5}[0-9]{1,3}$'
+
     def cmd_port (self, line):
         info = line[1].split (',')
         ip = '.'.join (info[:4])
@@ -449,6 +452,7 @@ class ftp_channel:
 
     _help_pasv = 'prepare for server-to-server transfer'
     _syntax_pasv = 'pasv$'
+
     def cmd_pasv (self, line):
         # careful to close one that might already be there...
         self.close_passive_acceptor()
@@ -460,13 +464,14 @@ class ftp_channel:
         self.respond (
             '227 Entering Passive Mode (%s,%d,%d)' % (
                 ','.join (ip.split ('.')),
-                port/256,
-                port%256
-                )
+                port / 256,
+                port % 256
             )
+        )
 
     _help_nlst = 'give name list of files in directory'
     _syntax_nlst = 'nlst( \S+)?'
+
     def cmd_nlst (self, line):
         # ncftp adds the -FC argument for the user-visible 'nlist'
         # command.  We could try to emulate ls flags, but not just yet.
@@ -480,8 +485,8 @@ class ftp_channel:
         self.respond (
             '150 Opening %s mode data connection for file list' % (
                 self.type_map[self.current_mode]
-                )
             )
+        )
         conn, addr = self.make_data_channel()
         if conn:
             try:
@@ -492,6 +497,7 @@ class ftp_channel:
 
     _help_list = 'give list files in a directory'
     _syntax_list = 'list( \S+)?'
+
     def cmd_list (self, line):
         try:
             dir_list_producer = self.get_dir_list (line, 1)
@@ -501,8 +507,8 @@ class ftp_channel:
         self.respond (
             '150 Opening %s mode data connection for file list' % (
                 self.type_map[self.current_mode]
-                )
             )
+        )
         conn, addr = self.make_data_channel()
         if conn:
             try:
@@ -513,6 +519,7 @@ class ftp_channel:
 
     _help_cwd = 'change working directory'
     _syntax_cwd = 'cwd \S.*$'
+
     def cmd_cwd (self, line):
         if self.cwd (line):
             self.respond ('250 CWD command successful.')
@@ -521,6 +528,7 @@ class ftp_channel:
 
     _help_cdup = 'change to parent of current working directory'
     _syntax_cdup = 'cdup$'
+
     def cmd_cdup (self, line):
         if self.cdup(line):
             self.respond ('250 CDUP command successful.')
@@ -529,18 +537,20 @@ class ftp_channel:
 
     _help_pwd = 'print the current working directory'
     _syntax_pwd = 'pwd$'
+
     def cmd_pwd (self, line):
         self.respond (
             '257 "%s" is the current directory.' % (
                 self.filesystem.current_directory()
-                )
             )
+        )
 
     # modification time
     # example output:
     # 213 19960301204320
     _help_mdtm = 'show last modification time of file'
     _syntax_mdtm = 'mdtm \S+'
+
     def cmd_mdtm (self, line):
         filename = line[1]
         if not self.filesystem.isfile (filename):
@@ -555,16 +565,18 @@ class ftp_channel:
                     mtime[3],
                     mtime[4],
                     mtime[5]
-                    )
                 )
+            )
 
     _help_noop = 'do nothing'
     _syntax_noop = 'noop$'
+
     def cmd_noop (self, line):
         self.respond ('200 NOOP command successful.')
 
     _help_size = 'return size of file'
     _syntax_size = 'size \S+'
+
     def cmd_size (self, line):
         filename = line[1]
         if not self.filesystem.isfile (filename):
@@ -572,10 +584,11 @@ class ftp_channel:
         else:
             self.respond (
                 '213 %d' % (self.filesystem.stat(filename)[stat.ST_SIZE])
-                )
+            )
 
     _help_retr = 'retrieve a file'
     _syntax_retr = 'retr \S+'
+
     def cmd_retr (self, line):
         if len(line) < 2:
             self.command_not_understood (string.join (line))
@@ -586,7 +599,7 @@ class ftp_channel:
             else:
                 try:
                     # FIXME: for some reason, 'rt' isn't working on win95
-                    mode = 'r'+self.type_mode_map[self.current_mode]
+                    mode = 'r' + self.type_mode_map[self.current_mode]
                     fd = self.open (file, mode)
                 except (OSError, IOError), why:
                     self.respond ('553 could not open file for reading: %r' % why[0])
@@ -596,8 +609,8 @@ class ftp_channel:
                         "150 Opening %s mode data connection for file '%s'" % (
                             self.type_map[self.current_mode],
                             file
-                            )
                         )
+                    )
                     conn, addr = self.make_data_channel()
                     if conn:
                         try:
@@ -635,6 +648,7 @@ class ftp_channel:
 
     _help_stor = 'store a file'
     _syntax_stor = 'stor \S+'
+
     def cmd_stor (self, line, mode='wb'):
         # don't use 'atomic store' when in 'append' mode (see cmd_appe())
         atomic_flag = self.use_atomic_store and ('a' not in mode)
@@ -663,8 +677,8 @@ class ftp_channel:
                 '150 Opening %s connection for %s' % (
                     self.type_map[self.current_mode],
                     file
-                    )
                 )
+            )
             conn, addr = self.make_data_channel ()
             if conn:
                 xfer_success = 1
@@ -711,16 +725,19 @@ class ftp_channel:
 
     _help_abor = 'abort operation'
     _syntax_abor = 'abor$'
+
     def cmd_abor (self, line):
         self.respond ('226 ABOR command successful.')
 
     _help_appe = 'append to a file'
     _syntax_appe = 'appe \S+'
+
     def cmd_appe (self, line):
         return self.cmd_stor (line, 'ab')
 
     _help_dele = 'delete file'
     _syntax_dele = 'dele \S+'
+
     def cmd_dele (self, line):
         if len (line) != 2:
             self.command_not_understood (string.join (line))
@@ -737,6 +754,7 @@ class ftp_channel:
 
     _help_mkd = 'make a directory'
     _syntax_mkd = 'mkd \S+'
+
     def cmd_mkd (self, line):
         if len (line) != 2:
             self.command_not_understood (string.join (line))
@@ -750,6 +768,7 @@ class ftp_channel:
 
     _help_rmd = 'remove a directory'
     _syntax_rmd = 'rmd \S+'
+
     def cmd_rmd (self, line):
         if len (line) != 2:
             self.command_not_understood (string.join (line))
@@ -763,6 +782,7 @@ class ftp_channel:
 
     _help_user = 'specify user name'
     _syntax_user = 'user \S+'
+
     def cmd_user (self, line):
         if len(line) > 1:
             self.user = line[1]
@@ -772,6 +792,7 @@ class ftp_channel:
 
     _help_pass = 'specify password'
     _syntax_pass = 'pass \S+'
+
     def cmd_pass (self, line):
         if len(line) < 2:
             pw = ''
@@ -794,6 +815,7 @@ class ftp_channel:
 
     _help_rest = 'restart incomplete transfer'
     _syntax_rest = 'rest [0-9]+$'
+
     def cmd_rest (self, line):
         try:
             pos = string.atoi (line[1])
@@ -802,10 +824,11 @@ class ftp_channel:
         self.restart_position = pos
         self.respond (
             '350 Restarting at %d. Send STORE or RETRIEVE to initiate transfer.' % pos
-            )
+        )
 
     _help_stru = 'obsolete - set file transfer structure'
     _syntax_stru = 'stru (f|r|p)$'
+
     def cmd_stru (self, line):
         if line[1] in ('f', 'F'):
             # f == 'file'
@@ -815,6 +838,7 @@ class ftp_channel:
 
     _help_mode = 'obsolete - set file transfer mode'
     _syntax_mode = 'mode (s|b|c)$'
+
     def cmd_mode (self, line):
         if line[1] in ('s', 'S'):
             # f == 'file'
@@ -828,13 +852,14 @@ class ftp_channel:
 # control connection.  Strange.  But wuftpd, ftpd, and nt's ftp server
 # all support it.
 #
-##
-##  _help_stat = 'return status of server'
-##  def cmd_stat (self, line):
-##      pass
+#
+#  _help_stat = 'return status of server'
+# def cmd_stat (self, line):
+# pass
 
     _help_syst = 'show operating system type of server system'
     _syntax_syst = 'syst$'
+
     def cmd_syst (self, line):
         # Replying to this command is of questionable utility, because
         # this server does not behave in a predictable way w.r.t. the
@@ -858,6 +883,7 @@ class ftp_channel:
 
     _help_help = 'give help information'
     _syntax_help = 'help( .*)?$'
+
     def cmd_help (self, line):
         # find all the methods that match 'cmd_xxxx',
         # use their docstrings for the help response.
@@ -874,7 +900,7 @@ class ftp_channel:
                 '\r\n214 ',
                 help_lines[-1],
                 '\r\n'
-                ])
+            ])
         else:
             self.send ('214      Help Unavailable\r\n')
 
@@ -912,7 +938,7 @@ class ftp_server:
         Client is a ftp_channel instance.
         """
         self.clients.remove(client)
-        if len(self.clients)==0:
+        if len(self.clients) == 0:
             self.shutdown_cv.wake_one()
 
     def shutdown(self, timeout):
@@ -962,7 +988,8 @@ class ftp_server:
                         s.bind ((self.ip, self.port))
                     except OSError, why:
                         if why[0] == errno.EACCES:
-                            coro.print_stderr('Access denied binding to %s:%i.  Are you running as root?\n' % (self.ip, self.port))
+                            coro.print_stderr(
+                                'Access denied binding to %s:%i.  Are you running as root?\n' % (self.ip, self.port))
                             return
                         elif why[0] == errno.EADDRINUSE:
                             was_eaddrinuse = 1
@@ -990,8 +1017,8 @@ class ftp_server:
                         "%s_%d" % (
                             session.__class__.__name__,
                             thread.thread_id()
-                            )
                         )
+                    )
                     self.clients.append(session)
         finally:
             s.close()
@@ -1002,6 +1029,7 @@ import filesys
 class dummy_authorizer:
     def __init__ (self, root='/'):
         self.root = root
+
     def authorize (self, channel, username, password):
         channel.persona = -1, -1
         channel.read_only = 1
@@ -1037,15 +1065,15 @@ class unix_authorizer:
     def authorize (self, channel, username, password):
         try:
             pw_name, pw_passwd, pw_uid, pw_gid, pw_gecos, pw_dir, pw_shell = pwd.getpwnam (username)
-        except (KeyError,TypeError):
+        except (KeyError, TypeError):
             return 0, 'No such user.', None
         if pw_passwd == '*':
-            raise SystemError, "unable to fetch encrypted password. not running as root?"
+            raise SystemError("unable to fetch encrypted password. not running as root?")
         else:
             if crypt.crypt (password, pw_passwd) == pw_passwd:
                 # XXX think about this
-                #channel.read_only = 0
-                #channel.read_only = 1
+                # channel.read_only = 0
+                # channel.read_only = 1
                 if self.root:
                     root = self.root(pw_name)
                 else:
@@ -1057,8 +1085,8 @@ class unix_authorizer:
                 fs = filesys.schizophrenic_unix_filesystem (
                     root,
                     wd,
-                    persona = (pw_name, pw_uid, pw_gid)
-                    )
+                    persona=(pw_name, pw_uid, pw_gid)
+                )
                 return 1, 'Login successful.', fs
             else:
                 return 0, 'Password invalid.', None
@@ -1068,7 +1096,7 @@ class unix_authorizer:
 
 def test (port='8021'):
     fs = ftp_server (dummy_authorizer(), port=int(port))
-    #fs = ftp_server (unix_authorizer(), port=int(port))
+    # fs = ftp_server (unix_authorizer(), port=int(port))
     qlog.disable()
     coro.spawn (fs.run)
     coro.event_loop()

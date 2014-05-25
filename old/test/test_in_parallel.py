@@ -30,7 +30,7 @@ def t1():
     requests = [
         (aio_read, (fd, 1024, int64(i * 102400)))
         for i in range (10)
-        ]
+    ]
     results = coro.in_parallel (requests)
     print [len(x) for x in results]
     print 'expect one OSError at the end...'
@@ -39,13 +39,13 @@ def t1():
     requests = [
         (aio_read, (fd, 1024, int64(i * 102400)))
         for i in range (10)
-        ]
+    ]
     requests.append (
-        (aio_read, (-1, 1024, 1024L))
-        )
+        (aio_read, (-1, 1024, 1024))
+    )
     try:
         coro.in_parallel (requests)
-    except coro.InParallelError, e:
+    except coro.InParallelError as e:
         for i in xrange (len(e.partial_results)):
             status, result = e.partial_results[i]
             if status is coro.SUCCESS:
@@ -53,7 +53,7 @@ def t1():
             else:
                 print 'job %2d:' % i, status, result
     else:
-        raise SystemError, "expected an exception"
+        raise SystemError("expected an exception")
 
 if __name__ == '__main__':
     import backdoor

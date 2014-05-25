@@ -12,7 +12,7 @@ import coro.backdoor
 server = coro.http.tlslite_server (
     'cert/server.crt',
     'cert/server.key',
-    )
+)
 server.push_handler (coro.http.handlers.coro_status_handler())
 server.push_handler (coro.http.handlers.favicon_handler())
 coro.spawn (server.start, ('0.0.0.0', 9443))

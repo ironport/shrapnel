@@ -5,6 +5,7 @@ W = coro.write_stderr
 
 class session:
     counter = 0
+
     def __init__ (self, conn, addr, saddr):
         self.conn = conn
         self.addr = addr
@@ -36,7 +37,7 @@ def serve (saddr):
     while 1:
         conn, caddr = s.accept()
         coro.spawn (session, conn, caddr, saddr)
-                
+
 if __name__ == '__main__':
     import sys
     if len (sys.argv) < 3:

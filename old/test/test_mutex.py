@@ -24,8 +24,8 @@ m = coro.mutex()
 
 def test_mutex():
     m.lock()
-    coro.spawn(locker,1)
-    coro.spawn(locker,2)
+    coro.spawn(locker, 1)
+    coro.spawn(locker, 2)
     coro.yield_and_schedule()
     m.unlock()
     coro.yield_and_schedule()

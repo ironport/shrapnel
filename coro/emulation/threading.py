@@ -107,6 +107,7 @@ class Semaphore(object):
         self._sem.release(1)
 
     __enter__ = acquire
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.release()
 

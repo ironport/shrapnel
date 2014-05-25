@@ -45,7 +45,7 @@ class connection (websocket):
         payload = p.unpack()
         if p.opcode == 0x01:
             if self.name is None:
-                reply = json.dumps ({'type':'color', 'data':self.color})
+                reply = json.dumps ({'type': 'color', 'data': self.color})
                 self.send_text (reply)
                 self.name = payload
             else:
@@ -53,18 +53,18 @@ class connection (websocket):
         return False
 
     def send_message (self, name, color, message):
-        #W ('send_message %r %r %r\n' % (name, color, message))
+        # W ('send_message %r %r %r\n' % (name, color, message))
         self.send_text (
             json.dumps ({
-                'type':'message',
+                'type': 'message',
                 'data': {
-                    'time' : int (coro.now_usec / 1000000),
-                    'text' : message,
-                    'author' : name,
-                    'color' : color
-                    }
-                })
-            )
+                    'time': int (coro.now_usec / 1000000),
+                    'text': message,
+                    'author': name,
+                    'color': color
+                }
+            })
+        )
 
 if __name__ == '__main__':
     import coro.http
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     fh = coro.http.handlers.file_handler (cwd)
     wh = handler ('/chat', chat_server.new_session)
     handlers = [ih, sh, fh, wh]
-    #http_server = coro.http.server (('0.0.0.0', 9001))
+    # http_server = coro.http.server (('0.0.0.0', 9001))
     http_server = coro.http.server ()
     for h in handlers:
         http_server.push_handler (h)

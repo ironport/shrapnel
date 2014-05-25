@@ -24,7 +24,7 @@ def session (sid, fifo):
                     '<html><h1>Session Over!  Bye!</h1>'
                     '<a href="session">start over</a>'
                     '</html>'
-                    )
+                )
                 request.done()
                 break
             else:
@@ -32,7 +32,7 @@ def session (sid, fifo):
                     '<html><h1>Session Demo</h1><br><h2>Hit=%d</h2>'
                     '<a href="session">hit me!</a>'
                     '</html>' % (i,)
-                    )
+                )
                 request.done()
             i += 1
 

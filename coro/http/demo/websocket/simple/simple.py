@@ -124,7 +124,7 @@ class sketch_conn (websocket):
 
     def handle_packet (self, p):
         event = p.unpack().split (',')
-        #W ('packet = %r event=%r\n' % (p, event))
+        # W ('packet = %r event=%r\n' % (p, event))
         if event[0] == 'MD':
             self.mouse_down = True
             self.line_start = int (event[1]), int (event[2])
@@ -136,8 +136,8 @@ class sketch_conn (websocket):
                 self.server.broadcast (
                     'D,%d,%d,%s,%s' % (
                         self.line_start[0], self.line_start[1], x1, y1
-                        )
                     )
+                )
                 self.line_start = x1, y1
         elif event[0] == 'CD':
             self.server.clear_drawing()
@@ -146,9 +146,9 @@ class sketch_conn (websocket):
         elif event[0] == 'PD':
             self.server.prev_drawing()
         elif event[0] == 'KD':
-            if event[1] == '85': # 'U'
+            if event[1] == '85':  # 'U'
                 self.server.undo()
-            elif event[1] == '82': # 'R'
+            elif event[1] == '82':  # 'R'
                 self.server.set_drawing (self.server.timestamp)
         else:
             W ('unknown event: %r\n' % (event,))
@@ -165,11 +165,11 @@ if __name__ == '__main__':
     wh = handler ('/sketch', sketch_server.new_session)
     fh = coro.http.handlers.file_handler (cwd)
     handlers = [wh, ih, sh, fh]
-    #server = coro.http.server (('0.0.0.0', 9001))
+    # server = coro.http.server (('0.0.0.0', 9001))
     server = coro.http.server()
     for h in handlers:
         server.push_handler (h)
-    #coro.spawn (server.start)
+    # coro.spawn (server.start)
     coro.spawn (server.start, ('0.0.0.0', 9001))
     coro.spawn (coro.backdoor.serve, unix_path='/tmp/ws.bd')
     coro.event_loop (30.0)
