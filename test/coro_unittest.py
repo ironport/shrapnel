@@ -69,12 +69,12 @@ def main():
     global exit_code
     try:
         try:
-            #p = unittest.TestProgram(runNow=False)
+            # p = unittest.TestProgram(runNow=False)
             p = unittest.TestProgram()
             # This should always be the last test case run.
             p.test.addTest(ThreadFailedTest('test_threads_failed'))
             p.runTests()
-        except SystemExit, e:
+        except SystemExit as e:
             exit_code = e.code
     finally:
         coro.set_exit(exit_code)

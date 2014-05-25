@@ -42,7 +42,7 @@ class TestServer:
         self.port = self.s.getsockname()[1]
         self.s.set_reuse_addr()
         self.s.listen(5)
-        while 1:
+        while True:
             try:
                 s, addr = self.s.accept()
             except coro.Shutdown:
@@ -60,7 +60,7 @@ class TestSession:
         global current_buffer, finished
         current_buffer = ''
         received = 0
-        while 1:
+        while True:
             block = self.s.recv(1024)
             if not block:
                 break
@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
             s = coro.make_socket(family, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, send_buffer_size)
             coro.with_timeout(5, s.connect, (address, server.port))
-            blocks = [ big_block[:size] for size in block_sends ]
+            blocks = [big_block[:size] for size in block_sends]
             rc = coro.with_timeout(5, s.writev, blocks)
             s.close()
             if finished is not None:
@@ -115,7 +115,7 @@ class Test(unittest.TestCase):
                     testit(family, address, (5, 3, 7, 8), '01234012012345601234567', 23)
                     # bufsize==1 is too slow and not necessary
                     if bufsize != 1:
-                        testit(family, address, (512 * 1024,), big_block[:512*1024], 512*1024)
+                        testit(family, address, (512 * 1024,), big_block[:512 * 1024], 512 * 1024)
 
                 server_thread.raise_exception(coro.Shutdown)
 

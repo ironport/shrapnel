@@ -19,7 +19,7 @@ class TestServer:
         self.port = self.s.getsockname()[1]
         self.s.set_reuse_addr()
         self.s.listen (5)
-        while 1:
+        while True:
             try:
                 coro.write_stderr ('accepting...\n')
                 conns = self.s.accept_many (5)

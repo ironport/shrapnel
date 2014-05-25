@@ -42,7 +42,6 @@ class Test(unittest.TestCase):
         self.t1_cv.wait()
         self.assertEqual(self.shared.x, 2)
 
-
     def t2(self):
         self.assertFalse(hasattr(self.shared, 'x'))
         self.assertRaises(AttributeError, lambda: self.shared.x)

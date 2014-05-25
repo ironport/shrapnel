@@ -31,9 +31,11 @@ class Test(unittest.TestCase):
     def test_wait_for_interrupt_new(self):
         # Test KEVENT_STATUS_NEW
         proc = coro_process.spawn_job_bg('sleep 30')
+
         def waiter():
             proc.wait()
         waiter_thread = coro.spawn(waiter)
+
         def killer():
             waiter_thread.shutdown()
         coro.spawn(killer)
@@ -51,6 +53,7 @@ class Test(unittest.TestCase):
     def test_wait_for_interrupt_submitted(self):
         # Test KEVENT_STATUS_SUBMITTED
         proc = coro_process.spawn_job_bg('sleep 30')
+
         def waiter():
             proc.wait()
         waiter_thread = coro.spawn(waiter)
@@ -110,7 +113,6 @@ class Test(unittest.TestCase):
             os.close(write_fd1)
             os.close(read_fd2)
             os.close(write_fd2)
-
 
 
 if __name__ == '__main__':

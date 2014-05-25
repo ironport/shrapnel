@@ -30,6 +30,7 @@ import operator
 import os
 import tempfile
 import unittest
+from functools import reduce
 
 class Test(unittest.TestCase):
 
@@ -47,28 +48,28 @@ class Test(unittest.TestCase):
 
     def test_read_write(self):
         """Test read/write."""
-        self.fd = os.open('test_lio_file', os.O_RDWR|os.O_CREAT|os.O_TRUNC)
+        self.fd = os.open('test_lio_file', os.O_RDWR | os.O_CREAT | os.O_TRUNC)
 
         # Simple 1-byte test.
         self._read_write(['a'])
 
         # Test 3 blocks in 1 batch.
-        data = [ os.urandom(coro.MAX_AIO_SIZE),
-                 os.urandom(coro.MAX_AIO_SIZE),
-                 os.urandom(int(coro.MAX_AIO_SIZE * 0.6)),
-               ]
+        data = [os.urandom(coro.MAX_AIO_SIZE),
+                os.urandom(coro.MAX_AIO_SIZE),
+                os.urandom(int(coro.MAX_AIO_SIZE * 0.6)),
+                ]
         self._read_write(data)
 
         # Test various numbers of full batches.
         for n in xrange(1, 5):
-            data = [ os.urandom(coro.MAX_AIO_SIZE) for x in xrange(coro.MAX_LIO*n) ]
+            data = [os.urandom(coro.MAX_AIO_SIZE) for x in xrange(coro.MAX_LIO * n)]
             self._read_write(data)
 
         # Test offset read/write.
-        data = [ os.urandom(coro.MAX_AIO_SIZE) for x in xrange(3) ]
+        data = [os.urandom(coro.MAX_AIO_SIZE) for x in xrange(3)]
         total_bytes = reduce(operator.add, map(len, data))
         coro.many_lio_writes(self.fd, 0, data)
-        a = coro.many_lio_reads(self.fd, 512, total_bytes-512)
+        a = coro.many_lio_reads(self.fd, 512, total_bytes - 512)
         expected_data = ''.join(data)[512:]
         actual_data = ''.join(a)
         self.assertEqual(actual_data, expected_data)

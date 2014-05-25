@@ -21,7 +21,7 @@
 """Unittests for the tsc_time module."""
 
 import struct
-#import sysctl
+# import sysctl
 import time
 import unittest
 from coro.clocks import tsc_time
@@ -29,7 +29,7 @@ from coro.clocks import tsc_time
 class Test(unittest.TestCase):
 
     # Stub test until we have a working sysctl
-    #def test_ticks_per_sec(self):
+    # def test_ticks_per_sec(self):
     #    freq = struct.unpack('I', sysctl.sysctl('machdep.tsc_freq'))[0]
     #    self.assertEqual(freq,
     #                     tsc_time.ticks_per_sec
@@ -59,35 +59,35 @@ class Test(unittest.TestCase):
         self._assert_close(now_t,
                            tsc_time.usec_to_ticks(now_up),
                            ticks_close
-                          )
+                           )
         self._assert_close(now_up,
                            tsc_time.ticks_to_usec(now_t),
                            up_close
-                          )
+                           )
         self._assert_close(now_t,
                            tsc_time.usec_to_ticks_safe(now_up),
                            ticks_close
-                          )
+                           )
         self._assert_close(now_up,
                            tsc_time.ticks_to_usec_safe(now_t),
                            up_close
-                          )
+                           )
         self._assert_close(now_t,
                            tsc_time.sec_to_ticks(now_p),
                            tsc_time.ticks_per_sec
-                          )
+                           )
         self._assert_close(now_p,
                            tsc_time.ticks_to_sec(now_t),
                            p_close
-                          )
+                           )
         self._assert_close(now_fp,
                            tsc_time.ticks_to_fsec(now_t),
                            fp_close
-                          )
+                           )
         self._assert_close(now_t,
                            tsc_time.fsec_to_ticks(now_fp),
                            ticks_close
-                          )
+                           )
 
     def test_time_methods(self):
         t = tsc_time.now_tsc()
@@ -110,8 +110,8 @@ class Test(unittest.TestCase):
         self.assert_(t < t2)
         self.assert_(t.tsc + 1 > t)
         self.assert_(t.tsc - 1 < t)
-        self.assert_(t.tsc + 1L > t)
-        self.assert_(t.tsc - 1L < t)
+        self.assert_(t.tsc + 1 > t)
+        self.assert_(t.tsc - 1 < t)
         # Floating point uses larger numbers because of a loss in precision
         # when converting to floating point, ex:
         # >>> float(28536304964998994L)
@@ -127,8 +127,8 @@ class Test(unittest.TestCase):
         self.assert_(t < t2)
         self.assert_(int(t) + 1 > t)
         self.assert_(int(t) - 1 < t)
-        self.assert_(int(t) + 1L > t)
-        self.assert_(int(t) - 1L < t)
+        self.assert_(int(t) + 1 > t)
+        self.assert_(int(t) - 1 < t)
         self.assert_(int(t) + 1.0 > t)
         self.assert_(int(t) - 1.0 < t)
 
@@ -140,8 +140,8 @@ class Test(unittest.TestCase):
         self.assert_(t < t2)
         self.assert_(int(t) + 1 > t)
         self.assert_(int(t) - 1 < t)
-        self.assert_(int(t) + 1L > t)
-        self.assert_(int(t) - 1L < t)
+        self.assert_(int(t) + 1 > t)
+        self.assert_(int(t) - 1 < t)
         self.assert_(int(t) + 1.0 > t)
         self.assert_(int(t) - 1.0 < t)
 
@@ -153,8 +153,8 @@ class Test(unittest.TestCase):
         self.assert_(t < t2)
         self.assert_(int(t) + 1 > t)
         self.assert_(int(t) - 1 < t)
-        self.assert_(int(t) + 1L > t)
-        self.assert_(int(t) - 1L < t)
+        self.assert_(int(t) + 1 > t)
+        self.assert_(int(t) - 1 < t)
         self.assert_(int(t) + 1.0 > t)
         self.assert_(int(t) - 1.0 < t)
 
@@ -163,14 +163,14 @@ class Test(unittest.TestCase):
 
         self.assertEqual(t + 1, t.tsc + 1)
         self.assertEqual(t - 1, t.tsc - 1)
-        self.assertEqual(t + 1L, t.tsc + 1)
-        self.assertEqual(t - 1L, t.tsc - 1)
+        self.assertEqual(t + 1, t.tsc + 1)
+        self.assertEqual(t - 1, t.tsc - 1)
         # Removing floating point comparison because large floating point
         # numbers loose precision, ex:
         # >>> float(28536304964998994L)
         # 28536304964998992.0
-        #self.assertEqual(t + 1.0, t.tsc + 1)
-        #self.assertEqual(t - 1.0, t.tsc - 1)
+        # self.assertEqual(t + 1.0, t.tsc + 1)
+        # self.assertEqual(t - 1.0, t.tsc - 1)
         self.assertRaises(TypeError, lambda: t + 'hi')
         self.assertRaises(TypeError, lambda: t - 'hi')
 
@@ -178,8 +178,8 @@ class Test(unittest.TestCase):
 
         self.assertEqual(t + 1, t.as_posix_sec() + 1)
         self.assertEqual(t - 1, t.as_posix_sec() - 1)
-        self.assertEqual(t + 1L, t.as_posix_sec() + 1)
-        self.assertEqual(t - 1L, t.as_posix_sec() - 1)
+        self.assertEqual(t + 1, t.as_posix_sec() + 1)
+        self.assertEqual(t - 1, t.as_posix_sec() - 1)
         self.assertEqual(t + 1.0, t.as_posix_sec() + 1)
         self.assertEqual(t - 1.0, t.as_posix_sec() - 1)
         self.assertRaises(TypeError, lambda: t + 'hi')
@@ -189,8 +189,8 @@ class Test(unittest.TestCase):
 
         self.assertEqual(t + 1, t.as_posix_usec() + 1)
         self.assertEqual(t - 1, t.as_posix_usec() - 1)
-        self.assertEqual(t + 1L, t.as_posix_usec() + 1)
-        self.assertEqual(t - 1L, t.as_posix_usec() - 1)
+        self.assertEqual(t + 1, t.as_posix_usec() + 1)
+        self.assertEqual(t - 1, t.as_posix_usec() - 1)
         self.assertEqual(t + 1.0, t.as_posix_usec() + 1)
         self.assertEqual(t - 1.0, t.as_posix_usec() - 1)
         self.assertRaises(TypeError, lambda: t + 'hi')
@@ -202,8 +202,8 @@ class Test(unittest.TestCase):
         # Python's conversions.
         self._assert_close(t + 1, t.as_posix_fsec() + 1, 0.001)
         self._assert_close(t - 1, t.as_posix_fsec() - 1, 0.001)
-        self._assert_close(t + 1L, t.as_posix_fsec() + 1, 0.001)
-        self._assert_close(t - 1L, t.as_posix_fsec() - 1, 0.001)
+        self._assert_close(t + 1, t.as_posix_fsec() + 1, 0.001)
+        self._assert_close(t - 1, t.as_posix_fsec() - 1, 0.001)
         self._assert_close(t + 1.0, t.as_posix_fsec() + 1, 0.001)
         self._assert_close(t - 1.0, t.as_posix_fsec() - 1, 0.001)
         self.assertRaises(TypeError, lambda: t + 'hi')
@@ -291,15 +291,15 @@ class Test(unittest.TestCase):
         self._assert_close(ago.as_posix_sec(),
                            now_tsc.as_posix_sec() - 10 * 60,
                            1
-                          )
+                           )
         self._assert_close(ago.as_posix_usec(),
                            now_tsc.as_posix_usec() - 10 * 60 * 1000000,
                            1000000
-                          )
+                           )
         self._assert_close(ago.as_posix_fsec(),
                            now_tsc.as_posix_fsec() - 10 * 60,
                            0.3
-                          )
+                           )
 
         # Microseconds in 1 year.
         diff = long(365 * 24 * 60 * 60 * 1000000)
@@ -309,7 +309,7 @@ class Test(unittest.TestCase):
         self._assert_close(now_usec.as_posix_usec() - diff,
                            ago.as_posix_usec(),
                            10
-                          )
+                           )
 
         year_ago = now_usec.as_posix_usec() - diff
         year_ago_tsc = tsc_time.TSC_from_posix_usec(year_ago)
@@ -317,7 +317,7 @@ class Test(unittest.TestCase):
         self._assert_close(year_ago_tsc.as_posix_usec(),
                            year_ago,
                            10
-                          )
+                           )
 
 
 if __name__ == '__main__':

@@ -101,12 +101,14 @@ class Test(unittest.TestCase):
         # Pyrex had a bug where if it raised an exception it would stomp on
         # the "current" exception on the Python stack.
         s = coro.semaphore(0)
+
         def blocker():
             s.acquire(1)
         t1 = coro.spawn(blocker)
         coro.yield_slice()
         # Mark the thread as scheduled.
         t1.shutdown()
+
         def raiser():
             try:
                 raise ValueError(3)
@@ -125,6 +127,7 @@ class Test(unittest.TestCase):
         # and that function raised and caught an exception, it would stomp on
         # the current exception, so re-raising would raise the wrong exception.
         s = coro.semaphore(0)
+
         def blocker():
             s.acquire(1)
         t1 = coro.spawn(blocker)

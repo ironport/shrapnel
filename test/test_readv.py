@@ -39,7 +39,7 @@ class TestServer:
         self.port = self.s.getsockname()[1]
         self.s.set_reuse_addr()
         self.s.listen(5)
-        while 1:
+        while True:
             try:
                 s, addr = self.s.accept()
             except coro.Shutdown:
@@ -96,10 +96,64 @@ class Test(unittest.TestCase):
                 # Do it once without sleeps, once with sleeps.
                 for sleep in (False, True):
                     do_sleeps = sleep
-                    testit(family, address, (5, 19, 3, 8), (5, 19, 3, 8), ('01234', '0123456789012345678', '012', '01234567'))
+                    testit(
+                        family,
+                        address,
+                        (5,
+                         19,
+                         3,
+                         8),
+                        (5,
+                         19,
+                         3,
+                         8),
+                        ('01234',
+                         '0123456789012345678',
+                         '012',
+                         '01234567'))
                     testit(family, address, (5, 19, 3, 8), (24, 3, 8), ('012340123456789012345678', '012', '01234567'))
-                    testit(family, address, (5, 19, 3, 8), (2, 3, 19, 3, 8), ('01', '234', '0123456789012345678', '012', '01234567'))
-                    testit(family, address, (5, 5), (1, 1, 1, 1, 1, 1, 1, 1, 1, 1), ('0', '1', '2', '3', '4', '0', '1', '2', '3', '4'))
+                    testit(
+                        family,
+                        address,
+                        (5,
+                         19,
+                         3,
+                         8),
+                        (2,
+                         3,
+                         19,
+                         3,
+                         8),
+                        ('01',
+                         '234',
+                         '0123456789012345678',
+                         '012',
+                         '01234567'))
+                    testit(
+                        family,
+                        address,
+                        (5,
+                         5),
+                        (1,
+                         1,
+                         1,
+                         1,
+                         1,
+                         1,
+                         1,
+                         1,
+                         1,
+                         1),
+                        ('0',
+                         '1',
+                         '2',
+                         '3',
+                         '4',
+                         '0',
+                         '1',
+                         '2',
+                         '3',
+                         '4'))
                     testit(family, address, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1), (5, 5), ('00000', '00000'))
                     testit(family, address, (10,), (5,), ('01234',))
                     testit(family, address, (5,), (10,), ('01234',))
@@ -109,7 +163,7 @@ class Test(unittest.TestCase):
                     testit(family, address, (5, 9), (5, 5, 3, 7), ('01234', '01234', '567', '8'))
                     testit(family, address, (5, 5), (5, 5, 10), ('01234', '01234'))
                     testit(family, address, (5,), (6,), ('01234',))
-                    testit(family, address, (512*1024,), (512*1024,), (big_block[:512*1024],))
+                    testit(family, address, (512 * 1024,), (512 * 1024,), (big_block[:512 * 1024],))
 
             server_thread.raise_exception(coro.Shutdown)
 

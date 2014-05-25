@@ -31,13 +31,13 @@ class Test (unittest.TestCase):
         d[1] = 2
         d[2] = 3
         d[3] = 4
-        #print 'del[2]'
+        # print 'del[2]'
         del d[2]
-        #print 'del[1]'
+        # print 'del[1]'
         del d[1]
-        #print 'del[3]'
+        # print 'del[3]'
         del d[3]
-        #print 'del[0]'
+        # print 'del[0]'
         del d[0]
         self.assertEqual (len(d), 0)
 

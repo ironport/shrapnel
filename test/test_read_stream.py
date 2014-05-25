@@ -22,7 +22,7 @@ class buffered_stream:
         "generate pieces of input up to and including <delim>, then StopIteration"
         ld = len(delim)
         m = 0
-        while 1:
+        while True:
             if self.pos == len(self.buffer):
                 self.buffer = self.producer()
                 self.pos = 0
@@ -36,8 +36,8 @@ class buffered_stream:
                 if self.buffer[i] == delim[m]:
                     m += 1
                     if m == ld:
-                        yield self.buffer[self.pos:i+1]
-                        self.pos = i+1
+                        yield self.buffer[self.pos:i + 1]
+                        self.pos = i + 1
                         return
                 else:
                     m = 0
@@ -48,7 +48,7 @@ class buffered_stream:
 
     def read_until (self, delim, join=True):
         "read until <delim>.  return a list of parts unless <join> is True"
-        result = ( x for x in self.gen_read_until (delim) )
+        result = (x for x in self.gen_read_until (delim))
         if join:
             return ''.join (result)
         else:
@@ -106,7 +106,7 @@ def str_prod (s, lo, hi=None):
             size = lo
         else:
             size = R (lo, hi)
-        yield s[i:i+size]
+        yield s[i:i + size]
         i += size
 
 import re
@@ -115,7 +115,7 @@ data_re = re.compile ('^0+$')
 def read_lines (g, delim):
     r = []
     ld = len(delim)
-    while 1:
+    while True:
         line = g.read_line (delim)
         if not line:
             break
@@ -139,10 +139,10 @@ class Test (unittest.TestCase):
         t0 = self.t_line_0
         print ' fixed size, small'
         for i in range (1, 20):
-            t0 (lines0, delim, i, i+1)
+            t0 (lines0, delim, i, i + 1)
         print ' random size, small'
         for i in range (1, 20):
-            t0 (lines0, delim, i, i+20)
+            t0 (lines0, delim, i, i + 20)
         print ' 1000 byte buffer'
         t0 (lines0, delim, 1000, None)
         print ' 10000 byte buffer'

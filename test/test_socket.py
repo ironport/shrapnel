@@ -51,7 +51,7 @@ class TestSession:
 
     def run(self):
         current_buffer = ''
-        while 1:
+        while True:
             block = self.s.recv(1024)
             if not block:
                 break
@@ -108,40 +108,40 @@ class Test(unittest.TestCase):
 
     def test_bind_empty_ip_v4(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("",5010))
+        sock.bind(("", 5010))
         self.assertEquals(sock.domain, socket.AF_INET)
 
     def test_bind_empty_ip_v6(self):
         sock = coro.make_socket(socket.AF_INET6, socket.SOCK_STREAM)
-        sock.bind(("",5010))
+        sock.bind(("", 5010))
         self.assertEquals(sock.domain, socket.AF_INET6)
 
     def test_bind_wrong_af_4to6(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.assertEquals(sock.domain, socket.AF_INET)
-        self.assertRaises(ValueError, sock.bind, (("2001::1",5010),))
+        self.assertRaises(ValueError, sock.bind, (("2001::1", 5010),))
 
     def test_bind_wrong_af_6to4(self):
         sock = coro.make_socket(socket.AF_INET6, socket.SOCK_STREAM)
         self.assertEquals(sock.domain, socket.AF_INET6)
-        self.assertRaises(ValueError, sock.bind, (("1.1.1.1",5010),))
+        self.assertRaises(ValueError, sock.bind, (("1.1.1.1", 5010),))
 
     def test_bind_af_unspec(self):
         sock = coro.make_socket(socket.AF_INET6, socket.SOCK_STREAM)
         sock.domain = socket.AF_UNSPEC
-        self.assertRaises(ValueError, sock.bind, (("1.1.1.1",5010),))
-        self.assertRaises(ValueError, sock.bind, (("",5010),))
+        self.assertRaises(ValueError, sock.bind, (("1.1.1.1", 5010),))
+        self.assertRaises(ValueError, sock.bind, (("", 5010),))
 
     def test_getsockname_v4(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("",5555))
+        sock.bind(("", 5555))
         sn = sock.getsockname()
         self.assertEquals(sn[0], "0.0.0.0")
         self.assertEquals(sn[1], 5555)
 
     def test_getsockname_v6(self):
         sock = coro.make_socket(socket.AF_INET6, socket.SOCK_STREAM)
-        sock.bind(("",5555))
+        sock.bind(("", 5555))
         sn = sock.getsockname()
         self.assertEquals(sn[0], "::")
         self.assertEquals(sn[1], 5555)

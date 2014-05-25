@@ -46,7 +46,7 @@ class Test(unittest.TestCase):
             self._dummy_thread.join()
 
     def _echo(self, sock):
-        while 1:
+        while True:
             try:
                 try:
                     data = sock.recv(1024)
@@ -60,7 +60,7 @@ class Test(unittest.TestCase):
                 sock.send(data)
 
     def _dummy_listener(self, s):
-        while 1:
+        while True:
             sock, addr = s.accept()
             self._echo_socket = sock
             self._echo_thread = coro.spawn(self._echo, sock)
@@ -77,7 +77,7 @@ class Test(unittest.TestCase):
     def _blocker_thread(self):
         self._blocker_socket = coro.tcp_sock()
         self._blocker_socket.connect(('127.0.0.1', self.port))
-        while 1:
+        while True:
             coro.print_stderr('reading')
             try:
                 self._blocker_socket.read(1024)
@@ -139,10 +139,10 @@ class Test(unittest.TestCase):
         coro.set_handler((f.fileno(), coro.EVFILT.VNODE),
                          self._fired_closer,
                          fflags=coro.NOTE.DELETE
-                        )
+                         )
 
         t2 = coro.spawn(self._fired_blocker)
-        #t2.set_max_selfish_acts(1)
+        # t2.set_max_selfish_acts(1)
         # Yield to allow fired blocker to block.
         coro.yield_slice()
         # Now, cause threads blocked on kevents to get scheduled in a specific

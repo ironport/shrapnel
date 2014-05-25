@@ -33,22 +33,22 @@ class Test(unittest.TestCase):
             return num
 
         self.assertRaises(coro.TimeoutError,
-            coro.with_timeout,
-                2,
-                coro.in_parallel,
-                    [(sleeper, (1,)),
-                     (sleeper, (2,)),
-                     (sleeper, (3,)),
-                    ]
-        )
+                          coro.with_timeout,
+                          2,
+                          coro.in_parallel,
+                          [(sleeper, (1,)),
+                           (sleeper, (2,)),
+                              (sleeper, (3,)),
+                           ]
+                          )
 
         results = coro.with_timeout(7, coro.in_parallel,
-                    [(sleeper, (4,)),
-                     (sleeper, (5,)),
-                     (sleeper, (6,)),
-                    ]
-        )
-        self.assertEqual(results, [4,5,6])
+                                    [(sleeper, (4,)),
+                                     (sleeper, (5,)),
+                                        (sleeper, (6,)),
+                                     ]
+                                    )
+        self.assertEqual(results, [4, 5, 6])
 
 if __name__ == '__main__':
     coro_unittest.run_tests()

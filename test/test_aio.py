@@ -66,9 +66,9 @@ class Test(unittest.TestCase):
         coro.aio_write(self.fd, orig_data, 0)
         for x in xrange(100):
             size = random.randint(1, filesize)
-            offset = random.randint(0, filesize-size)
+            offset = random.randint(0, filesize - size)
             data = coro.aio_read(self.fd, size, offset)
-            self.assertEqual(data, orig_data[offset:offset+size])
+            self.assertEqual(data, orig_data[offset:offset + size])
 
         os.close(self.fd)
 
@@ -84,9 +84,9 @@ class Test(unittest.TestCase):
         coro.aio_write(self.fd, orig_data, 0)
         for x in xrange(100):
             size = random.randint(1, filesize)
-            offset = random.randint(0, filesize-size)
+            offset = random.randint(0, filesize - size)
             data = coro.aio_read(self.fd, size, offset)
-            self.assertEqual(data, orig_data[offset:offset+size])
+            self.assertEqual(data, orig_data[offset:offset + size])
 
         self.assertEqual(event_size, len(coro.event_map))
 
@@ -95,7 +95,7 @@ class Test(unittest.TestCase):
 
         for x in xrange(100):
             size = random.randint(1, filesize)
-            offset = random.randint(0, filesize-size)
+            offset = random.randint(0, filesize - size)
             self.assertRaises(OSError, coro.aio_read, self.fd, size, offset)
 
         self.assertEqual(event_size, len(coro.event_map))

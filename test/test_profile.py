@@ -31,27 +31,27 @@ import coro.print_profile
 import coro_unittest
 
 # Sam's favorite profile function.
-def tak1 (x,y,z):
+def tak1 (x, y, z):
     coro.yield_slice()
     if y >= x:
         return z
     else:
         return tak1 (
-            tak1 (x-1, y, z),
-            tak2 (y-1, z, x),
-            tak2 (z-1, x, y)
-            )
+            tak1 (x - 1, y, z),
+            tak2 (y - 1, z, x),
+            tak2 (z - 1, x, y)
+        )
 
-def tak2 (x,y,z):
+def tak2 (x, y, z):
     coro.yield_slice()
     if y >= x:
         return z
     else:
         return tak2 (
-            tak2 (x-1, y, z),
-            tak1 (y-1, z, x),
-            tak1 (z-1, x, y)
-            )
+            tak2 (x - 1, y, z),
+            tak1 (y - 1, z, x),
+            tak1 (z - 1, x, y)
+        )
 
 def multi_test():
     t1 = coro.spawn(tak2, 18, 12, 6)

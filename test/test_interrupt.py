@@ -31,8 +31,9 @@ class Test(unittest.TestCase):
 
     def test_scheduled_staging_interrupt(self):
         """Test interrupting a thread that is scheduled and in the staging list."""
-        t = coro.get_now() + coro.ticks_per_sec*3
+        t = coro.get_now() + coro.ticks_per_sec * 3
         exception_raised = [False]
+
         def foo():
             self.assertFalse(exception_raised[0])
             try:
@@ -49,6 +50,7 @@ class Test(unittest.TestCase):
     def test_scheduled_pending_interrupt(self):
         """Test interrupting a thread that is scheduled and in the pending list."""
         exception_raised = [False]
+
         def foo():
             self.assertFalse(exception_raised[0])
             try:
@@ -66,6 +68,7 @@ class Test(unittest.TestCase):
     def test_interrupt_sleeping_coro(self):
         """Test interrupting a thread in a sleep call."""
         exception_raised = [False]
+
         def foo():
             self.assertFalse(exception_raised[0])
             try:
@@ -109,7 +112,7 @@ class Test(unittest.TestCase):
         expires.
         """
         self.assertRaises(coro.TimeoutError,
-            coro.with_timeout, 0, coro.sleep_relative, 0)
+                          coro.with_timeout, 0, coro.sleep_relative, 0)
 
 
 if __name__ == '__main__':
