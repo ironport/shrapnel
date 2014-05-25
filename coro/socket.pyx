@@ -494,7 +494,8 @@ cdef public class sock [ object sock_object, type sock_type ]:
         :raises EOFError: Not all data could be read.  The first argument
               includes any partial data read as a string.
         """
-        cdef char * p, * p0
+        cdef char * p
+        cdef char * p0
         cdef int r
         cdef bytes buffer
 

@@ -482,7 +482,8 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
     def poll (self, timeout=(30,0), int nevents=2000):
         cdef timespec ts
         cdef int r, i
-        cdef kevent * events, * k
+        cdef kevent * events
+        cdef kevent * k
         cdef coro co
         cdef kevent_target kt
         cdef kevent_key kk

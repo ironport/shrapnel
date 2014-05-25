@@ -715,7 +715,8 @@ cdef class _profiler:
 
     cdef int dispatch (self, _frame * frame, int what, void * arg) except -1:
         """The main profiler dispatch called by Python."""
-        cdef call_stack * top, * link
+        cdef call_stack * top
+        cdef call_stack * link
         # top may be NULL when a coro first starts.
         top = (<coro>the_scheduler._current).top
         if what == PyTrace_CALL:
