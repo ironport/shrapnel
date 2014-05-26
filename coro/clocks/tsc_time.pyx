@@ -866,7 +866,7 @@ cdef class TSC(Time):
     def __sub__(x, y):
         cdef TSC t
         cdef TSC self
-        cdef int int_value
+        cdef long int_value
         cdef long long longlong_value
         cdef double double_value
 
