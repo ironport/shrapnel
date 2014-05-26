@@ -103,8 +103,8 @@ class Test(unittest.TestCase):
 
     def test_invalid_ip(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.assertRaises(ValueError, sock.connect, (('123', 80),))
-        self.assertRaises(ValueError, sock.connect, ((123, 80),))
+        self.assertRaises(ValueError, sock.connect, ('123', 80),)
+        self.assertRaises(TypeError, sock.connect, (123, 80),)
 
     def test_bind_empty_ip_v4(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -119,18 +119,18 @@ class Test(unittest.TestCase):
     def test_bind_wrong_af_4to6(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.assertEquals(sock.domain, socket.AF_INET)
-        self.assertRaises(ValueError, sock.bind, (("2001::1", 5010),))
+        self.assertRaises(ValueError, sock.bind, ("2001::1", 5010),)
 
     def test_bind_wrong_af_6to4(self):
         sock = coro.make_socket(socket.AF_INET6, socket.SOCK_STREAM)
         self.assertEquals(sock.domain, socket.AF_INET6)
-        self.assertRaises(ValueError, sock.bind, (("1.1.1.1", 5010),))
+        self.assertRaises(ValueError, sock.bind, ("1.1.1.1", 5010),)
 
     def test_bind_af_unspec(self):
         sock = coro.make_socket(socket.AF_INET6, socket.SOCK_STREAM)
         sock.domain = socket.AF_UNSPEC
-        self.assertRaises(ValueError, sock.bind, (("1.1.1.1", 5010),))
-        self.assertRaises(ValueError, sock.bind, (("", 5010),))
+        self.assertRaises(ValueError, sock.bind, ("1.1.1.1", 5010),)
+        self.assertRaises(ValueError, sock.bind, ("", 5010),)
 
     def test_getsockname_v4(self):
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
