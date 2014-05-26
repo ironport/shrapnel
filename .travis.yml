@@ -5,6 +5,7 @@ python:
 install:
   - pip install --use-mirrors pep8 pyflakes
   - pip install --use-mirrors cython
+  - python setup.py install
 
 before_script:
   - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then 2to3 -n -w --no-diffs troposphere; fi
