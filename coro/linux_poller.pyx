@@ -293,7 +293,11 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         cdef event_key ek
         ek = event_key (events, fd)
         self.set_wait_for (ek)
-        return _YIELD()
+        try:
+            return _YIELD()
+        finally:
+            if ek in self.event_map:
+                del self.event_map[ek]
 
     def wait_for (self, int fd, int events):
         """Wait for an event.
