@@ -16,7 +16,7 @@ class TestWithTimeout (unittest.TestCase):
         def go():
             print "timer"
             with self.assertRaises(coro.TimeoutError):
-                #coro.with_timeout(2, coro.sleep_relative, 4)
+                # coro.with_timeout(2, coro.sleep_relative, 4)
                 coro.with_timeout(2, coro.waitpid, os.getpid())
             print "foo"
 
