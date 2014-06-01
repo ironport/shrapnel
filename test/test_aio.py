@@ -49,6 +49,7 @@ class Test(unittest.TestCase):
         self.assertEqual(a, data)
         os.ftruncate(self.fd, 0)
 
+    @unittest.skipUnless(hasattr(coro, 'aio_write'), "No aio_write in coro")
     def test_read_write(self):
         """Test read/write."""
         self.fd = os.open('test_lio_file', Test.FLAG)
@@ -72,6 +73,7 @@ class Test(unittest.TestCase):
 
         os.close(self.fd)
 
+    @unittest.skipUnless(hasattr(coro, 'aio_write'), "No aio_write in coro")
     def test_leak(self):
         """Test map leak."""
         # There was a bug where we were leaking events in the event map.
@@ -100,6 +102,7 @@ class Test(unittest.TestCase):
 
         self.assertEqual(event_size, len(coro.event_map))
 
+    @unittest.skipUnless(hasattr(coro, 'aio_write'), "No aio_write in coro")
     def test_error(self):
         """Test error return."""
         fd = os.open('test_aio_file', Test.FLAG)

@@ -46,6 +46,7 @@ class Test(unittest.TestCase):
         self.assertEqual(a, data)
         os.ftruncate(self.fd, 0)
 
+    @unittest.skipUnless(hasattr(coro, 'many_lio_writes'), "No many_lio_writes in coro")
     def test_read_write(self):
         """Test read/write."""
         self.fd = os.open('test_lio_file', os.O_RDWR | os.O_CREAT | os.O_TRUNC)
