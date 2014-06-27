@@ -154,6 +154,22 @@ cdef extern from "openssl/evp.h":
     int  EVP_VerifyFinal               (EVP_MD_CTX *, char *, int, EVP_PKEY *)
     int EVP_MAX_MD_SIZE
 
+cdef extern from "openssl/ec.h":
+    ctypedef struct EC_KEY
+    ctypedef struct EC_POINT
+    EC_KEY * EC_KEY_new_by_curve_name    (int)
+    int      EC_KEY_generate_key         (EC_KEY *)
+    void     EC_KEY_free                 (EC_KEY *)
+    EC_KEY * d2i_ECPrivateKey            (EC_KEY **, const unsigned char **, long)
+    EC_KEY * o2i_ECPublicKey             (EC_KEY **, const unsigned char **, long)
+    int      i2d_ECPrivateKey            (EC_KEY *, unsigned char **)
+    int      i2o_ECPublicKey             (EC_KEY *, unsigned char **)
+
+cdef extern from "openssl/ecdsa.h":
+    int            ECDSA_size     (const EC_KEY * eckey)
+    int            ECDSA_sign     (int type, const unsigned char *dgst, int dgstlen, unsigned char *sig, unsigned int *siglen, EC_KEY *eckey)
+    int            ECDSA_verify   (int type, const unsigned char *dgst, int dgstlen, const unsigned char *sig, int siglen, EC_KEY *eckey)
+
 cdef extern from "openssl/x509.h":
     ctypedef struct X509
     X509 *X509_new ()
@@ -346,6 +362,7 @@ cdef extern from "openssl/objects.h":
     int OBJ_obj2nid (ASN1_OBJECT *)
     char *OBJ_nid2sn (int)
     char *OBJ_nid2ln (int)
+    int OBJ_sn2nid (char *)
 
 cdef extern from "openssl/pkcs12.h":
     ctypedef struct PKCS12

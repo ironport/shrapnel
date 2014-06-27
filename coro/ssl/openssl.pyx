@@ -1114,7 +1114,7 @@ cdef class ssl_ctx:
             for proto in protos:
                 r.append (chr (len (proto)))
                 r.append (proto)
-            self.next_protos = <bytes> (''.join (r))
+            self.next_protos = ''.join (r)
             SSL_CTX_set_next_protos_advertised_cb (self.ctx, next_protos_server_callback, <void*>self)
             SSL_CTX_set_next_proto_select_cb (self.ctx, next_protos_client_callback, <void*>self)
 
@@ -1274,6 +1274,94 @@ cdef class digest:
             return False
         else:
             raise_ssl_error()
+
+# ================================================================================
+
+cdef class ecdsa:
+
+    cdef EC_KEY * key
+
+    def __init__ (self, object curve):
+        cdef int nid
+        if type(curve) is int:
+            nid = curve
+        else:
+            nid = OBJ_sn2nid (curve)
+        if nid == 0:
+            raise_ssl_error()
+        else:
+            self.key = EC_KEY_new_by_curve_name (nid)
+            if self.key is NULL:
+                raise_ssl_error()
+
+    def __dealloc__ (self):
+        if self.key is not NULL:
+            EC_KEY_free (self.key)
+
+    def generate (self):
+        cdef int status = EC_KEY_generate_key (self.key)
+        if status != 1:
+            raise_ssl_error()
+
+    def set_privkey (self, bytes pkey):
+        cdef const unsigned char * p = pkey
+        cdef EC_KEY * result = d2i_ECPrivateKey (&self.key, &p, len(pkey))
+        if result is NULL:
+            raise_ssl_error()
+
+    def set_pubkey (self, key):
+        cdef const unsigned char * p = key
+        cdef EC_KEY * result = o2i_ECPublicKey (&self.key, &p, len (key))
+        if result is NULL:
+            raise_ssl_error()
+
+    def get_privkey (self):
+        cdef int r = 0
+        cdef int size = i2d_ECPrivateKey (self.key, NULL)
+        cdef bytes result
+        cdef unsigned char * p
+        if size == 0:
+            raise_ssl_error()
+        else:
+            result = PyBytes_FromStringAndSize (NULL, size)
+            p = result
+            r = i2d_ECPrivateKey (self.key, &p)
+            if r == 0:
+                raise_ssl_error()
+            else:
+                return result
+
+    def get_pubkey (self):
+        cdef int r = 0
+        cdef int size = i2o_ECPublicKey (self.key, NULL)
+        cdef bytes result
+        cdef unsigned char * p
+        if size == 0:
+            raise_ssl_error()
+        else:
+            result = PyBytes_FromStringAndSize (NULL, size)
+            p = result
+            r = i2o_ECPublicKey (self.key, &p)
+            if r == 0:
+                raise_ssl_error()
+            else:
+                return result
+
+    def sign (self, bytes data):
+        cdef unsigned int sig_size = ECDSA_size (self.key)
+        cdef bytes sig = PyBytes_FromStringAndSize (NULL, sig_size)
+        cdef int result = ECDSA_sign (0, data, len(data), sig, &sig_size, self.key)
+        if result != 1:
+            raise_ssl_error()
+        else:
+            return sig[:sig_size]
+
+    def verify (self, bytes data, bytes sig):
+        cdef int result = ECDSA_verify (0, data, len(data), sig, len(sig), self.key)
+        if result == -1:
+            raise_ssl_error()
+        else:
+            return result
 
 # ================================================================================
 
