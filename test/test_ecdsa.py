@@ -84,13 +84,6 @@ class Test (unittest.TestCase):
         p = e.get_pubkey()
         self.assertTrue (p[0] in ('\x04'))
 
-    def test_hybrid (self):
-        e = ecdsa ("secp256k1")
-        e.set_compressed (False)
-        e.generate()
-        p = e.get_pubkey()
-        self.assertTrue (p[0] in ('\x04'))
-
     def test_mode_change (self):
         e = ecdsa ("secp256k1")
         p0 = (
