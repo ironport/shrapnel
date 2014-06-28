@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# -*- Mode: Pyrex -*-
+# -*- Mode: Cython; indent-tabs-mode: nil -*-
 
 from libc.errno cimport errno
 
@@ -1283,16 +1283,20 @@ cdef class ecdsa:
 
     def __init__ (self, object curve):
         cdef int nid
-        if type(curve) is int:
-            nid = curve
+        if curve is None:
+            # no curve specified
+            self.key = EC_KEY_new()
         else:
-            nid = OBJ_sn2nid (curve)
-        if nid == 0:
-            raise_ssl_error()
-        else:
-            self.key = EC_KEY_new_by_curve_name (nid)
-            if self.key is NULL:
+            if type(curve) is int:
+                nid = curve
+            else:
+                nid = OBJ_sn2nid (curve)
+            if nid == 0:
                 raise_ssl_error()
+            else:
+                self.key = EC_KEY_new_by_curve_name (nid)
+                if self.key is NULL:
+                    raise_ssl_error()
 
     def __dealloc__ (self):
         if self.key is not NULL:

@@ -157,6 +157,7 @@ cdef extern from "openssl/evp.h":
 cdef extern from "openssl/ec.h":
     ctypedef struct EC_KEY
     ctypedef struct EC_POINT
+    EC_KEY * EC_KEY_new                  ()
     EC_KEY * EC_KEY_new_by_curve_name    (int)
     int      EC_KEY_generate_key         (EC_KEY *)
     void     EC_KEY_free                 (EC_KEY *)
