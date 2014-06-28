@@ -16,10 +16,12 @@ test_key = (
     '0747061ab9d1070f7b6884b862c78a0ccd66cc94cf80de6de33f6b7adff73dfa19328ee3d509db'
 ).decode ('hex')
 
+# XXX I think FIPS mode openssl may barf on secp256k1.
+
 class Test (unittest.TestCase):
 
     def test_gen_key (self):
-        e = ecdsa ("secp256k1")
+        e = ecdsa ("prime256v1")
         e.generate()
         h = hashlib.new ('sha256')
         h.update ('asdfasdfasdfasdfasdf')
@@ -28,13 +30,14 @@ class Test (unittest.TestCase):
         self.assertEqual (e.verify (d, sig), 1)
 
     def test_get_keys (self):
-        e = ecdsa ("secp256k1")
+        e = ecdsa ("prime256v1")
         e.generate()
         k = e.get_privkey()
         p = e.get_pubkey()
 
     def test_set_get (self):
-        e0 = ecdsa ('secp256k1')
+        # in an older (or FIPS?) openssl, you can let the group params come from the private key.
+        e0 = ecdsa (None)
         e0.set_privkey (test_key)
         e0.set_compressed (True)
         p = e0.get_pubkey()
@@ -44,7 +47,7 @@ class Test (unittest.TestCase):
             )
 
     def test_714 (self):
-        e0 = ecdsa ('secp256k1')
+        e0 = ecdsa (None)
         e0.set_privkey (test_key)
         h = hashlib.new ('sha256')
         h.update ('asdfasdfasdfasdfasdf')
@@ -57,7 +60,7 @@ class Test (unittest.TestCase):
         self.assertEqual (e1.verify (d, sig1), 1)
 
     def test_pub_sig (self):
-        e0 = ecdsa ("secp256k1")
+        e0 = ecdsa ("prime256v1")
         e0.generate()
         k0 = e0.get_privkey()
         p0 = e0.get_pubkey()
@@ -66,19 +69,19 @@ class Test (unittest.TestCase):
         d = h.digest()
         sig = e0.sign (d)
         self.assertEqual (e0.verify (d, sig), 1)
-        e1 = ecdsa ("secp256k1")
+        e1 = ecdsa ("prime256v1")
         e1.set_pubkey (p0)
         self.assertEqual (e1.verify (d, sig), 1)
 
     def test_compressed (self):
-        e = ecdsa ("secp256k1")
+        e = ecdsa ("prime256v1")
         e.set_compressed (True)
         e.generate()
         p = e.get_pubkey()
         self.assertTrue (p[0] in ('\x02', '\x03'))
 
     def test_uncompressed (self):
-        e = ecdsa ("secp256k1")
+        e = ecdsa ("prime256v1")
         e.set_compressed (False)
         e.generate()
         p = e.get_pubkey()
