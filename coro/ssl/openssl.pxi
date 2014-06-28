@@ -164,11 +164,22 @@ cdef extern from "openssl/ec.h":
     EC_KEY * o2i_ECPublicKey             (EC_KEY **, const unsigned char **, long)
     int      i2d_ECPrivateKey            (EC_KEY *, unsigned char **)
     int      i2o_ECPublicKey             (EC_KEY *, unsigned char **)
+    ctypedef enum point_conversion_form_t:
+        POINT_CONVERSION_COMPRESSED
+        POINT_CONVERSION_UNCOMPRESSED
+        POINT_CONVERSION_HYBRID
+    void     EC_KEY_set_conv_form        (EC_KEY *, point_conversion_form_t)
 
 cdef extern from "openssl/ecdsa.h":
-    int            ECDSA_size     (const EC_KEY * eckey)
-    int            ECDSA_sign     (int type, const unsigned char *dgst, int dgstlen, unsigned char *sig, unsigned int *siglen, EC_KEY *eckey)
-    int            ECDSA_verify   (int type, const unsigned char *dgst, int dgstlen, const unsigned char *sig, int siglen, EC_KEY *eckey)
+    int ECDSA_size (const EC_KEY * eckey)
+    int ECDSA_sign (
+        int type, const unsigned char *dgst, int dgstlen,
+        unsigned char *sig, unsigned int *siglen, EC_KEY *eckey
+    )
+    int ECDSA_verify (
+        int type, const unsigned char *dgst, int dgstlen,
+        const unsigned char *sig, int siglen, EC_KEY *eckey
+    )
 
 cdef extern from "openssl/x509.h":
     ctypedef struct X509

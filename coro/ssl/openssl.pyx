@@ -1363,6 +1363,14 @@ cdef class ecdsa:
         else:
             return result
 
+    def set_compressed (self, bint compressed):
+        cdef point_conversion_form_t form
+        if compressed:
+            form = POINT_CONVERSION_COMPRESSED
+        else:
+            form = POINT_CONVERSION_UNCOMPRESSED
+        EC_KEY_set_conv_form (self.key, form)
+
 # ================================================================================
 
 def random_status():
