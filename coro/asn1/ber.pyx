@@ -42,7 +42,7 @@
 
 from cpython cimport PyBytes_FromStringAndSize, PyNumber_Long, PyLong_Check
 from libc.string cimport memcpy
-from libc.stdint cimport uint64_t, int16_t
+from libc.stdint cimport uint64_t, int16_t, uint8_t
 
 import sys
 W = sys.stderr.write
@@ -318,6 +318,9 @@ cdef object _SET (object elems):
 cdef object _OCTET_STRING (bytes s):
     return _TLV1 (TAGS_OCTET_STRING, s)
 
+cdef object _BITSTRING (uint8_t unused, bytes s):
+    return _TLV1 (TAGS_BITSTRING, chr(unused) + s)
+
 cdef object _OBJID (list l):
     cdef unsigned long i, list_len, one_num, temp_buf_off, temp_buf_len, done
     cdef unsigned long buf_len, first_two_as_int
@@ -394,8 +397,14 @@ def SEQUENCE (*elems):
 def SET (*elems):
     return _SET (elems)
 
+def CONTEXT (long n, elem):
+    return _TLV1 (n | <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, elem)
+
 def OCTET_STRING (s):
     return _OCTET_STRING (s)
+
+def BITSTRING (uint8_t unused, bytes s):
+    return _BITSTRING (unused, s)
 
 def OBJID (l):
     return _OBJID (l)
