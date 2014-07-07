@@ -267,7 +267,7 @@ class dns_cache:
             s = coro.make_socket (sfamily, stype)
         except OSError, why:
             self.log ('COMMON.APP_FAILURE', tb.traceback_string() + ' why: ' + str(why))
-            raise DNS_Soft_Error((qname, qtype, ip, str(why)))
+            raise DNS_Soft_Error(qname, qtype, ip, str(why))
 
         try:
             try:
@@ -280,7 +280,7 @@ class dns_cache:
                     n = s.send (r)
                     if n != len(r):
                         self.log('DNS.NETWORK_ERROR', 'send', ip, qname)
-                        raise DNS_Soft_Error((qname, qtype, ip, 'Failed to send all data.'))
+                        raise DNS_Soft_Error(qname, qtype, ip, 'Failed to send all data.')
                     if use_tcp:
                         rlen_bytes = s.recv_exact(2)
                         rlen, = struct.unpack ('>H', rlen_bytes)
@@ -295,10 +295,10 @@ class dns_cache:
                         reply = unpack_reply (data, use_actual_ttl=self.use_actual_ttl, ttl_min=self.ttl_min)
                     except packet.UnpackError:
                         self.log('DNS.RESPONSE_ERROR', repr(data), ip, qname)
-                        raise DNS_Soft_Error((qname, qtype, ip, 'Packet was corrupted.'))
+                        raise DNS_Soft_Error(qname, qtype, ip, 'Packet was corrupted.')
                     except:
                         self.log('COMMON.APP_FAILURE', tb.traceback_string() + ' REPR:' + repr(data))
-                        raise DNS_Soft_Error((qname, qtype, ip, 'Unknown Error'))
+                        raise DNS_Soft_Error(qname, qtype, ip, 'Unknown Error')
                     if reply.id != qid:
                         # probably a DoS attack...
                         self.log('DNS.RESPONSE_ERROR', 'id(%i)!=qid(%i)' % (reply.id, qid), ip, qname)
@@ -307,12 +307,12 @@ class dns_cache:
                     elif reply.rcode and reply.rcode != packet.RCODE.NXDomain:
                         rcode = packet.RCODE_MAP.get (reply.rcode, str(reply.rcode))
                         self.log('DNS.RESPONSE_ERROR', 'rcode=%s data=%r' % (rcode, repr(data)), ip, qname)
-                        raise DNS_Soft_Error((qname, qtype, ip, rcode))
+                        raise DNS_Soft_Error(qname, qtype, ip, rcode)
                     else:
                         return reply
             except OSError, why:
                 self.log('DNS.NETWORK_ERROR', why, ip, qname)
-                raise DNS_Soft_Error((qname, qtype, ip, str(why)))
+                raise DNS_Soft_Error(qname, qtype, ip, str(why))
             except EOFError:
                 # recv_exact will raise EOFError if it doesn't get enough data.
                 self.log('DNS.NETWORK_ERROR', 'EOF', ip, qname)
@@ -364,7 +364,7 @@ class dns_cache:
             if self.need_bootstrapping:
                 # the bootstrapping process failed
                 self.log('DNS.BOOTSTRAP_FAILED')
-                raise DNS_Soft_Error(('', 'NS', 'bootstrapping', 'Failed to bootstrap the DNS cache.'))
+                raise DNS_Soft_Error('', 'NS', 'bootstrapping', 'Failed to bootstrap the DNS cache.')
         elif self.need_bootstrapping == 1:
             # need to bootstrap the cache
             self.need_bootstrapping = 2
@@ -416,7 +416,7 @@ class dns_cache:
             except coro.TimeoutError:
                 pass
         self.log('DNS.BOOTSTRAP_FAILED')
-        raise DNS_Soft_Error(('', 'NS', 'bootstrapping', 'Failed to bootstrap the DNS cache.'))
+        raise DNS_Soft_Error('', 'NS', 'bootstrapping', 'Failed to bootstrap the DNS cache.')
 
     def authoritative (self, name, base):
         "is a reply from server for <base> authoritative for <name>?"
@@ -520,7 +520,7 @@ class dns_cache:
                 if data0 is CACHE_NXDOMAIN:
                     # negative cache
                     cache_exception.inc()
-                    raise DNS_Hard_Error((qname, qtype, (packet.RCODE.NXDomain, 'NXDomain')))
+                    raise DNS_Hard_Error(qname, qtype, (packet.RCODE.NXDomain, 'NXDomain'))
                 elif data0 is CACHE_NODATA:
                     # negative cache
                     # [XXX in what way does this qualify as an exception?]
@@ -580,7 +580,7 @@ class dns_cache:
         if self.debug:
             self.log ('DNS.QUERY', 'Q', work.indent(), "%r, %r" % (qname, qtype))
         if not packet.dot_sane (qname):
-            raise DNS_Malformed_Qname_Error((qname, qtype, (packet.RCODE.ServFail, '')))
+            raise DNS_Malformed_Qname_Error(qname, qtype, (packet.RCODE.ServFail, ''))
         if not no_cache:
             results = self.cache_get (qname, qtype, None)
             if results is not None:
@@ -701,7 +701,7 @@ class dns_cache:
                             self.encache (qname, qtype, [(ttl, CACHE_NXDOMAIN)], stomp=1)
                         if self.debug:
                             self.log('DNS.NXDOMAIN', qname, qtype)
-                        raise DNS_Hard_Error((qname, qtype, (r.rcode, packet.RCODE_MAP[r.rcode])))
+                        raise DNS_Hard_Error(qname, qtype, (r.rcode, packet.RCODE_MAP[r.rcode]))
 
                     # 3.``The query name has one or more records answering the query.''  This applies if
                     # the answer section of the response contains one or more records under the query
