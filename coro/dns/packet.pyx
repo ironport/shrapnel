@@ -54,7 +54,6 @@ class TYPE:
     DNAME   = 39  # DNAME                                    [RFC2672]
     SINK    = 40  # SINK                                     [Eastlake]
     OPT     = 41  # OPT                                      [RFC2671]
-    SPF     = 99  # sender policy framework                  [RFC7208]
     UINFO   = 100 #                                          [IANA-Reserved]
     UID     = 101 #                                          [IANA-Reserved]
     GID     = 102 #                                          [IANA-Reserved]
