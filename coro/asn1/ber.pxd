@@ -1,5 +1,7 @@
 # -*- Mode: Cython -*-
 
+from libc.stdint cimport uint8_t
+
 # flags for BER tags
 cdef enum FLAGS:
     FLAGS_UNIVERSAL       = 0x00
@@ -40,6 +42,7 @@ cdef object _SEQUENCE (object elems)
 cdef object _SET (object elems)
 cdef object _OCTET_STRING (bytes s)
 cdef object _OBJID (list l)
+cdef object _BITSTRING (uint8_t unused, bytes s)
 cdef object decode_string (unsigned char * s, long * pos, long length)
 cdef object decode_raw (unsigned char * s, long * pos, long length)
 cdef object decode_bitstring (unsigned char * s, long * pos, long length)
