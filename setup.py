@@ -164,6 +164,7 @@ setup (
         Extension ('coro.dns.surf', ['coro/dns/surf.pyx', ], ),
         Extension ('coro.lru', ['coro/lru.pyx'], ),
         Extension ('coro.asn1.ber', ['coro/asn1/ber.pyx'], ),
+        Extension ('coro.asn1.python', ['coro/asn1/python.pyx'], ),
         Extension ('coro.db.postgres.proto', ['coro/db/postgres/proto.pyx'], ),
         Extension ('coro.ldap.query', ['coro/ldap/query.pyx'],),
         Extension ('coro.http.zspdy', ['coro/http/zspdy.pyx'],
