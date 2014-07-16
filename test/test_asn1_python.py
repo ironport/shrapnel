@@ -35,8 +35,6 @@ class Test (unittest.TestCase):
         R = self.round_trip
         R (True, (True, 3))
         R (False, (False, 3))
-        self.assertEquals (D (encode (0))[0], False)
-        self.assertEquals (D (encode (1))[0], True)
 
     def test_tuple (self):
         R = self.round_trip
