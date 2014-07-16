@@ -50,6 +50,7 @@ class Test (unittest.TestCase):
     def test_set (self):
         R = self.round_trip
         R (set([0,1,2]), (set([0,1,2]), 11))
+        R (set([(0,1),2]), (set([(0,1),2]), 13))
 
     def test_none (self):
         R = self.round_trip

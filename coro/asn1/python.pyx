@@ -69,7 +69,7 @@ cdef _pydecode_tuple (tuple ob):
                 d[k] = v
             return d
         elif tag == 2:
-            return { k for k in data }
+            return set ([_pydecode (k) for k in data])
         else:
             raise DecodingError (ob)
     else:
