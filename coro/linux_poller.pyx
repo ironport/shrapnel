@@ -72,6 +72,25 @@ cdef extern from "sys/epoll.h":
     int EPOLLHUP, EPOLLPRI, EPOLLERR, EPOLLET, EPOLLONESHOT, EPOLLRDHUP
     int EPOLLIN, EPOLLOUT
 
+cdef extern from "signal.h":
+    ctypedef struct sigset_t:
+        unsigned long val[1]
+    int sigfillset (sigset_t * set)
+    int sigemptyset (sigset_t * set)
+    int sigaddset (sigset_t *, int)
+    int sigprocmask (int, sigset_t *, sigset_t *)
+    int SIG_BLOCK
+
+cdef extern from "sys/signalfd.h":
+    cdef struct signalfd_siginfo:
+        uint32_t ssi_signo
+
+    int signalfd (int fd, const sigset_t * mask, int flags)
+    int SFD_NONBLOCK
+
+cdef extern from "unistd.h":
+    size_t read  (int fd, char * buf, size_t nbytes)
+
 cdef struct shrapnel_epoll_event:
     uint32_t events
     epoll_data_t data
@@ -174,6 +193,39 @@ cdef class event_key:
             raise ValueError, "event_key() only supports '==' rich comparison"
         else:
             return (self.events == other.events) and (self.fd == other.fd)
+
+cdef public class signalfd_handler [ object signalfd_handler_object, type signalfd_handler_type ]:
+    cdef public int sig_fd
+    cdef public int siginfo_size
+    cdef readonly callback
+
+    def __init__ (self, int sig, object callback):
+        cdef sigset_t ss
+        self.callback = callback
+        sigemptyset (&ss)
+        sigaddset (&ss, sig)
+        if sigprocmask (SIG_BLOCK, &ss, NULL) < 0:
+            raise_oserror()
+        else:
+            self.sig_fd = signalfd (-1, &ss, SFD_NONBLOCK)
+            if self.sig_fd < 0:
+                raise_oserror()
+            else:
+                _spawn (self.signal_thread, (), {})
+        
+    def read_signal_event (self):
+        cdef signalfd_siginfo si
+        cdef int r
+        r = read (self.sig_fd, <char *>&si, sizeof (si))
+        if r < 0:
+            raise_oserror()
+        else:
+            return si.ssi_signo
+
+    def signal_thread (self):
+        while 1:
+            the_poller._wait_for_read (self.sig_fd)
+            self.callback(self.read_signal_event())
 
 cdef public class queue_poller [ object queue_poller_object, type queue_poller_type ]:
 

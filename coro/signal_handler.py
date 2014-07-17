@@ -36,7 +36,7 @@ def register (signum, handler, once_only=False):
         - `handler`: A callable object that takes one parameter which is the
           signal number that was triggered.
         - `once_only`: If True, will only trigger once, and then disable the
-          signal handler.  Defaults to False.
+          signal handler.  [kqueue only]. Defaults to False.
 
     :Exceptions:
         - `coro.SimultaneousError`: Another handler is already registered for
@@ -52,8 +52,10 @@ def register (signum, handler, once_only=False):
             flags |= coro.EV.ONESHOT
         k_handler = lambda x: handler(x.ident)
         coro.set_handler ((signum, coro.EVFILT.SIGNAL), k_handler, flags)
+    elif UNAME == 'Linux':
+        coro.signalfd_handler (signum, handler)
     else:
-        signal.signal(signum, handler)
+        signal.signal (signum, handler)
 
 
 # alias for backward compatibility
