@@ -377,14 +377,12 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         #    raise_oserror()
 
     def poll (self, timeout=(30,0), int nevents=2000):
-        cdef timespec ts
         cdef int r, i
         cdef epoll_event * events
         cdef shrapnel_epoll_event new_e
         cdef coro co
         cdef event_key ek
         cdef py_event _py_event
-        ts.tv_sec, ts.tv_nsec = timeout
         events = <epoll_event *> alloca (sizeof (epoll_event) * nevents)
 
         r = epoll_wait (self.ep_fd, events, nevents, timeout[0] * SECS_TO_MILLISECS + (timeout[1] / NSECS_TO_MILLISECS))
