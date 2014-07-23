@@ -40,7 +40,7 @@ class sock (coro.sock):
         self.ssl = self.ctx.ssl()
         self.ssl.set_fd (self.fd)
         if verify:
-            self.ssl.set_verify (openssl.SSL_VERIFY_PEER)
+            self.ssl.set_verify (openssl.SSL_VERIFY.PEER)
 
     def __repr__ (self):
         return '<openssl sock fd=%d ssl@%x @%x>' % (self.fd, id (self.ssl), id (self))
@@ -92,7 +92,7 @@ class sock (coro.sock):
 
     read = recv
 
-    def read_exact (self, size):
+    def recv_exact (self, size):
         left = size
         r = []
         while left:
@@ -123,6 +123,9 @@ class sock (coro.sock):
         for data in list_of_data:
             _sum += self._non_blocking_retry (self.ssl.write, data)
         return _sum
+
+    def readv (self, _ignore):
+        raise NotImplementedError
 
     def shutdown (self, how=None):
         try:
