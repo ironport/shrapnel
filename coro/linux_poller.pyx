@@ -305,6 +305,10 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
     cdef _register_event(self, event_key ek, unsigned int flags): 
         cdef int r
         cdef epoll_event org_e
+
+        if self.ep_fd == -1:
+            raise YieldFromMain("is the event loop running?")
+
         org_e.data.fd = ek.fd
         org_e.events = ek.events | flags 
 

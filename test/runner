@@ -8,12 +8,14 @@ python test_isemaphore.py
 python test_lio.py
 python test_local.py
 python test_lru.py
+python test_main.py
 python test_mutex.py
 #python test_notify_of_close.py
 python test_poller.py
 python test_profile.py
 python test_read_stream.py
 #python test_readv.py
+python test_reenter.py
 python test_rw_lock.py
 python test_semaphore.py
 python test_socket.py

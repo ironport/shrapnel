@@ -20,8 +20,6 @@
 
 # $Header: //prod/main/ap/shrapnel/coro/local.pyx#3 $
 
-cdef object __dummy_main
-__dummy_main = {}
 
 cdef class ThreadLocal:
 
@@ -95,13 +93,9 @@ cdef class ThreadLocal:
         cdef coro co
 
         co = the_scheduler._current
-        if co is None:
-            # Really shouldn't use these until coro is started.
-            _tdict = __dummy_main
-        else:
-            if co._tdict is None:
-                co._tdict = {}
-            _tdict = co._tdict
+        if co._tdict is None:
+            co._tdict = {}
+        _tdict = co._tdict
         ldict = PyDict_GET_ITEM_SAFE(_tdict, self.key, None)
         if ldict is None:
             ldict = {}
