@@ -16,16 +16,18 @@ class Test (unittest.TestCase):
 
     def test_list (self):
         R = self.round_trip
-        self.assertEquals (encode([0,1,2]), b'0\t\x02\x01\x00\x02\x01\x01\x02\x01\x02')
-        R ([0,1,2], ([0, 1, 2], 11))
-        R ([0,1,2], ([0, 1, 2], 11))
-        self.assertEquals (encode([0,1,[2,3,4]]), b'0\x11\x02\x01\x00\x02\x01\x010\t\x02\x01\x02\x02\x01\x03\x02\x01\x04')
-        R ([0,1,[2,3,4]], ([0,1,[2,3,4]], 19))
+        self.assertEquals (encode([0, 1, 2]), b'0\t\x02\x01\x00\x02\x01\x01\x02\x01\x02')
+        R ([0, 1, 2], ([0, 1, 2], 11))
+        R ([0, 1, 2], ([0, 1, 2], 11))
+        self.assertEquals(
+            encode([0, 1, [2, 3, 4]]),
+            b'0\x11\x02\x01\x00\x02\x01\x010\t\x02\x01\x02\x02\x01\x03\x02\x01\x04')
+        R ([0, 1, [2, 3, 4]], ([0, 1, [2, 3, 4]], 19))
 
     def test_longs (self):
         R = self.round_trip
-        R (1<<128, (1<<128, 19))
-        R (-1<<128, (-1<<128, 19))
+        R (1 << 128, (1 << 128, 19))
+        R (-1 << 128, (-1 << 128, 19))
         n = 92635422811926300371494754185131031660572678207193169844405659339331266122107L
         R (n, (n, 35))
         nn = -92635422811926300371494754185131031660572678207193169844405659339331266122107L
@@ -38,17 +40,17 @@ class Test (unittest.TestCase):
 
     def test_tuple (self):
         R = self.round_trip
-        R ((0,1,2), ((0,1,2), 11))
+        R ((0, 1, 2), ((0, 1, 2), 11))
         R ((), ((), 2))
 
     def test_dict (self):
         R = self.round_trip
-        R ({1:2, 3:"hi"}, ({1:2, 3:'hi'}, 19))
+        R ({1: 2, 3: "hi"}, ({1: 2, 3: 'hi'}, 19))
 
     def test_set (self):
         R = self.round_trip
-        R (set([0,1,2]), (set([0,1,2]), 11))
-        R (set([(0,1),2]), (set([(0,1),2]), 13))
+        R (set([0, 1, 2]), (set([0, 1, 2]), 11))
+        R (set([(0, 1), 2]), (set([(0, 1), 2]), 13))
 
     def test_none (self):
         R = self.round_trip
@@ -60,7 +62,7 @@ class Test (unittest.TestCase):
 
     def test_complex_object (self):
         R = self.round_trip
-        x = [12, "thirteen", (14, 15, { 16: 17, 18: 19 }, False), [[[[[[None]]]]]]]
+        x = [12, "thirteen", (14, 15, {16: 17, 18: 19}, False), [[[[[[None]]]]]]]
         R (x, (x, 58))
 
 

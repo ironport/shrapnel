@@ -44,7 +44,7 @@ class Test (unittest.TestCase):
         self.assertEqual (
             p,
             '032c26ab996dcc1645ea103015b0a9b008c434e2cf33f33748340747061ab9d107'.decode ('hex')
-            )
+        )
 
     def test_714 (self):
         e0 = ecdsa (None)
@@ -54,7 +54,7 @@ class Test (unittest.TestCase):
         d = h.digest()
         sig0 = e0.sign (d)
         self.assertEqual (e0.verify (d, sig0), 1)
-        e1 = ecdsa (714) # NID_secp256k1
+        e1 = ecdsa (714)  # NID_secp256k1
         e1.set_privkey (test_key)
         sig1 = e1.sign (d)
         self.assertEqual (e1.verify (d, sig1), 1)
