@@ -102,8 +102,10 @@ class Test(unittest.TestCase):
             sys.stderr.write('Warning: No IPv6 support; skipping tests\n')
 
     def test_invalid_ip(self):
+        from coro.dns.exceptions import DNS_Hard_Error
         sock = coro.make_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.assertRaises(ValueError, sock.connect, ('123', 80),)
+        self.assertRaises(DNS_Hard_Error, sock.connect, ('123', 80))
+        self.assertRaises(ValueError, sock.connect_addr, ('123', 80), False)
         self.assertRaises(TypeError, sock.connect, (123, 80),)
 
     def test_bind_empty_ip_v4(self):
