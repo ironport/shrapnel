@@ -52,7 +52,7 @@ class Test(unittest.TestCase):
     @unittest.skipUnless(hasattr(coro, 'aio_write'), "No aio_write in coro")
     def test_read_write(self):
         """Test read/write."""
-        self.fd = os.open('test_lio_file', Test.FLAG)
+        self.fd = os.open('test_aio_file', Test.FLAG)
 
         # Simple 1-byte test.
         self._read_write('a')
@@ -77,7 +77,7 @@ class Test(unittest.TestCase):
     def test_leak(self):
         """Test map leak."""
         # There was a bug where we were leaking events in the event map.
-        self.fd = os.open('test_lio_file', Test.FLAG)
+        self.fd = os.open('test_aio_file', Test.FLAG)
 
         event_size = len(coro.event_map)
 
