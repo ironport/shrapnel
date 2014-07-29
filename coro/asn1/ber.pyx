@@ -598,7 +598,7 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
         elif tag == TAGS_OCTET_STRING:
             return decode_string (s, pos, length)
         elif tag == TAGS_INTEGER:
-            if length > 4:
+            if length > sizeof (long):
                 return decode_long_integer (s, pos, length)
             else:
                 return decode_integer (s, pos, length)
