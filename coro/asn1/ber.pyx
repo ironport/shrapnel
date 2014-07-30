@@ -41,6 +41,7 @@
 #     class wrappers.
 
 from cpython cimport PyBytes_FromStringAndSize, PyNumber_Long, PyLong_Check
+from cpython.unicode cimport PyUnicode_DecodeUTF8, PyUnicode_AsUTF8String
 from libc.string cimport memcpy
 from libc.stdint cimport uint64_t, int16_t, uint8_t
 
@@ -321,6 +322,9 @@ cdef object _OCTET_STRING (bytes s):
 cdef object _BITSTRING (uint8_t unused, bytes s):
     return _TLV1 (TAGS_BITSTRING, chr(unused) + s)
 
+cdef object _UTF8_STRING (unicode s):
+    return _TLV1 (TAGS_UTF8STRING, PyUnicode_AsUTF8String (s))
+
 cdef object _OBJID (list l):
     cdef unsigned long i, list_len, one_num, temp_buf_off, temp_buf_len, done
     cdef unsigned long buf_len, first_two_as_int
@@ -406,6 +410,9 @@ def OCTET_STRING (s):
 def BITSTRING (uint8_t unused, bytes s):
     return _BITSTRING (unused, s)
 
+def UTF8_STRING (unicode s):
+    return _UTF8_STRING (s)
+
 def OBJID (l):
     return _OBJID (l)
 
@@ -451,6 +458,12 @@ kind_bitstring   = 'bitstring'
 cdef object decode_string (unsigned char * s, long * pos, long length):
     # caller guarantees sufficient data in <s>
     result = PyBytes_FromStringAndSize (<char *> (s+(pos[0])), length)
+    pos[0] = pos[0] + length
+    return result
+
+cdef object decode_unicode (unsigned char * s, long * pos, long length):
+    # caller guarantees sufficient data in <s>
+    result = PyUnicode_DecodeUTF8 (<char *> (s+(pos[0])), length, NULL)
     pos[0] = pos[0] + length
     return result
 
@@ -597,6 +610,8 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
             return (tag & 0x1f, tag & 0xe0, length)
         elif tag == TAGS_OCTET_STRING:
             return decode_string (s, pos, length)
+        elif tag == TAGS_UTF8STRING:
+            return decode_unicode (s, pos, length)
         elif tag == TAGS_INTEGER:
             if length > sizeof (long):
                 return decode_long_integer (s, pos, length)

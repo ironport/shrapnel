@@ -60,6 +60,10 @@ class Test (unittest.TestCase):
         R = self.round_trip
         R ('howdy there', ('howdy there', 13))
 
+    def test_unicode (self):
+        R = self.round_trip
+        R (u'\u4e2d\u570b', (u'\u4e2d\u570b', 8))
+
     def test_complex_object (self):
         R = self.round_trip
         x = [12, "thirteen", (14, 15, {16: 17, 18: 19}, False), [[[[[[None]]]]]]]

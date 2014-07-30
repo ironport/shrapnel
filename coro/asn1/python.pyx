@@ -33,6 +33,8 @@ cpdef encode (object ob):
         return _TLV1 (TAGS_NULL, b'')
     elif type(ob) is bytes:
         return _OCTET_STRING (ob)
+    elif type(ob) is unicode:
+        return _UTF8_STRING (ob)
     elif type(ob) is long:
         return _TLV (TAGS_INTEGER, _encode_long_integer (ob))
     elif type(ob) is bool:
@@ -81,6 +83,8 @@ cdef _pydecode (object ob):
     elif ob is None:
         return None
     elif type(ob) is bytes:
+        return ob
+    elif type(ob) is unicode:
         return ob
     elif type(ob) is long:
         return ob
