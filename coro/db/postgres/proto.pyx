@@ -2,7 +2,7 @@
 
 # need to generalize this, make a module of it
 
-from libc.stdint cimport uint64_t, uint32_t, uint16_t, uint8_t
+from libc.stdint cimport uint64_t, uint32_t, uint16_t, uint8_t, int32_t, int16_t
 
 cdef class unpacker:
     cdef readonly bytes data
@@ -52,6 +52,14 @@ cdef class unpacker:
         self.pos += 2
         return r
 
+    cpdef int16_t b16 (self):
+        "unpack a big-endian int16_t"
+        cdef int16_t r
+        self.need (2)
+        r = (self.d[self.pos+0] << 8) | self.d[self.pos+1] 
+        self.pos += 2
+        return r
+
     cpdef uint32_t lu32 (self):
         "unpack a little-endian uint32_t"
         cdef uint32_t r = 0
@@ -66,6 +74,17 @@ cdef class unpacker:
     cpdef uint32_t bu32 (self):
         "unpack a big-endian uint32_t"
         cdef uint32_t r = 0
+        cdef int i
+        self.need (4)
+        for i in range (0, 4):
+            r <<= 8
+            r |= self.d[self.pos+i]
+        self.pos += 4
+        return r
+
+    cpdef int32_t b32 (self):
+        "unpack a big-endian int32_t"
+        cdef int32_t r = 0
         cdef int i
         self.need (4)
         for i in range (0, 4):
@@ -134,9 +153,9 @@ def unpack_data (bytes data, bytes formats, bint return_rest=0):
     for i in range (len (formats)):
         code = pf[i]
         if code == c'i':
-            result.append (UP.bu32())
+            result.append (UP.b32())
         elif code == 'h':
-            result.append (UP.bu16())
+            result.append (UP.b16())
         elif code == 'c':
             result.append (UP.c())
         elif code == 's':
