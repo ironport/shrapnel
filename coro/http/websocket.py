@@ -133,6 +133,7 @@ class websocket:
         self.handler = handler
         self.stream = http_request.client.stream
         self.conn = http_request.client.conn
+        self.send_mutex = coro.mutex()
         # tlslite has a deeply buried "except: shutdown()" clause
         #  that breaks coro timeouts.
         self.tlslite = hasattr (self.conn, 'ignoreAbruptClose')
@@ -262,28 +263,29 @@ class websocket:
         return self.send_packet (0x0a, data, True)
 
     def send_packet (self, opcode, data, fin=True):
-        if self.proto == 'rfc6455':
-            head = 0
-            if fin:
-                head |= 0x8000
-            assert opcode in (0, 1, 2, 8, 9, 10)
-            head |= opcode << 8
-            ld = len (data)
-            if ld < 126:
-                head |= ld
-                p = [struct.pack ('>H', head), data]
-            elif ld < 1 << 16:
-                head |= 126
-                p = [struct.pack ('>HH', head, ld), data]
-            elif ld < 1 << 32:
-                head |= 127
-                p = [struct.pack ('>HQ', head, ld), data]
+        with self.send_mutex:
+            if self.proto == 'rfc6455':
+                head = 0
+                if fin:
+                    head |= 0x8000
+                assert opcode in (0, 1, 2, 8, 9, 10)
+                head |= opcode << 8
+                ld = len (data)
+                if ld < 126:
+                    head |= ld
+                    p = [struct.pack ('>H', head), data]
+                elif ld < 1 << 16:
+                    head |= 126
+                    p = [struct.pack ('>HH', head, ld), data]
+                elif ld < 1 << 32:
+                    head |= 127
+                    p = [struct.pack ('>HQ', head, ld), data]
+                else:
+                    raise TooMuchData (ld)
+                # RFC6455: A server MUST NOT mask any frames that it sends to the client.
+                self.writev (p)
             else:
-                raise TooMuchData (ld)
-            # RFC6455: A server MUST NOT mask any frames that it sends to the client.
-            self.writev (p)
-        else:
-            self.writev (['\x00', data, '\xff'])
+                self.writev (['\x00', data, '\xff'])
 
     # for socket wrapping layers like tlslite
     def writev (self, data):
