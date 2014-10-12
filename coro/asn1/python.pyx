@@ -97,10 +97,10 @@ cdef _pydecode (object ob):
     else:
         raise DecodingError (ob)
 
-cpdef decode (bytes s):
+cpdef decode (bytes s, long start = 0):
     cdef object ob0
     cdef int slen = len(s)
-    cdef long pos = 0
+    cdef long pos = start
     cdef long len0 = 0
     cdef object ob1 = _decode (<unsigned char *>s, &pos, len(s), 0)
     return _pydecode (ob1), pos
