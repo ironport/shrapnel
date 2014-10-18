@@ -52,6 +52,17 @@ class Test (unittest.TestCase):
         R (set([0, 1, 2]), (set([0, 1, 2]), 11))
         R (set([(0, 1), 2]), (set([(0, 1), 2]), 13))
 
+    def test_float (self):
+        R = self.round_trip
+        R (3.1415926535, (3.1415926535, 10))
+        R (0.0, (0.0, 10))
+        R (-0.0, (-0.0, 10))
+        import random
+        for i in range (1000):
+            x = random.randint (0, 1000000)
+            R (x/1000.0, (x/1000.0, 10))
+            R (-x/1000.0, (-x/1000.0, 10))
+
     def test_none (self):
         R = self.round_trip
         R (None, (None, 2))

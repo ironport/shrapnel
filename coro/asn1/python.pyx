@@ -13,6 +13,7 @@
 #
 
 from coro.asn1.ber cimport *
+import struct
 
 class EncodingError (Exception):
     pass
@@ -48,6 +49,9 @@ cpdef encode (object ob):
     elif type(ob) is set:
         # Note: we can't use TAG_SET because the decoder returns it as a list
         return _TLV (2 | <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob])
+    elif type(ob) is float:
+        # IEEE 754 binary64
+        return _TLV (3 | <int>FLAGS_CONTEXT, struct.pack ('>d', ob))
     else:
         raise EncodingError (ob)
 
@@ -72,6 +76,8 @@ cdef _pydecode_tuple (tuple ob):
             return d
         elif tag == 2:
             return set ([_pydecode (k) for k in data])
+        elif tag == 3:
+            return struct.unpack ('>d', data)[0]
         else:
             raise DecodingError (ob)
     else:
