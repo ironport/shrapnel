@@ -383,7 +383,7 @@ cdef class Unpacker:
         c = buf[self.offset]
         self.offset += 1
         return c
-    cdef unsigned char * get_pointer (self, uint32_t n):
+    cdef unsigned char * get_pointer (self, uint32_t n) except NULL:
         cdef unsigned char * p = self.buf
         self.ensure (n)
         return p + self.offset
