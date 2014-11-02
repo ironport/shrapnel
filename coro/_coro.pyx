@@ -65,6 +65,7 @@ from cpython.ref cimport Py_DECREF, Py_INCREF
 from cpython.mem cimport PyMem_Free, PyMem_Malloc
 from cpython.list cimport PyList_New
 from cpython.bytes cimport PyBytes_FromStringAndSize
+from posix.unistd cimport fork as posix_fork
 
 cdef extern from "Python.h":
     ctypedef struct PyThreadState:
@@ -1274,6 +1275,14 @@ cdef public class sched [ object sched_object, type sched_type ]:
             if _print_exit_string:
                 print_stderr ('Exiting...\n')
 
+
+    def fork (self):
+        cdef int result = posix_fork()
+        if result == 0:
+            the_poller.tear_down()
+            the_poller.set_up()
+        return result
+
 # FOR EXTERNAL CONSUMPTION, do not call from within this file,
 #    because it is declared void.  [void functions cannot propagate
 #    exceptions]
@@ -1461,6 +1470,8 @@ with_timeout      = the_scheduler.with_timeout
 sleep_relative    = the_scheduler.sleep_relative
 sleep_absolute    = the_scheduler.sleep_absolute
 set_latency_warning = the_scheduler.set_latency_warning
+fork              = the_scheduler.fork
+
 set_handler       = the_poller.set_handler
 event_map         = the_poller.event_map
 wait_for          = the_poller.wait_for
