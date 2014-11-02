@@ -82,7 +82,8 @@ compile_time_env = {
 # OS X: as of 10.9, openssl seems to have been completely removed.  You'll need
 #  to install from the sources.  Once this is done, use '/usr/local/ssl/' for ossl_base.
 
-ossl_base = '/usr'
+#ossl_base = '/usr'
+ossl_base = '/Users/rushing/src/openssl-1.0.1g/'
 
 def O (path):
     return os.path.join (ossl_base, path)
@@ -180,6 +181,7 @@ setup (
         ),
         # the pre-computed openssl extension from above
         OpenSSL_Extension,
+        Extension ('coro.pthread', ['coro/pthread.pyx']),
     ],
     packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],

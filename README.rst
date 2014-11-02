@@ -1,6 +1,19 @@
 This Python library was evolved at IronPort Systems and has been provided
 as open source by Cisco Systems under an MIT license.
 
+This Branch
+===========
+
+This branch is a quick experiment to see if I can get external worker
+pthreads to cooperate with Shrapnel, while still avoiding the cost of
+CPython's GIL/ThreadState/etc mechanism. [if you don't start a python
+thread it never turns that stuff on].
+
+I think the idea may be sound, and this experiment (see
+test/test_pthread.py) seems to work, but there are problems.  I get
+crashes, I get hang-on-exit, etc...  Someone who groks pthreads might
+be able to help.
+
 Intro
 =====
 

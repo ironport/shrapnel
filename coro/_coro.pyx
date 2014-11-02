@@ -1,3 +1,5 @@
+# -*- Mode: Cython; indent-tabs-mode: nil -*-
+
 # Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# -*- Mode: Pyrex -*-
 #cython: embedsignature=True
 
 """Pyrex module for coroutine implementation.
@@ -915,6 +916,8 @@ cdef public class sched [ object sched_object, type sched_type ]:
         self.profiling = 0
         self.latency_threshold = _ticks_per_sec / 5
         self.squish = zstack (stack_size)
+        if pthread_mutex_init (&self.pthread_mutex, NULL) != 0:
+            raise OSError
 
     def current (self):
         return self._current
@@ -977,15 +980,19 @@ cdef public class sched [ object sched_object, type sched_type ]:
                 memcpy (co.state.stack_pointer, co.stack_copy, co.stack_size)
 
     cdef _schedule (self, coro co, object value):
-        if co.dead:
-            raise DeadCoroutine, self
-        elif co.scheduled:
-            raise ScheduleError, self
-        elif co is self._current:
-            raise ScheduleError, self
-        else:
-            co.scheduled = 1
-            self.pending.append ((co, value))
+        pthread_mutex_lock (&self.pthread_mutex)
+        try:
+            if co.dead:
+                raise DeadCoroutine, self
+            elif co.scheduled:
+                raise ScheduleError, self
+            elif co is self._current:
+                raise ScheduleError, self
+            else:
+                co.scheduled = 1
+                self.pending.append ((co, value))
+        finally:
+            pthread_mutex_unlock (&self.pthread_mutex)
 
     cdef _unschedule (self, coro co):
         """Unschedule this coroutine.
@@ -1303,6 +1310,10 @@ def schedule (coro co, value=None):
     :param value: The value to resume the coroutine with.  Defaults to None.
     """
     return co._schedule (value)
+
+cdef public void __schedule "__schedule" (void * co, int arg):
+    cdef coro co0 = <object>co
+    co0._schedule (arg)
 
 IF UNAME_SYSNAME == "Linux":
     include "linux_poller.pyx"

@@ -130,6 +130,15 @@ ELIF COMPILE_LZO:
 ELSE:
     include "zstack_zlib.pxd"
 
+cdef extern from "pthread.h" nogil:
+    ctypedef struct pthread_mutex_t:
+        pass
+    ctypedef struct pthread_mutexattr_t:
+        pass
+    int pthread_mutex_init (pthread_mutex_t * mutex, const pthread_mutexattr_t * attr)
+    int pthread_mutex_lock (pthread_mutex_t *mutex)
+    int pthread_mutex_unlock (pthread_mutex_t *mutex)
+
 cdef public class sched [ object sched_object, type sched_type ]:
     cdef machine_state state
     # this is the stack that all coroutines run on
@@ -150,6 +159,7 @@ cdef public class sched [ object sched_object, type sched_type ]:
     cdef sleep (self, uint64_t when)
     cdef schedule_ready_events (self, uint64_t now)
     cdef get_timeout_to_next_event (self, int default_timeout)
+    cdef pthread_mutex_t pthread_mutex
 
 include "socket.pxd"
 # XXX need pxd files for sync.pyx, poller.pyx, etc...
