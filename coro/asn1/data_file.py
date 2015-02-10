@@ -5,7 +5,7 @@ from .ber import InsufficientData
 
 class DataFileReader:
 
-    def __init__ (self, f, buffer_size = 1024 * 1024):
+    def __init__ (self, f, buffer_size=1024 * 1024):
         self.f = f
         self.buffer_size = buffer_size
         self.buffer = self.f.read (self.buffer_size)
