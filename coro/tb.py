@@ -100,3 +100,31 @@ def traceback_string(t=None, v=None, tb=None):
     first = tbinfo[-1]
     info = '[' + ('] ['.join (tbinfo)) + ']'
     return repr(((first), str(t), str(v), info))
+
+def traceback_data (t=None, v=None, tb=None):
+    """Returns compact traceback data representing the current exception.
+
+    If an exception is not provided as an argument, then it will get the
+    current exception from `sys.exc_info`.
+
+    :Parameters:
+        - `t`: Exception type.
+        - `v`: Exception value.
+        - `tb`: Traceback object.
+
+    :Return:
+        Returns [(file_name, fun_name, line_num), ...] for the current exception and stack trace.
+    """
+    if t is None:
+        t, v, tb = sys.exc_info()
+    tbinfo = []
+    while tb is not None:
+        tbinfo.append ((
+            _get_module_name (tb.tb_frame.f_code.co_filename),
+            tb.tb_frame.f_code.co_name,
+            tb.tb_lineno
+        ))
+        tb = tb.tb_next
+    # just to be safe
+    del tb
+    return (str(t), str(v), tbinfo)
