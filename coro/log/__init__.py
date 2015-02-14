@@ -6,31 +6,17 @@ import asn1
 import coro
 import time
 
-def is_binary (ob):
-    if type(ob) is not bytes:
-        return False
-    else:
-        return '\x00' in ob
-
-def frob(ob):
-    if type(ob) is bytes:
-        if is_binary (ob):
-            if len(ob) < 500 or args.big:
-                return ob.encode ('hex')
-            else:
-                return '<large>'
-        return ob
-    else:
-        return ob
-
 class StderrLogger:
+
+    def __init__ (self):
+        import sys
+        self.saved_stderr = sys.stderr
 
     # ISO 8601
     time_format = '%Y-%m-%dT%H:%M:%S'    
 
     def log (self, *data):
-        data = [frob(x) for x in data]
-        coro.write_stderr ("%s %r\n" % (time.strftime (self.time_format), data))
+        self.saved_stderr.write ("%s %r\n" % (time.strftime (self.time_format), data))
 
 class ComboLogger:
 
@@ -40,4 +26,48 @@ class ComboLogger:
     def log (self, *data):
         for logger in self.loggers:
             logger.log (*data)
+
+class Facility:
+
+    def __init__ (self, name):
+        self.name = name
+
+    def __call__ (self, *data):
+        log (self.name, *data)
+
+    def exc (self):
+        log (self.name, 'exception', coro.traceback_data())
+
+class NoFacility:
+    
+    def __call__ (self, *data):
+        log (*data)
+
+    def exc (self):
+        log ('exception', coro.traceback_data())
+
+class StderrRedirector:
+        
+    def __init__ (self):
+        self.log = Facility ('stderr')
+
+    def write (self, data):
+        self.log (data)
+
+def redirect_stderr():
+    global stderr
+    stderr = StderrRedirector()
+    import sys
+    sys.stderr = stderr
+    coro.write_stderr = stderr.write
+    coro.print_stderr = stderr.write
+
+the_logger = StderrLogger()
+
+def set_logger (logger):
+    global the_logger
+    the_logger = logger
+
+def log (*data):
+    the_logger.log (*data)
 

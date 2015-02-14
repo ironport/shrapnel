@@ -38,6 +38,9 @@ import sys
 import traceback
 import os
 
+from coro.log import Facility
+LOG = Facility ('backdoor')
+
 # Originally, this object implemented the file-output api, and set
 # sys.stdout and sys.stderr to 'self'.  However, if any other
 # coroutine ran, it would see the captured definition of sys.stdout,
@@ -236,7 +239,7 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
     s.listen (1024)
     while 1:
         conn, addr = s.accept()
-        coro.print_stderr ('incoming backdoor connection from %r\n' % (conn.getpeername(),))
+        LOG ('incoming backdoor connection from %r' % (conn.getpeername(),))
         thread = coro.spawn (client_class, conn, addr, welcome_message, global_dict)
         thread.set_name('backdoor session')
 
