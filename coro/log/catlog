@@ -8,7 +8,7 @@ import datetime
 from coro.asn1.python import decode
 
 class Sync:
-    
+
     magic = '%\xf1\xbfB'
     def __init__ (self):
         self.state = 0
