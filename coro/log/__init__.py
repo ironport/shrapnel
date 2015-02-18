@@ -23,8 +23,6 @@ class SysLogger:
     def __init__ (self, path='/dev/log', facility=16, level=6):
         self.sock = coro.sock (coro.AF.UNIX, coro.SOCK.DGRAM)
         self.sock.connect (path)
-        self.facility = facility
-        self.level = 6
         self.encoded = (facility << 3) | level
 
     def log (self, *data):
