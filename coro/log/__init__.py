@@ -18,6 +18,19 @@ class StderrLogger:
     def log (self, *data):
         self.saved_stderr.write ("%s %r\n" % (time.strftime (self.time_format), data))
 
+class SysLogger:
+
+    def __init__ (self, path='/dev/log', facility=16, level=6):
+        self.sock = coro.sock (coro.AF.UNIX, coro.SOCK.DGRAM)
+        self.sock.connect (path)
+        self.facility = facility
+        self.level = 6
+        self.encoded = (facility << 3) | level
+
+    def log (self, *data):
+        line = ' '.join ([repr(x) for x in data])
+        self.sock.send ('<%d>%s\000' % (self.encoded, line))
+
 class ComboLogger:
 
     def __init__ (self, *loggers):
