@@ -33,6 +33,7 @@ class Sync:
     def __init__ (self):
         self.state = 0
         self.last = None
+
     def feed (self, ch):
         if ch == self.magic[self.state]:
             self.state += 1
@@ -44,6 +45,7 @@ class Sync:
             self.state = 0
             self.last = ch
             return False
+
     def resync (self, fdin):
         self.state = 0
         give_up = 10000
