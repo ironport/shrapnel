@@ -13,7 +13,7 @@ class StderrLogger:
         self.saved_stderr = sys.stderr
 
     # ISO 8601
-    time_format = '%Y-%m-%dT%H:%M:%S'    
+    time_format = '%Y-%m-%dT%H:%M:%S'
 
     def log (self, *data):
         self.saved_stderr.write ("%s %r\n" % (time.strftime (self.time_format), data))
@@ -50,7 +50,7 @@ class Facility:
         log (self.name, 'exception', coro.traceback_data())
 
 class NoFacility:
-    
+
     def __call__ (self, *data):
         log (*data)
 
@@ -58,7 +58,7 @@ class NoFacility:
         log ('exception', coro.traceback_data())
 
 class StderrRedirector:
-        
+
     def __init__ (self):
         self.log = Facility ('stderr')
 
@@ -81,4 +81,3 @@ def set_logger (logger):
 
 def log (*data):
     the_logger.log (*data)
-

@@ -167,7 +167,7 @@ def dump_hex (s):
 class mysql_client:
 
     def __init__ (self, username, password, address=('127.0.0.1', 3306),
-                  debug = 0, timeout=None, connect_timeout=None):
+                  debug=0, timeout=None, connect_timeout=None):
 
         # remember this for reconnect
         self.username = username

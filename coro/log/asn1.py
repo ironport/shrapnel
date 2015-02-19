@@ -18,6 +18,6 @@ class Logger:
                 self.magic,
                 struct.pack ('>I', len(data)),
                 data
-                )
             )
+        )
         self.file.flush()

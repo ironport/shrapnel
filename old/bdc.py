@@ -68,7 +68,7 @@ def main (addr):
 
 if __name__ == '__main__':
     import argparse
-    ap = argparse.ArgumentParser (description = 'shrapnel back door client')
+    ap = argparse.ArgumentParser (description='shrapnel back door client')
     ap.add_argument ('addr', help='server address', default='127.0.0.1:23', metavar="(HOST:PORT)|PATH")
     args = ap.parse_args()
     if ':' in args.addr:
