@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+# -*- Mode: Python -*-
+
+import argparse
+import struct
+import sys
+import datetime
+from coro.asn1.python import decode
+
+class Sync:
+
+    magic = '%\xf1\xbfB'
+    def __init__ (self):
+        self.state = 0
+        self.last = None
+    def feed (self, ch):
+        if ch == self.magic[self.state]:
+            self.state += 1
+            if self.state == 4:
+                return True
+            else:
+                return False
+        else:
+            self.state = 0
+            self.last = ch
+            return False
+    def resync (self, fdin):
+        self.state = 0
+        give_up = 10000
+        i = 0
+        while i < give_up:
+            ch = fdin.read (1)
+            i += 1
+            if ch == '':
+                raise EOFError
+            else:
+                if self.feed (ch):
+                    return
+        raise ValueError ("unable to sync: is this an asn1 log file?")
+
+def is_binary (ob):
+    if type(ob) is not bytes:
+        return False
+    else:
+        return '\x00' in ob
+
+def frob(ob):
+    if type(ob) is bytes:
+        if is_binary (ob):
+            if len(ob) < 500 or args.big:
+                return ob.encode ('hex')
+            else:
+                return '<large>'
+        return ob
+    else:
+        return ob
+
+def main():
+    if args.file is None:
+        file = sys.stdin
+    else:
+        file = open (args.file, 'rb')
+
+    fromtimestamp = datetime.datetime.fromtimestamp
+    write = sys.stdout.write
+
+    s = Sync()
+
+    s.resync (file)
+
+    while 1:
+        size, = struct.unpack ('>I', file.read (4))
+        block = file.read (size)
+        if len(block) != size:
+            break
+        try:
+            (timestamp, info), size = decode (block)
+        except:
+            write ("[hiccup]\n")
+            s.resync (file)
+            continue
+        timestamp /= 1000000.0
+        info = [frob(x) for x in info]
+        iso = fromtimestamp (timestamp).isoformat()
+        write ('%s %r\n' % (iso, info))
+        magic = file.read (4)
+        if not magic:
+            break
+        elif magic != Sync.magic:
+            s.resync (file)
+
+if __name__ == '__main__':
+    p = argparse.ArgumentParser (description='asn1 log decoder')
+    p.add_argument ('-b', '--big', action='store_true', help="show large strings", default=False)
+    p.add_argument ('file', help="input file", nargs="?", metavar="FILE")
+    args = p.parse_args()
+    main()

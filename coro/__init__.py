@@ -44,6 +44,7 @@ coro.dns.cache.install()
 # ============================================================================
 
 compact_traceback = tb.traceback_string
+traceback_data = tb.traceback_data
 
 # This overrides the one in <_coro>
 def default_exception_notifier():

@@ -730,6 +730,9 @@ cdef class fifo:
     def __len__ (self):
         return self.fifo.size
 
+    def __iter__ (self):
+        return self.fifo.__iter__()
+
     def push (self, thing):
         """Push an object to the end of the FIFO.
 
