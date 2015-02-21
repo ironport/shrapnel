@@ -141,7 +141,6 @@ setup (
                     os.path.join(include_dir, 'include', 'pyrex_helpers.h'),
                     os.path.join(include_dir, 'pyrex', 'tsc_time_include.pyx'),
                     os.path.join(include_dir, 'include', 'tsc_time.h'),
-                    os.path.join(include_dir, 'pyrex', 'libc.pxd'),
                 ]
             ),
             pyrex_include_dirs=[
