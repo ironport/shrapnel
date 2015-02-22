@@ -6,17 +6,22 @@ import asn1
 import coro
 import time
 
-class StderrLogger:
-
-    def __init__ (self):
-        import sys
-        self.saved_stderr = sys.stderr
+class FileLogger:
 
     # ISO 8601
     time_format = '%Y-%m-%dT%H:%M:%S'
 
+    def __init__ (self, f):
+        self.f = f
+
     def log (self, *data):
-        self.saved_stderr.write ("%s %r\n" % (time.strftime (self.time_format), data))
+        line = ' '.join ([repr(x) for x in data])
+        self.f.write ("%s %s\n" % (time.strftime (self.time_format), line))
+        self.f.flush()
+
+class StderrLogger (FileLogger):
+    def __init__ (self):
+        FileLogger.__init__ (self, coro.saved_stderr)
 
 class SysLogger:
 
@@ -70,8 +75,12 @@ def redirect_stderr():
     stderr = StderrRedirector()
     import sys
     sys.stderr = stderr
+    # obviously this needs fixing, we have to stop
+    #   squirreling these away everywhere.
     coro.write_stderr = stderr.write
     coro.print_stderr = stderr.write
+    coro._coro.write_stderr = stderr.write
+    coro._coro.print_stderr = stderr.write
 
 the_logger = StderrLogger()
 
