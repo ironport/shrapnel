@@ -17,6 +17,36 @@ free-formatted, whatever-the-developer-felt-like-writing log files
 into useful data.  Binary logging steps around the problem by making
 the logs machine readable from the start.
 
+You can also instantiate a ``FileLogger`` that will do plain-text logging,
+but using the same API.
+
+If you do nothing
+-----------------
+
+By default logs are sent to stderr.
+
+
+Interface
+---------
+
+The log-function interface differs from most in that it accepts a
+sequence of data items, not a string.  On a heavily loaded server this saves
+CPU by not formatting log lines (especially when they are not going to be
+used because of log levels).  When a server is emitting thousands of log lines
+per second, the CPU impact can be considerable.
+
+So instead of:
+
+```python
+LOG ("blert: thing1: %d thing2: %d" % (v0, v1))
+```
+
+You do:
+
+```python
+LOG ('blert', v0, v1)
+```
+
 Reading the Logs
 ----------------
 
