@@ -11,6 +11,9 @@ from coro.http.zspdy import pack_data_frame, pack_http_header, unpack_http_heade
 
 W = coro.write_stderr
 
+from coro.log import Facility
+LOG = Facility ('spdy')
+
 # tricky bits:
 #
 # It's important to use one zlib compression object per connection,
@@ -59,6 +62,8 @@ class spdy_server_request (http_request):
         host   = headers.get_one (':host')
         path   = headers.get_one (':path')
         version = headers.get_one (':version')
+        # left off by chrome now?
+        headers['host'] = host
         # XXX proxy
         # url = '%s://%s/%s' % (scheme, host, path)
         url = path
@@ -208,6 +213,8 @@ class spdy_protocol:
 
 class spdy_connection (spdy_protocol, connection):
 
+    protocol = 'spdy'
+
     # default to 400K buffered output
     output_buffer_size = 400 * 1024
 
@@ -319,12 +326,21 @@ class spdy_connection (spdy_protocol, connection):
         self.send_frame (self.pack_control_frame (6, 0, data))
 
     def frame_settings (self, flags, data):
-        self.log ('SPDY settings frame received [ignored]')
+        #self.log ('SPDY settings frame received [ignored]')
+        pass
 
     def frame_headers (self, flags, data):
-        self.log ('SPDY headers frame received [ignored]')
+        #self.log ('SPDY headers frame received [ignored]')
+        pass
+
+    def frame_window_update (self, flags, data):
+        #self.log ('SPDY window_update frame received [ignored]')
+        stream_id, delta_window_size = struct.unpack ('>LL', data)
+        self.log ('spdy window update', stream_id, delta_window_size)
 
 class spdy_tlslite_server (tlslite_server):
+
+    protocol = 'spdy'
 
     def __init__ (self, addr, cert_path, key_path, settings=None):
         tlslite_server.__init__ (self, addr, cert_path, key_path, nextProtos=['spdy/3', 'http/1.1'], settings=settings)
@@ -337,9 +353,11 @@ class spdy_tlslite_server (tlslite_server):
 
 class spdy_openssl_server (openssl_server):
 
+    protocol = 'spdy'
+
     def create_connection (self, conn, addr):
         # ensure that negotiation finishes...
-        if conn.ssl.get_next_protos_negotiated() == b'spdy/3':
+        if conn.ssl.get_next_protos_negotiated() == b'spdy/3.1':
             return spdy_connection (self, conn, addr)
         else:
             return connection (self, conn, addr)
