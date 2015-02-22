@@ -18,6 +18,10 @@ import zlib
 
 from protocol import latch, http_file, header_set, HTTP_Upgrade
 
+from coro.log import Facility
+
+LOG = Facility ('http')
+
 W = sys.stderr.write
 
 __version__ = '0.1'
@@ -62,6 +66,8 @@ class request_stream:
 
 class connection:
 
+    protocol = 'http'
+
     def __init__ (self, server, conn, addr):
         self.server = server
         self.stream = None
@@ -91,10 +97,9 @@ class connection:
                         except HTTP_Upgrade:
                             upgrade = True
                             break
-                        # XXX use Exception here, avoid catch/raise of coro.TimeoutError/Interrupted?
-                        except:
-                            tb = coro.compact_traceback()
-                            self.server.log ('error: %r request=%r tb=%r' % (self.peer, request, tb))
+                        except Exception:
+                            tb = coro.traceback_data()
+                            self.server.log ('error', repr(request), tb)
                             request.error (500, tb)
             except (OSError, coro.TimeoutError, coro.ClosedError):
                 pass
@@ -102,8 +107,8 @@ class connection:
             if not upgrade:
                 self.conn.close()
 
-    def log (self, msg):
-        self.server.log (msg)
+    def log (self, *data):
+        self.server.log (*data)
 
     def pick_handler (self, request):
         for handler in self.server.handlers:
@@ -240,7 +245,7 @@ class http_request:
         if self.close:
             self.client.close()
         self.is_done = True
-        self.client.server.log (self.log_line())
+        self.client.server.log (*self.log_line())
         self.done_cv.wake_all()
 
     # note: the difference of meaning between getitem/setitem
@@ -309,16 +314,11 @@ class http_request:
         self.done()
 
     def log_line (self):
-        now = time.time()
-        # somewhere between common log format and squid, avoid the
-        # expense of formatting time
-        return '%.03f %s "%s" %d %d %0.2f' % (
-            now,
-            '%s:%d' % self.peer,
-            self.request,
-            self.reply_code,
+        return (
+            self.client.protocol,
+            self.peer, self.request, self.reply_code,
             self.output.sent,
-            now - self.tstart,
+            '%.4f' % (time.time() - self.tstart),
         )
 
     responses = {
@@ -450,8 +450,8 @@ class server:
         self.addr = ()
         self.sock = None
 
-    def log (self, line):
-        sys.stderr.write ('http %s:%d: %s\n' % (self.addr[0], self.addr[1], line))
+    def log (self, *data):
+        LOG (self.addr[0], self.addr[1], *data)
 
     def push_handler (self, handler):
         self.handlers.append (handler)
@@ -501,7 +501,7 @@ class server:
             except coro.Shutdown:
                 break
             except:
-                self.log ('error: %r' % (coro.compact_traceback(),))
+                LOG.exc()
                 coro.sleep_relative (0.25)
                 continue
         self.sock.close()
