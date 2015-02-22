@@ -11,7 +11,10 @@ import zlib
 
 from coro.http.http_date import build_http_date, parse_http_date
 
-W = sys.stderr.write
+from coro.log import Facility
+from urllib import unquote
+
+LOG = Facility ('http handlers')
 
 # these two aren't real handlers, they're more like templates
 #  to give you an idea how to write one.
@@ -23,7 +26,6 @@ class post_handler:
 
     def handle_request (self, request):
         data = request.file.read()
-        W ('post handler, data=%r\n' % (data,))
         request.done()
 
 class put_handler:
@@ -37,10 +39,10 @@ class put_handler:
         while 1:
             line = fp.readline()
             if not line:
-                W ('line: DONE!\n')
+                LOG ('line done')
                 break
             else:
-                W ('line: %r\n' % (line,))
+                LOG ('line', line)
         request.done()
 
 class coro_status_handler:
@@ -93,10 +95,13 @@ class file_handler:
         filename = os.path.join (self.doc_root, path[1:])
         return os.path.exists (filename)
 
+    def handle_directory_listing (self, request, path):
+        return request.error (404)
+
     crack_if_modified_since = re.compile ('([^;]+)(; length=([0-9]+))?$', re.IGNORECASE)
 
     def handle_request (self, request):
-        path = request.path
+        path = unquote (request.path)
         filename = os.path.join (self.doc_root, path[1:])
 
         if request.method not in ('get', 'head'):
@@ -104,7 +109,11 @@ class file_handler:
             return
 
         if os.path.isdir (filename):
-            filename = os.path.join (filename, 'index.html')
+            index_html = os.path.join (filename, 'index.html')
+            if os.path.isfile (index_html):
+                filename = index_html
+            else:
+                return self.handle_directory_listing (request, filename)
 
         if not os.path.isfile (filename):
             request.error (404)
