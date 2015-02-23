@@ -64,4 +64,7 @@ if __name__ == '__main__':
     p.add_argument ('-b', '--big', action='store_true', help="show large strings", default=False)
     p.add_argument ('file', help="input file", nargs="?", metavar="FILE")
     args = p.parse_args()
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
