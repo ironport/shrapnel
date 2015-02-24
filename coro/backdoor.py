@@ -208,7 +208,7 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
                 raise
         s = coro.make_socket (coro.PF.LOCAL, coro.SOCK.STREAM)
         s.bind (unix_path)
-        coro.print_stderr('Backdoor started on unix socket %s\n' % unix_path)
+        LOG ('started', unix_path)
     else:
         s = coro.make_socket (coro.PF.INET, coro.SOCK.STREAM)
         s.set_reuse_addr()
@@ -222,7 +222,7 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
         for i in ports:
             try:
                 s.bind ((ip, i))
-                coro.print_stderr('Backdoor started on port %d\n' % i)
+                LOG ('started', (ip, i))
                 break
             except OSError, why:
                 if why[0] != errno.EADDRINUSE:
@@ -261,7 +261,7 @@ class ssh_repl (coro.ssh.connection.interactive_session.Interactive_Session_Serv
         coro.sleep_relative (0.1)
         b.read_eval_print_loop()
         self.close()
-        coro.print_stderr ('closed ssh backdoor from: %r\n' % (self.transport.transport.peer,))
+        LOG ('closed', self.transport.transport.peer)
 
 # see coro/ssh/demo/backdoor.py for instructions on setting up an ssh backdoor server.
 class ssh_server:
