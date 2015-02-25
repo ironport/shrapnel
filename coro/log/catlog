@@ -79,7 +79,7 @@ def binary_search (size, f, target):
         if target < val:
             hi = mid
         else:
-            lo = mid
+            lo = mid + 50
         last_val = val
 
 def timestamp_at (f, pos):
