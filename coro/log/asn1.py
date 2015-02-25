@@ -1,5 +1,5 @@
 
-from coro.asn1.python import encode
+from coro.asn1.python import encode, decode
 import coro
 import struct
 
@@ -46,16 +46,36 @@ class Sync:
             self.last = ch
             return False
 
-    def resync (self, fdin):
+    def resync (self, fdin, limit=10000):
         self.state = 0
-        give_up = 10000
         i = 0
-        while i < give_up:
+        while limit == 0 or i < limit:
             ch = fdin.read (1)
             i += 1
             if ch == '':
                 raise EOFError
             else:
                 if self.feed (ch):
-                    return
+                    return i
         raise ValueError ("unable to sync: is this an asn1 log file?")
+
+def gen_log (f, limit=10000):
+    s = Sync()
+    s.resync (f, limit)
+    while 1:
+        size, = struct.unpack ('>I', f.read (4))
+        block = f.read (size)
+        if len(block) != size:
+            break
+        try:
+            (timestamp, info), size = decode (block)
+        except Exception:
+            s.resync (f, limit)
+            continue
+        yield size, timestamp / 1000000.0, info
+        magic = f.read (4)
+        if not magic:
+            break
+        elif magic != Sync.magic:
+            s.resync (f, limit)
+    
