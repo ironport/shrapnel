@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- Mode: Python -*-
 
+import os
 import argparse
 import struct
 import sys
 import datetime
 from coro.asn1.python import decode
-from coro.log.asn1 import Sync
+from coro.log.asn1 import Sync, gen_log
 
 def is_binary (ob):
     if type(ob) is not bytes:
@@ -14,10 +15,12 @@ def is_binary (ob):
     else:
         return '\x00' in ob
 
-def frob(ob):
+# the 'repr' module does size restrictions,
+#  but not limit-to-printable.  need.
+def frob (ob, big):
     if type(ob) is bytes:
         if is_binary (ob):
-            if len(ob) < 500 or args.big:
+            if len(ob) < 500 or big:
                 return ob.encode ('hex')
             else:
                 return '<large>'
@@ -25,46 +28,78 @@ def frob(ob):
     else:
         return ob
 
-def main():
+def main (args):
     if args.file is None:
-        file = sys.stdin
+        f = sys.stdin
+        if args.ago:
+            raise ValueError ("can't seek on stdin")
     else:
-        file = open (args.file, 'rb')
-
+        f = open (args.file, 'rb')
+        if args.ago:
+            seek (args.file, f, args.ago)
+    big = args.big
     fromtimestamp = datetime.datetime.fromtimestamp
     write = sys.stdout.write
+    for size, timestamp, info in gen_log (f):
+        if size < 1000 or args.big:
+            info = ' '.join ([repr(frob(x, big)) for x in info])
+            iso = fromtimestamp (timestamp).isoformat()
+            write ('%s %s\n' % (iso, info))
 
-    s = Sync()
+import re
 
-    s.resync (file)
+spec_re = re.compile ('([0-9]+)([hmdw])', re.IGNORECASE)
+duration_map = {
+    'm': 60,
+    'h': 60 * 60,
+    'd': 24 * 60 * 60,
+    'w': 7 * 24 * 60 * 60,
+    }
 
-    while 1:
-        size, = struct.unpack ('>I', file.read (4))
-        block = file.read (size)
-        if len(block) != size:
+def seek (path, f, spec):
+    m = spec_re.match (spec)
+    count, duration = m.groups()
+    count = int (count)
+    duration = duration_map[duration.lower()]
+    delta = duration * count
+    last = find_last_timestamp (f)
+    target = last - delta
+    size = os.stat (path).st_size
+    pos = binary_search (size, f, target)
+
+def binary_search (size, f, target):
+    lo = 0
+    hi = size - 1000
+    last_val = 0
+    while lo < hi:
+        mid = (lo+hi)//2
+        val = timestamp_at (f, mid)
+        if val == last_val:
             break
-        try:
-            (timestamp, info), size = decode (block)
-        except:
-            write ("[hiccup]\n")
-            s.resync (file)
-            continue
-        timestamp /= 1000000.0
-        info = [frob(x) for x in info]
-        iso = fromtimestamp (timestamp).isoformat()
-        write ('%s %r\n' % (iso, info))
-        magic = file.read (4)
-        if not magic:
-            break
-        elif magic != Sync.magic:
-            s.resync (file)
+        if target < val:
+            hi = mid
+        else:
+            lo = mid
+        last_val = val
+
+def timestamp_at (f, pos):
+    f.seek (pos, 0)
+    for size, timestamp, info in gen_log (f, 0):
+        return timestamp
+
+def find_last_timestamp (f):
+    f.seek (-20000, 2)
+    for size, timestamp, info in gen_log (f, 0):
+        pass
+    return timestamp
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser (description='asn1 log decoder')
     p.add_argument ('-b', '--big', action='store_true', help="show large strings", default=False)
     p.add_argument ('file', help="input file", nargs="?", metavar="FILE")
+    p.add_argument ('-a', '--ago', help="start this far back from the end (e.g., 1h, 3m, 20d, 2w)")
     args = p.parse_args()
     try:
-        main()
+        main(args)
     except KeyboardInterrupt:
         pass
