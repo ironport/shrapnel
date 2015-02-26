@@ -33,6 +33,9 @@
       has expired.
 """
 
+from coro.log import Facility
+LOG = Facility ('dns')
+
 # Two kinds of negatively-cached data
 CACHE_NXDOMAIN = "NXDOMAIN"
 CACHE_NODATA   = "NODATA"
@@ -207,9 +210,6 @@ class dns_cache:
         self.use_actual_ttl = 0
         self.ttl_min = ttl_min
 
-    def log (self, *args):
-        coro.write_stderr (repr(args) + '\n')
-
     def _pin_localhost(self):
         """_pin_localhost() -> None
         Adds the localhost entries to the pinned cache.
@@ -266,7 +266,7 @@ class dns_cache:
                 stype = coro.SOCK.DGRAM
             s = coro.make_socket (sfamily, stype)
         except OSError, why:
-            self.log ('COMMON.APP_FAILURE', tb.traceback_string() + ' why: ' + str(why))
+            LOG.exc()
             raise DNS_Soft_Error(qname, qtype, ip, str(why))
 
         try:
@@ -279,7 +279,7 @@ class dns_cache:
                         r = struct.pack ('>h', len(r)) + r
                     n = s.send (r)
                     if n != len(r):
-                        self.log('DNS.NETWORK_ERROR', 'send', ip, qname)
+                        LOG ('error', 'send', ip, qname)
                         raise DNS_Soft_Error(qname, qtype, ip, 'Failed to send all data.')
                     if use_tcp:
                         rlen_bytes = s.recv_exact(2)
@@ -294,28 +294,28 @@ class dns_cache:
                     try:
                         reply = unpack_reply (data, use_actual_ttl=self.use_actual_ttl, ttl_min=self.ttl_min)
                     except packet.UnpackError:
-                        self.log('DNS.RESPONSE_ERROR', repr(data), ip, qname)
+                        LOG ('error', 'unpack', data, ip, qname)
                         raise DNS_Soft_Error(qname, qtype, ip, 'Packet was corrupted.')
                     except:
-                        self.log('COMMON.APP_FAILURE', tb.traceback_string() + ' REPR:' + repr(data))
+                        LOG.exc()
                         raise DNS_Soft_Error(qname, qtype, ip, 'Unknown Error')
                     if reply.id != qid:
                         # probably a DoS attack...
-                        self.log('DNS.RESPONSE_ERROR', 'id(%i)!=qid(%i)' % (reply.id, qid), ip, qname)
+                        LOG ('reply id mismatch', (reply.id, qid), ip, qname)
                         # ... don't let 'em hog us
                         coro.sleep_relative (1)
                     elif reply.rcode and reply.rcode != packet.RCODE.NXDomain:
                         rcode = packet.RCODE_MAP.get (reply.rcode, str(reply.rcode))
-                        self.log('DNS.RESPONSE_ERROR', 'rcode=%s data=%r' % (rcode, repr(data)), ip, qname)
+                        LOG ('error', 'response', rcode, data, ip, qname)
                         raise DNS_Soft_Error(qname, qtype, ip, rcode)
                     else:
                         return reply
             except OSError, why:
-                self.log('DNS.NETWORK_ERROR', why, ip, qname)
+                LOG ('error', 'OSError', why, ip, qname)
                 raise DNS_Soft_Error(qname, qtype, ip, str(why))
             except EOFError:
                 # recv_exact will raise EOFError if it doesn't get enough data.
-                self.log('DNS.NETWORK_ERROR', 'EOF', ip, qname)
+                LOG ('error', 'EOFError', ip, qname)
                 raise DNS_Soft_Error(qname, qtype, ip, 'EOF')
         finally:
             s.close()
@@ -329,9 +329,7 @@ class dns_cache:
         """
         if self.outstanding_sem.avail <= 0:
             # we've hit a system resource limit
-            # we use max_outstanding twice here because the log message wants "current" and "max"
-            # but these are always going to be the same in the dns server
-            self.log('DNS.LIMIT', self.max_outstanding, self.max_outstanding)
+            LOG ('limit', self.max_outstanding)
         self.outstanding_sem.acquire(1)
         try:
             qid = dns_random (65536)
@@ -363,7 +361,7 @@ class dns_cache:
                 pass
             if self.need_bootstrapping:
                 # the bootstrapping process failed
-                self.log('DNS.BOOTSTRAP_FAILED')
+                LOG ('bootstrap failed')
                 raise DNS_Soft_Error('', 'NS', 'bootstrapping', 'Failed to bootstrap the DNS cache.')
         elif self.need_bootstrapping == 1:
             # need to bootstrap the cache
@@ -382,7 +380,7 @@ class dns_cache:
             self.need_bootstrapping = 0
             return
 
-        self.log('DNS.STRAPPING')
+        LOG ('bootstrapping', 'start')
         # XXX try them all w/timeout schedule...
         for ip in permute (root_hints):
             try:
@@ -408,14 +406,14 @@ class dns_cache:
                 # Otherwise, we'd stick glueless NS entries into the cache,
                 # and that can cause problems.
                 self.encache ('', 'NS', [(0, ns) for ns in records_with_matching_glue], permanent=1)
-                self.log('DNS.STRAPPED')
+                LOG ('bootstrapping', 'stop')
                 self.need_bootstrapping = 0
                 return
             except DNS_Error:
                 pass
             except coro.TimeoutError:
                 pass
-        self.log('DNS.BOOTSTRAP_FAILED')
+        LOG ('bootstrap', 'failed')
         raise DNS_Soft_Error('', 'NS', 'bootstrapping', 'Failed to bootstrap the DNS cache.')
 
     def authoritative (self, name, base):
@@ -462,7 +460,7 @@ class dns_cache:
         Add qname/qtype with results 'answers' into the cache.
         If permanent, the value is permanent in the cache."""
         if self.debug:
-            self.log('DNS.ENCACHE', qname, qtype, answers)
+            LOG ('encache', qname, qtype, answers)
         key = (qname, qtype)
         if permanent:
             self.cache.pin (key, answers)
@@ -578,7 +576,7 @@ class dns_cache:
             dns_request.inc()
             work = Work()
         if self.debug:
-            self.log ('DNS.QUERY', 'Q', work.indent(), "%r, %r" % (qname, qtype))
+            LOG ('query', work.work, (qname, qtype))
         if not packet.dot_sane (qname):
             raise DNS_Malformed_Qname_Error(qname, qtype, (packet.RCODE.ServFail, ''))
         if not no_cache:
@@ -592,7 +590,7 @@ class dns_cache:
         elif work.glue > GLUELESSNESS:
             # once we go past our tolerance for gluelessness, force
             # things to start back at the root...
-            self.log ('DNS.GLUELESSNESS', qname, qtype)
+            LOG ('gluelessness', work.glue, qname, qtype)
             ns_names, zone = self.best_nameserver ('')
             work.glue = 0
         else:
@@ -656,7 +654,7 @@ class dns_cache:
                             elif ref_zone == rname:
                                 referrals.append ((ttl, data))
                             else:
-                                self.log('DNS.ODD_AUTHORITY', r.ns)
+                                LOG ('odd authority', r.ns)
                         elif kind == 'SOA':
                             # XXX should we cache SOA?
                             soa = rname, ttl, data
@@ -666,15 +664,15 @@ class dns_cache:
                         if kind in ('A', 'AAAA'):
                             if self.authoritative (rname, zone):
                                 if self.debug:
-                                    self.log('DNS.GLUE.ACCEPT', rname, zone, data, ns_name)
+                                    LOG ('glue', 'accept', rname, zone, data, ns_name)
                                 self.encache (rname, kind, [(ttl, data)])
                             elif self.authoritative_ns (ns_name, rname):
                                 if self.debug:
-                                    self.log('DNS.GLUE.ACCEPT.LUCKY', rname, zone, data, ns_name)
+                                    LOG ('glue', 'lucky-accept', rname, zone, data, ns_name)
                                 self.encache (rname, kind, [(ttl, data)])
                             else:
                                 if self.debug:
-                                    self.log('DNS.GLUE.DENY', rname, zone, data, ns_name)
+                                    LOG ('glue', 'deny', rname, zone, data, ns_name)
 
                     # 1.``The query was not answered because the query name is an alias. I need to
                     # change the query name and try again.'' This applies if the answer section of the
@@ -684,7 +682,7 @@ class dns_cache:
                     if cname and qtype != 'CNAME':
                         self.encache (qname, 'CNAME', [cname])
                         if self.debug:
-                            self.log('DNS.FOLLOWING_CNAME', qname, cname)
+                            LOG ('following cname', qname, cname)
                         return self.query (cname[1], qtype, work)
 
                     # 2.``The query name has no records answering the query, and is also guaranteed to
@@ -700,7 +698,7 @@ class dns_cache:
                             ttl = (self.negative_ttl * coro.ticks_per_sec) + coro.now
                             self.encache (qname, qtype, [(ttl, CACHE_NXDOMAIN)], stomp=1)
                         if self.debug:
-                            self.log('DNS.NXDOMAIN', qname, qtype)
+                            LOG ('nxdomain', qname, qtype)
                         raise DNS_Hard_Error(qname, qtype, (r.rcode, packet.RCODE_MAP[r.rcode]))
 
                     # 3.``The query name has one or more records answering the query.''  This applies if
@@ -733,7 +731,7 @@ class dns_cache:
 
                         if (zone == ref_zone or not domain_suffix (zone, ref_zone)):
                             lame_count += 1
-                            self.log('DNS.LAME_REFERRAL', ns_name, zone, ref_zone, referrals, qname)
+                            LOG ('lame referral', ns_name, zone, ref_zone, referrals, qname)
                             # now go to the next name server, i.e., continue in for ns_name...
                         else:
                             self.encache (ref_zone, 'NS', referrals)
@@ -773,7 +771,7 @@ class dns_cache:
         """
 
         if self.debug:
-            self.log('DNS.QUERY', 'QN', work.indent(), "%r, %r, %r" % (qname, qtype, ns_name))
+            LOG ('query by name', work.work, qname, qtype, ns_name)
         work.incr (qname, qtype)
         # do we have this glue in the cache?
         addrs = self.cache_get (ns_name, 'A', None)
@@ -818,7 +816,7 @@ class dns_cache:
         Returns a dns_reply object.
         """
         if self.debug:
-            self.log('DNS.QUERY', 'QIP', work.indent(), "%r,%r,%r,%d" % (qname, qtype, ip, int(timeout)))
+            LOG ('query by ip', work.work, qname, qtype, ip, int(timeout))
         if self.parent_ns:
             recursion = 1
         else:
@@ -856,8 +854,10 @@ if not coro.has_ipv6():
     root_hints = [x for x in root_hints if ':' not in x]
 
 class resolver:
-    def __init__ (self):
+    def __init__ (self, debug=False):
         self.cache = dns_cache()
+        if debug:
+            self.cache.debug = True
 
     def gethostbyname (self, name, qtype):
         for ttl, addr in permute (self.cache.query (name, qtype)):
@@ -869,9 +869,9 @@ class resolver:
     def resolve_ipv6 (self, name):
         return self.gethostbyname (name, 'AAAA')
 
-def install():
+def install (debug=False):
     "install the builtin resolver into the coro socket layer"
-    coro.set_resolver (resolver())
+    coro.set_resolver (resolver (debug))
 
 # emulate 'statsmon' module
 class StaticCounter:
@@ -893,8 +893,8 @@ cache_exception = StaticCounter('cache_exception')
 cache_expired   = StaticCounter('cache_expired')
 
 if __name__ == '__main__':
-    import backdoor
+    import coro.backdoor
     d = dns_cache()
     d.debug = True
-    coro.spawn (backdoor.serve)
+    coro.spawn (coro.backdoor.serve, unix_path='/tmp/dns.bd')
     coro.event_loop (30.0)
