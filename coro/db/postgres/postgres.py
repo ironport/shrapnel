@@ -1143,7 +1143,7 @@ for oid, cast, name in (
     (701, float, 'float8'),
     (1007, decode_int_array, 'int4[]'),
     (1009, decode_str_array, 'text[]'),
-    (1700, int, 'numeric')
+    (1700, float, 'numeric')
 ):
     decode_type_map[oid] = cast
     decode_type_names[oid] = name
