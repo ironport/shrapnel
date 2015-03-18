@@ -52,5 +52,5 @@ cdef object decode_long_integer (unsigned char * s, long * pos, long length)
 cdef object decode_structured (unsigned char * s, long * pos, long length)
 cdef object decode_objid (unsigned char * s, long * pos, long length)
 cdef object decode_boolean (unsigned char * s, long * pos, long length)
-cdef long _decode_length (unsigned char * s, long * pos, long lol)
+cdef long _decode_length (unsigned char * s, long * pos, long lol) except? -1
 cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv)
