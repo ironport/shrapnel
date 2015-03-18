@@ -4,10 +4,10 @@ from libc.stdint cimport uint8_t
 
 # flags for BER tags
 cdef enum FLAGS:
-    FLAGS_UNIVERSAL       = 0x00
-    FLAGS_STRUCTURED      = 0x20
-    FLAGS_APPLICATION     = 0x40
-    FLAGS_CONTEXT         = 0x80
+    FLAGS_UNIVERSAL       = 0b00000000
+    FLAGS_STRUCTURED      = 0b00100000
+    FLAGS_APPLICATION     = 0b01000000
+    FLAGS_CONTEXT         = 0b10000000
 
 # NULL is a pyrex keyword
 # universal BER tags
@@ -24,17 +24,17 @@ cdef enum TAGS:
     TAGS_ENUMERATED       = 0x0a
     TAGS_EMBEDDED_PDV     = 0x0b
     TAGS_UTF8STRING       = 0x0c
-    TAGS_SEQUENCE         = 0x10 | 0x20 # Equivalent to FLAGS_STRUCTURED
-    TAGS_SET              = 0x11 | 0x20 # Equivalent to FLAGS_STRUCTURED
+    TAGS_SEQUENCE         = 0x10
+    TAGS_SET              = 0x11
 
 cdef long length_of_length (long n)
-cdef void encode_length (long l, long n, char * buffer)
+cdef long length_of_tag (long n)
+cdef void encode_length (long l, long n, uint8_t * buffer)
 cdef object _encode_integer (long n)
 cdef object _encode_long_integer (n)
-cdef object _TLV1 (long tag, bytes data)
-cdef object _TLV (long tag, object data)
+cdef object _TLV1 (long tag, uint8_t flags, bytes data)
+cdef object _TLV (long tag, uint8_t flags, object data)
 cdef object _CHOICE (long n, bint structured)
-cdef object _APPLICATION (long n)
 cdef object _ENUMERATED (long n)
 cdef object _INTEGER (long n)
 cdef object _BOOLEAN (long n)
