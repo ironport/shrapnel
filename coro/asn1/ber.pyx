@@ -581,7 +581,7 @@ cdef object decode_boolean (unsigned char * s, long * pos, long length):
     else:
         return False
 
-cdef long _decode_length (unsigned char * s, long * pos, long lol):
+cdef long _decode_length (unsigned char * s, long * pos, long lol) except? -1:
     # actually supports only up to 32-bit lengths
     cdef unsigned long i, n
     n = 0
@@ -604,7 +604,7 @@ cdef check_has (long * pos, unsigned int n, long eos):
     if pos[0] + n > eos:
         raise InsufficientData (pos[0], n, eos)
 
-cdef long _decode_tag (unsigned char * s, long * pos, long eos, uint8_t * flags):
+cdef long _decode_tag (unsigned char * s, long * pos, long eos, uint8_t * flags) except? -1:
     cdef unsigned long r = 0
     cdef uint8_t b = s[pos[0]]
     inc_pos (pos, 1, eos)
