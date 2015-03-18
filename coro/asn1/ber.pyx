@@ -1,16 +1,16 @@
 # -*- Mode: Cython -*-
 # Copyright (c) 2002-2011 IronPort Systems and Cisco Systems
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -297,11 +297,9 @@ cdef object _TLV (long tag, uint8_t flags, object data):
     result = PyBytes_FromStringAndSize (NULL, lot + lol + rlen)
     cdef uint8_t * rbuf = result
     encode_tag (tag, flags, lot, rbuf)
-    print result.encode('hex')
     rbuf += lot
     encode_length (rlen, lol, rbuf)
     rbuf += lol
-    print result.encode('hex')
     # render data
     for s in data:
         ilen = len(s)
@@ -627,7 +625,6 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
     cdef uint8_t flags
     # 1) get tag
     tag = _decode_tag (s, pos, eos, &flags)
-    print 'tag', tag
     # 2) get length
     check_pos (pos, eos)
     if s[pos[0]] < 0x80:
@@ -700,4 +697,3 @@ def decode (bytes s, long pos=0, just_tlv=0):
         len (s),
         just_tlv
         ), pos
-
