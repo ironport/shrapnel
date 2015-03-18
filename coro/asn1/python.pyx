@@ -31,27 +31,27 @@ cpdef encode (object ob):
     if type(ob) is int:
         return _INTEGER (ob)
     elif ob is None:
-        return _TLV1 (TAGS_NULL, b'')
+        return _TLV1 (TAGS_NULL, FLAGS_UNIVERSAL, b'')
     elif type(ob) is bytes:
         return _OCTET_STRING (ob)
     elif type(ob) is unicode:
         return _UTF8_STRING (ob)
     elif type(ob) is long:
-        return _TLV (TAGS_INTEGER, _encode_long_integer (ob))
+        return _TLV (TAGS_INTEGER, FLAGS_UNIVERSAL, _encode_long_integer (ob))
     elif type(ob) is bool:
         return _BOOLEAN (ob)
     elif type(ob) is list:
         return _SEQUENCE ([encode(x) for x in ob])
     elif type(ob) is tuple:
-        return _TLV (0 | <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob])
+        return _TLV (0, <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob])
     elif type(ob) is dict:
-        return _TLV (1 | <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob.iteritems()])
+        return _TLV (1, <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob.iteritems()])
     elif type(ob) is set:
         # Note: we can't use TAG_SET because the decoder returns it as a list
-        return _TLV (2 | <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob])
+        return _TLV (2, <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, [encode(x) for x in ob])
     elif type(ob) is float:
         # IEEE 754 binary64
-        return _TLV (3 | <int>FLAGS_CONTEXT, struct.pack ('>d', ob))
+        return _TLV (3, <int>FLAGS_CONTEXT, struct.pack ('>d', ob))
     else:
         raise EncodingError (ob)
 
