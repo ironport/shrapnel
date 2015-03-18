@@ -94,7 +94,19 @@ cdef long length_of_length (long n):
             r = r + 1
         return r
 
-cdef void encode_length (long l, long n, char * buffer):
+cdef long length_of_tag (long n):
+    cdef int r
+    # how long will the BER-encoded tag <n> be?
+    if n < 0x1f:
+        return 1
+    else:
+        r = 1
+        while n:
+            n = n >> 7
+            r = r + 1
+        return r
+
+cdef void encode_length (long l, long n, uint8_t * buffer):
     # caller must ensure room. see length_of_length above.
     cdef long i
     if l < 0x80:
@@ -104,6 +116,22 @@ cdef void encode_length (long l, long n, char * buffer):
         for i from 1 <= i < n:
             buffer[n-i] = <char> (l & 0xff)
             l = l >> 8
+
+cdef void encode_tag (long tag, uint8_t flags, long n, uint8_t * buffer):
+    # caller must ensure room. see length_of_tag above.
+    cdef long i
+    cdef uint8_t b
+    if tag < 0x1f:
+        buffer[0] = tag | flags
+    else:
+        buffer[0] = 0x1f | flags
+        for i from 1 <= i < n:
+            if i == 1:
+                b = tag & 0x7f
+            else:
+                b = (tag & 0x7f) | 0x80
+            buffer[n-i] =b
+            tag >>= 7
 
 # encode an integer, ASN1 style.
 # two's complement with the minimum number of bytes.
@@ -225,7 +253,7 @@ cdef _encode_double (double f):
     return result[:10]
 
 cpdef encode_double (double f):
-    return _TLV1 (TAGS_REAL, _encode_double (f))
+    return _TLV1 (TAGS_REAL, 0, _encode_double (f))
 
 def encode_long_integer (n):
     return _encode_long_integer (n)
@@ -233,59 +261,52 @@ def encode_long_integer (n):
 # this function is at the heart of all ASN output.
 # it returns a <tag, length, value> string.
 
-# _TLV1 (tag, data)
+# _TLV1 (tag, flags, data)
 # <tag> is an ASN1 tag
 # <data> is a single string
-cdef object _TLV1 (long tag, bytes data):
-    # compute length of concatenated data
-    cdef long rlen, i, lol
+cdef object _TLV1 (long tag, uint8_t flags, bytes data):
+    cdef long rlen, i, lol, lot
     cdef bytes s
     rlen = len (data)
-    # compute length of length
     lol = length_of_length (rlen)
+    lot = length_of_tag (tag)
     # create result string
-    result = PyBytes_FromStringAndSize (NULL, 1 + lol + rlen)
-    cdef char * rbuf
-    rbuf = result
-    # render tag
-    rbuf[0] = <char> tag
-    rbuf = rbuf + 1
-    # render length
+    result = PyBytes_FromStringAndSize (NULL, lot + lol + rlen)
+    cdef uint8_t * rbuf = result
+    encode_tag (tag, flags, lot, rbuf)
+    rbuf += lot
     encode_length (rlen, lol, rbuf)
-    rbuf = rbuf + lol
+    rbuf += lol
     # render data
     memcpy (rbuf, <char *> data, rlen)
-    # return result
     return result
 
-# _TLV (tag, *data)
+# _TLV (tag, flags, *data)
 # <data> is a sequence of strings
 # <tag> is an ASN1 tag
-cdef object _TLV (long tag, object data):
-    # compute length of concatenated data
-    cdef long rlen, i, ilen, lol
+cdef object _TLV (long tag, uint8_t flags, object data):
+    cdef long rlen, i, ilen, lol, lot
     cdef bytes s
     rlen = 0
+    # compute length of concatenated data
     for s in data:
         rlen += len(s)
-    # compute length of length
     lol = length_of_length (rlen)
+    lot = length_of_tag (tag)
     # create result string
-    result = PyBytes_FromStringAndSize (NULL, 1 + lol + rlen)
-    cdef char * rbuf
-    rbuf = result
-    # render tag
-    rbuf[0] = <char> tag
-    rbuf = rbuf + 1
-    # render length
+    result = PyBytes_FromStringAndSize (NULL, lot + lol + rlen)
+    cdef uint8_t * rbuf = result
+    encode_tag (tag, flags, lot, rbuf)
+    print result.encode('hex')
+    rbuf += lot
     encode_length (rlen, lol, rbuf)
-    rbuf = rbuf + lol
+    rbuf += lol
+    print result.encode('hex')
     # render data
     for s in data:
         ilen = len(s)
         memcpy (rbuf, <char *>s, ilen)
-        rbuf = rbuf + ilen
-    # return result
+        rbuf += ilen
     return result
 
 cdef object _CHOICE (long n, bint structured):
@@ -294,41 +315,39 @@ cdef object _CHOICE (long n, bint structured):
     n = n | <int>FLAGS_CONTEXT
     return n
 
-cdef object _APPLICATION (long n):
-    return n | <int>FLAGS_APPLICATION | <int>FLAGS_STRUCTURED
-
 cdef object _ENUMERATED (long n):
-    return _TLV1 (TAGS_ENUMERATED, _encode_integer (n))
+    return _TLV1 (TAGS_ENUMERATED, 0, _encode_integer (n))
 
 cdef object _INTEGER (long n):
-    return _TLV1 (TAGS_INTEGER, _encode_integer (n))
+    return _TLV1 (TAGS_INTEGER, 0, _encode_integer (n))
 
 cdef object _BOOLEAN (long n):
     if n:
         b = '\xff'
     else:
         b = '\x00'
-    return _TLV1 (TAGS_BOOLEAN, b)
+    return _TLV1 (TAGS_BOOLEAN, 0, b)
 
 cdef object _SEQUENCE (object elems):
-    return _TLV (TAGS_SEQUENCE, elems)
+    return _TLV (TAGS_SEQUENCE, FLAGS_STRUCTURED, elems)
 
 cdef object _SET (object elems):
-    return _TLV (TAGS_SET, elems)
+    return _TLV (TAGS_SET, FLAGS_STRUCTURED, elems)
 
 cdef object _OCTET_STRING (bytes s):
-    return _TLV1 (TAGS_OCTET_STRING, s)
+    return _TLV1 (TAGS_OCTET_STRING, 0, s)
 
 cdef object _BITSTRING (uint8_t unused, bytes s):
-    return _TLV1 (TAGS_BITSTRING, chr(unused) + s)
+    return _TLV1 (TAGS_BITSTRING, 0, chr(unused) + s)
 
 cdef object _UTF8_STRING (unicode s):
-    return _TLV1 (TAGS_UTF8STRING, PyUnicode_AsUTF8String (s))
+    return _TLV1 (TAGS_UTF8STRING, 0, PyUnicode_AsUTF8String (s))
 
 cdef object _OBJID (list l):
     cdef unsigned long i, list_len, one_num, temp_buf_off, temp_buf_len, done
     cdef unsigned long buf_len, first_two_as_int
-    cdef char temp_buf[5], buf[32]
+    cdef char temp_buf[5]
+    cdef char buf[32]
 
     if len(l) < 2:
         raise ValueError, "OBJID arg too short"
@@ -368,27 +387,30 @@ cdef object _OBJID (list l):
         memcpy (&buf[buf_len], &temp_buf[temp_buf_off], temp_buf_len)
         buf_len = buf_len + temp_buf_len
     result = PyBytes_FromStringAndSize (buf, buf_len)
-    return _TLV1 (TAGS_OBJID, result)
+    return _TLV1 (TAGS_OBJID, 0, result)
 
 # ================================================================================
 # externally visible python interfaces
 # ================================================================================
 
-def TLV (long tag, *data):
-    return _TLV (tag, data)
+def TLV (long tag, uint8_t flags, *data):
+    return _TLV (tag, flags, data)
 
 def CHOICE (long n, bint structured):
     return _CHOICE (n, structured)
 
-def APPLICATION (long n):
-    return _APPLICATION (n)
+def APPLICATION (long n, bint structured, bytes data):
+    cdef uint8_t flags = FLAGS_APPLICATION
+    if structured:
+        flags |= FLAGS_STRUCTURED
+    return _TLV1 (n, flags, data)
 
 def ENUMERATED (long n):
     return _ENUMERATED (n)
 
 def INTEGER (n):
     if PyLong_Check (n):
-        return _TLV (TAGS_INTEGER, _encode_long_integer (n))
+        return _TLV (TAGS_INTEGER, 0, _encode_long_integer (n))
     else:
         return _INTEGER (n)
 
@@ -401,8 +423,11 @@ def SEQUENCE (*elems):
 def SET (*elems):
     return _SET (elems)
 
-def CONTEXT (long n, elem):
-    return _TLV1 (n | <int>FLAGS_STRUCTURED | <int>FLAGS_CONTEXT, elem)
+def CONTEXT (long n, bint structured, bytes data):
+    cdef uint8_t flags = FLAGS_CONTEXT
+    if structured:
+        flags |= FLAGS_STRUCTURED
+    return _TLV1 (n, flags, data)
 
 def OCTET_STRING (s):
     return _OCTET_STRING (s)
@@ -567,83 +592,106 @@ cdef long _decode_length (unsigned char * s, long * pos, long lol):
         pos[0] = pos[0] + 1
     return n
 
+cdef check_pos (long * pos, long eos):
+    if pos[0] > eos:
+        raise InsufficientData (pos[0], eos)
+
+cdef inc_pos (long * pos, unsigned int n, long eos):
+    if pos[0] + n > eos:
+        raise InsufficientData (pos[0], n, eos)
+    else:
+        pos[0] += n
+
+cdef check_has (long * pos, unsigned int n, long eos):
+    if pos[0] + n > eos:
+        raise InsufficientData (pos[0], n, eos)
+
+cdef long _decode_tag (unsigned char * s, long * pos, long eos, uint8_t * flags):
+    cdef unsigned long r = 0
+    cdef uint8_t b = s[pos[0]]
+    inc_pos (pos, 1, eos)
+    flags[0] = b & 0b11100000
+    if b & 0x1f < 0x1f:
+        return b & 0x1f
+    else:
+        while s[pos[0]] & 0x80:
+            r = (r << 7) | s[pos[0]] & 0x7f
+            inc_pos (pos, 1, eos)
+        r = (r << 7) | s[pos[0]]
+        inc_pos (pos, 1, eos)
+        return r
+
 cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
     cdef long tag, lol
     cdef unsigned long length
+    cdef uint8_t flags
     # 1) get tag
-    tag = <int> s[pos[0]]
-    if tag & 0x1f == 0x1f:
-        raise MultiByteTag, pos[0]
+    tag = _decode_tag (s, pos, eos, &flags)
+    print 'tag', tag
+    # 2) get length
+    check_pos (pos, eos)
+    if s[pos[0]] < 0x80:
+        # one-byte length
+        length = s[pos[0]]
+        inc_pos (pos, 1, eos)
+    elif s[pos[0]] == 0x80:
+        raise IndefiniteLength, pos[0]
     else:
-        pos[0] = pos[0] + 1
-        # 2) get length
-        if (pos[0]) > eos:
-            # assure at least one byte [valid for length == 0]
-            raise InsufficientData, pos[0]
-        elif s[pos[0]] < 0x80:
-            # one-byte length
-            length = s[pos[0]]
-            pos[0] = pos[0] + 1
-        elif s[pos[0]] == 0x80:
-            raise IndefiniteLength, pos[0]
+        # long definite length form, lower 7 bits
+        # give us the number of bytes of length
+        lol = s[pos[0]] & 0x7f
+        inc_pos (pos, 1, eos)
+        if lol > 4:
+            # we don't support lengths > 32 bits
+            raise LengthTooLong, pos[0]
         else:
-            # long definite length form, lower 7 bits
-            # give us the number of bytes of length
-            lol = s[pos[0]] & 0x7f
-            pos[0] = pos[0] + 1
-            if lol > 4:
-                # we don't support lengths > 32 bits
-                raise LengthTooLong, pos[0]
-            elif pos[0] + lol > eos:
-                raise InsufficientData, pos[0]
-            else:
-                length = _decode_length (s, pos, lol)
-        #print '_decode(), pos=%d length=%d eos=%d' % (pos[0], length, eos)
-        # 3) get value
-        # assure at least <length> bytes
-        if (<int> length) < 0:
-            # length > 2GB... hmmm... thuggery...
-            raise InsufficientData, pos[0]
-        elif (pos[0] + length) > eos:
-            raise InsufficientData, pos[0]
-        elif just_tlv:
-            return (tag & 0x1f, tag & 0xe0, length)
-        elif tag == TAGS_OCTET_STRING:
-            return decode_string (s, pos, length)
-        elif tag == TAGS_UTF8STRING:
-            return decode_unicode (s, pos, length)
-        elif tag == TAGS_INTEGER:
-            if length > sizeof (long):
-                return decode_long_integer (s, pos, length)
-            else:
-                return decode_integer (s, pos, length)
-        elif tag == TAGS_BOOLEAN:
-            return decode_boolean (s, pos, length)
-        elif tag == TAGS_SEQUENCE:
-            return decode_structured (s, pos, length)
-        elif tag == TAGS_SET:
-            return decode_structured (s, pos, length)
-        elif tag == TAGS_ENUMERATED:
+            check_has (pos, lol, eos)
+            length = _decode_length (s, pos, lol)
+    # 3) get value
+    # assure at least <length> bytes
+    if length > 2147483648:
+        # length > 2GB... hmmm... thuggery...
+        raise InsufficientData, pos[0]
+    elif (pos[0] + length) > eos:
+        raise InsufficientData, pos[0]
+    elif just_tlv:
+        return (tag, flags, length)
+    elif tag == TAGS_OCTET_STRING:
+        return decode_string (s, pos, length)
+    elif tag == TAGS_UTF8STRING:
+        return decode_unicode (s, pos, length)
+    elif tag == TAGS_INTEGER:
+        if length > sizeof (long):
+            return decode_long_integer (s, pos, length)
+        else:
             return decode_integer (s, pos, length)
-        elif tag == TAGS_OBJID:
-            return (kind_oid, decode_objid (s, pos, length))
-        elif tag == TAGS_BITSTRING:
-            return (kind_bitstring, decode_bitstring (s, pos, length))
-        elif tag == TAGS_NULL:
-            return None
+    elif tag == TAGS_BOOLEAN:
+        return decode_boolean (s, pos, length)
+    elif tag == TAGS_SEQUENCE:
+        return decode_structured (s, pos, length)
+    elif tag == TAGS_SET:
+        return decode_structured (s, pos, length)
+    elif tag == TAGS_ENUMERATED:
+        return decode_integer (s, pos, length)
+    elif tag == TAGS_OBJID:
+        return (kind_oid, decode_objid (s, pos, length))
+    elif tag == TAGS_BITSTRING:
+        return (kind_bitstring, decode_bitstring (s, pos, length))
+    elif tag == TAGS_NULL:
+        return None
+    else:
+        if flags & FLAGS_CONTEXT:
+            kind = kind_context
+        elif flags & FLAGS_APPLICATION:
+            kind = kind_application
+        elif TAG_TABLE.has_key (tag):
+            kind = TAG_TABLE[tag]
         else:
-            if tag & <int>FLAGS_CONTEXT:
-                kind = kind_context
-            elif tag & <int>FLAGS_APPLICATION:
-                kind = kind_application
-            elif TAG_TABLE.has_key (tag & 0x1f):
-                kind = TAG_TABLE[tag & 0x1f]
-            else:
-                kind = kind_unknown
-            if tag & <int>FLAGS_STRUCTURED:
-                return (kind, tag & 0x1f, decode_structured (s, pos, length))
-            else:
-                return (kind, tag & 0x1f, decode_raw (s, pos, length))
+            kind = kind_unknown
+        if flags & FLAGS_STRUCTURED:
+            return (kind, tag, decode_structured (s, pos, length))
+        else:
+            return (kind, tag, decode_raw (s, pos, length))
 
 def decode (bytes s, long pos=0, just_tlv=0):
     return _decode (
