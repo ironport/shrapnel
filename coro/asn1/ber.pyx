@@ -626,6 +626,8 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
     # 1) get tag
     tag = _decode_tag (s, pos, eos, &flags)
     # 2) get length
+    print 'tag', tag
+    print 'flags', flags
     check_pos (pos, eos)
     if s[pos[0]] < 0x80:
         # one-byte length
@@ -653,35 +655,42 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
         raise InsufficientData, pos[0]
     elif just_tlv:
         return (tag, flags, length)
-    elif tag == TAGS_OCTET_STRING:
-        return decode_string (s, pos, length)
-    elif tag == TAGS_UTF8STRING:
-        return decode_unicode (s, pos, length)
-    elif tag == TAGS_INTEGER:
-        if length > sizeof (long):
-            return decode_long_integer (s, pos, length)
-        else:
+    elif flags == FLAGS_UNIVERSAL:
+        # these are builtin types
+        if tag == TAGS_OCTET_STRING:
+            return decode_string (s, pos, length)
+        elif tag == TAGS_UTF8STRING:
+            return decode_unicode (s, pos, length)
+        elif tag == TAGS_INTEGER:
+            if length > sizeof (long):
+                return decode_long_integer (s, pos, length)
+            else:
+                return decode_integer (s, pos, length)
+        elif tag == TAGS_BOOLEAN:
+            return decode_boolean (s, pos, length)
+        elif tag == TAGS_SEQUENCE:
+            return decode_structured (s, pos, length)
+        elif tag == TAGS_SET:
+            return decode_structured (s, pos, length)
+        elif tag == TAGS_ENUMERATED:
             return decode_integer (s, pos, length)
-    elif tag == TAGS_BOOLEAN:
-        return decode_boolean (s, pos, length)
-    elif tag == TAGS_SEQUENCE:
-        return decode_structured (s, pos, length)
-    elif tag == TAGS_SET:
-        return decode_structured (s, pos, length)
-    elif tag == TAGS_ENUMERATED:
-        return decode_integer (s, pos, length)
-    elif tag == TAGS_OBJID:
-        return (kind_oid, decode_objid (s, pos, length))
-    elif tag == TAGS_BITSTRING:
-        return (kind_bitstring, decode_bitstring (s, pos, length))
-    elif tag == TAGS_NULL:
-        return None
+        elif tag == TAGS_OBJID:
+            return (kind_oid, decode_objid (s, pos, length))
+        elif tag == TAGS_BITSTRING:
+            return (kind_bitstring, decode_bitstring (s, pos, length))
+        elif tag == TAGS_NULL:
+            return None
+        else:
+            return (kind_unknown, tag, decode_raw (s, pos, length))
     else:
         if flags & FLAGS_CONTEXT:
+            # union discriminator
             kind = kind_context
         elif flags & FLAGS_APPLICATION:
+            # user type tags
             kind = kind_application
         elif TAG_TABLE.has_key (tag):
+            # unsupported
             kind = TAG_TABLE[tag]
         else:
             kind = kind_unknown
