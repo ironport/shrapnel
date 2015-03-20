@@ -240,7 +240,7 @@ def encode_sasl_bind (version, name, mechanism, credentials=''):
         name,
         TLV (
             AUTH.sasl,
-            FLAGS_CONTEXT, 
+            FLAGS_CONTEXT | FLAGS_STRUCTURED,
             OCTET_STRING (mechanism),
             cred
         )
