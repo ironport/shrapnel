@@ -4,7 +4,7 @@ import hashlib
 import unittest
 
 from coro.ssl.openssl import ecdsa
-import coro_unittest
+from coro.test import coro_unittest
 
 test_key = (
     '30820113020101042027a4909da59e97e1854a6d5ea26575b953d72da4cf285849ff9acce0d2156c'

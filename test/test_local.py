@@ -23,7 +23,7 @@
 import unittest
 
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 
 class Test(unittest.TestCase):
 

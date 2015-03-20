@@ -22,7 +22,7 @@
 
 import coro
 # import coro_process
-import coro_unittest
+from coro.test import coro_unittest
 import os
 import unittest
 

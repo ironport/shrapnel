@@ -25,7 +25,7 @@ XXX TODO:
 """
 
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 import operator
 import os
 import tempfile

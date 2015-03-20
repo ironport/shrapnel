@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
 import unittest
-import coro_unittest
+from coro.test import coro_unittest
 
 from coro.asn1.python import *
 from coro.asn1.ber import decode as D

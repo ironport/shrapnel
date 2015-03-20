@@ -7,7 +7,7 @@ import unittest
 import os
 
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 
 
 class TestWithTimeout (unittest.TestCase):

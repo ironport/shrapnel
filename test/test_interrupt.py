@@ -21,7 +21,7 @@
 """Unittests for interrupting coroutines."""
 
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 import unittest
 
 class TestException(Exception):

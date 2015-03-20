@@ -21,10 +21,10 @@
 """Unittests for the notify_of_close functionality."""
 
 import coro
-import coro_unittest
 import os
 import unittest
 from coro import oserrors
+from coro.test import coro_unittest
 
 class ForceSend(coro.Interrupted):
     pass

@@ -1,11 +1,11 @@
 # -*- Mode: Python -*-
 
 import coro
-import coro_unittest
 import unittest
-from coro import signal_handler
 import os
 import signal
+from coro import signal_handler
+from coro.test import coro_unittest
 
 signal_caught_flag = False
 

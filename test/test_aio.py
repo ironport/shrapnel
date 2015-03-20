@@ -24,7 +24,7 @@
 
 from coro import oserrors
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 import os
 import unittest
 import random

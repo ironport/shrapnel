@@ -7,7 +7,7 @@ import sys
 import unittest
 
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 
 do_sleeps = False
 

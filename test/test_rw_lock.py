@@ -21,8 +21,8 @@
 """Unittests for read-write lock."""
 
 import coro
-import coro_unittest
 import unittest
+from coro.test import coro_unittest
 
 class Test(unittest.TestCase):
 

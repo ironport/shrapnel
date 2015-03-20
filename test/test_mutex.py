@@ -21,7 +21,7 @@
 """Unittests for mutex."""
 
 import coro
-import coro_unittest
+from coro.test import coro_unittest
 import unittest
 
 class Test(unittest.TestCase):

@@ -28,7 +28,7 @@ import unittest
 import coro
 import coro.profiler
 import coro.print_profile
-import coro_unittest
+from coro.test import coro_unittest
 
 # Sam's favorite profile function.
 def tak1 (x, y, z):
