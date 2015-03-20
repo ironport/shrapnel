@@ -326,15 +326,15 @@ class spdy_connection (spdy_protocol, connection):
         self.send_frame (self.pack_control_frame (6, 0, data))
 
     def frame_settings (self, flags, data):
-        #self.log ('SPDY settings frame received [ignored]')
+        # self.log ('SPDY settings frame received [ignored]')
         pass
 
     def frame_headers (self, flags, data):
-        #self.log ('SPDY headers frame received [ignored]')
+        # self.log ('SPDY headers frame received [ignored]')
         pass
 
     def frame_window_update (self, flags, data):
-        #self.log ('SPDY window_update frame received [ignored]')
+        # self.log ('SPDY window_update frame received [ignored]')
         stream_id, delta_window_size = struct.unpack ('>LL', data)
         self.log ('spdy window update', stream_id, delta_window_size)
 

@@ -78,4 +78,3 @@ def gen_log (f, limit=10000):
             break
         elif magic != Sync.magic:
             s.resync (f, limit)
-    
