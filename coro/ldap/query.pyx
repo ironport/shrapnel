@@ -78,11 +78,11 @@ cdef parse_expression (bytes x, int pos, int depth):
                 expression, pos = parse_expression (x, pos, depth+1)
                 expressions.append (expression)
             if kind == c'|':
-                return _TLV (_CHOICE (FILTER_OR, 1), expressions), pos + 1
+                return _TLV (FILTER_OR, FLAGS_CONTEXT | FLAGS_STRUCTURED, expressions), pos + 1
             elif kind == c'&':
-                return _TLV (_CHOICE (FILTER_AND, 1), expressions), pos + 1
+                return _TLV (FILTER_AND, FLAGS_CONTEXT | FLAGS_STRUCTURED, expressions), pos + 1
             elif kind == c'!':
-                return _TLV (_CHOICE (FILTER_NOT, 1), expressions[:1]), pos + 1
+                return _TLV (FILTER_NOT, FLAGS_CONTEXT | FLAGS_STRUCTURED, expressions[:1]), pos + 1
         else:
             # comparison
             attr, is_substring, pos = parse_name (x, pos)
@@ -95,27 +95,26 @@ cdef parse_expression (bytes x, int pos, int depth):
             if is_substring:
                 if value == '*' and operator == FILTER_EQUALITY_MATCH:
                     # (tag=*)
-                    return _TLV (
-                        _CHOICE (FILTER_PRESENT, 0), # unstructured
-                        (attr,)                      # tag implied by CHOICE
-                        ), pos + 1
+                    return _TLV (FILTER_PRESENT, FLAGS_CONTEXT, (attr,)), pos + 1
                 elif operator == FILTER_EQUALITY_MATCH:
                     # (tag=sub*strin*g*)
                     return _TLV (
-                        _CHOICE (FILTER_SUBSTRINGS, 1), (
+                        FILTER_SUBSTRINGS,
+                        FLAGS_CONTEXT | FLAGS_STRUCTURED, (
                             _OCTET_STRING (attr),
                             _SEQUENCE (parse_substring (value, 0, len (value)))
-                            )
-                        ), pos + 1
+                        )
+                    ), pos + 1
                 else:
                     raise QuerySyntaxError, "invalid wildcard syntax"
             else:
                 return _TLV (
-                    _CHOICE (operator, 1), (
+                    operator,
+                    FLAGS_CONTEXT | FLAGS_STRUCTURED, (
                         _OCTET_STRING (attr),
                         _OCTET_STRING (unescape (value)),
-                        )
-                    ), pos + 1
+                    )
+                ), pos + 1
 
 cdef parse_operator (bytes x, int pos):
     cdef char * s = x
@@ -146,7 +145,7 @@ cdef object parse_substring (char * s, int pos, int slen):
             if start != i:
                 # final
                 result.append (
-                    _TLV (_CHOICE (SUBSTRING_FINAL, 0), (unescape (s[start:]),))
+                    _TLV (SUBSTRING_FINAL, FLAGS_CONTEXT, (unescape (s[start:]),))
                     )
             return result
         elif s[i] == c'*':
@@ -154,13 +153,13 @@ cdef object parse_substring (char * s, int pos, int slen):
                 if i > 0:
                     # initial
                     result.append (
-                        _TLV (_CHOICE (SUBSTRING_INITIAL, 0), (unescape (s[0:i]),))
-                        )
+                        _TLV (SUBSTRING_INITIAL, FLAGS_CONTEXT, (unescape (s[0:i]),))
+                    )
             else:
                 # any
                 result.append (
-                    _TLV (_CHOICE (SUBSTRING_ANY, 0), (unescape (s[start:i]),))
-                    )
+                    _TLV (SUBSTRING_ANY, FLAGS_CONTEXT, (unescape (s[start:i]),))
+                )
             # next bit will start *after* the splat
             start = i + 1
             i = i + 1
