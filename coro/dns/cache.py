@@ -311,7 +311,7 @@ class dns_cache:
                     else:
                         return reply
             except OSError, why:
-                LOG ('error', 'OSError', why, ip, qname)
+                LOG ('error', 'OSError', str(why), ip, qname)
                 raise DNS_Soft_Error(qname, qtype, ip, str(why))
             except EOFError:
                 # recv_exact will raise EOFError if it doesn't get enough data.
