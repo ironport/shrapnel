@@ -25,6 +25,10 @@ from coro.asn1.ber import *
 from coro.ldap.query import *
 import re
 
+# these should be exported by ber.pyx
+FLAGS_APPLICATION = 0x40
+FLAGS_CONTEXT     = 0x80
+
 W = coro.write_stderr
 
 re_dn = re.compile(r'\s*([,=])\s*')
@@ -99,7 +103,8 @@ def encode_search_request (
     else:
         which_attrs = SEQUENCE (*[OCTET_STRING (x) for x in which_attrs])
     return TLV (
-        APPLICATION (LDAP.SearchRequest),
+        LDAP.SearchRequest,
+        FLAGS_APPLICATION,
         OCTET_STRING (base_object),
         ENUMERATED (scope),
         ENUMERATED (deref_aliases),
@@ -207,7 +212,8 @@ def result_string (result):
 def encode_bind_request (version, name, auth_data):
     assert (1 <= version <= 127)
     return TLV (
-        APPLICATION (LDAP.BindRequest),
+        LDAP.BindRequest,
+        FLAGS_APPLICATION,
         INTEGER (version),
         OCTET_STRING (name),
         auth_data
@@ -217,10 +223,7 @@ def encode_simple_bind (version, name, login):
     return encode_bind_request (
         version,
         name,
-        TLV (
-            CHOICE (AUTH.simple, 0),
-            login
-        )
+        TLV (AUTH.simple, FLAGS_CONTEXT, login)
     )
 
 def encode_sasl_bind (version, name, mechanism, credentials=''):
@@ -232,7 +235,8 @@ def encode_sasl_bind (version, name, mechanism, credentials=''):
         version,
         name,
         TLV (
-            CHOICE (AUTH.sasl),
+            AUTH.sasl,
+            FLAGS_CONTEXT, 
             OCTET_STRING (mechanism),
             cred
         )
@@ -241,8 +245,9 @@ def encode_sasl_bind (version, name, mechanism, credentials=''):
 def encode_starttls ():
     # encode STARTTLS request: RFC 2830, 2.1
     return TLV (
-        APPLICATION (LDAP.ExtendedRequest),
-        TLV (CHOICE (0, 0), '1.3.6.1.4.1.1466.20037')
+        LDAP.ExtendedRequest,
+        FLAGS_APPLICATION,
+        TLV (0, FLAGS_CONTEXT, '1.3.6.1.4.1.1466.20037')
     )
 
 class client:
