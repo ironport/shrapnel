@@ -452,7 +452,7 @@ def t0():
 def t1():
     # sample search
     LOG ('connect...')
-    c = client (('127.0.0.1', 8389))
+    c = client (('127.0.0.1', 389))
     LOG ('bind...')
     c.simple_bind ('', '')
     LOG ('search...')
