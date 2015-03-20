@@ -19,13 +19,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# pull in visible bits of the low-level pyrex module
 import coro
 from coro.asn1.ber import *
 from coro.ldap.query import *
 import re
 
+from coro.log import Facility
+
+LOG = Facility ('ldap')
+
 # these should be exported by ber.pyx
+FLAGS_STRUCTURED  = 0x20
 FLAGS_APPLICATION = 0x40
 FLAGS_CONTEXT     = 0x80
 
@@ -104,7 +108,7 @@ def encode_search_request (
         which_attrs = SEQUENCE (*[OCTET_STRING (x) for x in which_attrs])
     return TLV (
         LDAP.SearchRequest,
-        FLAGS_APPLICATION,
+        FLAGS_APPLICATION | FLAGS_STRUCTURED,
         OCTET_STRING (base_object),
         ENUMERATED (scope),
         ENUMERATED (deref_aliases),
@@ -213,7 +217,7 @@ def encode_bind_request (version, name, auth_data):
     assert (1 <= version <= 127)
     return TLV (
         LDAP.BindRequest,
-        FLAGS_APPLICATION,
+        FLAGS_APPLICATION | FLAGS_STRUCTURED,
         INTEGER (version),
         OCTET_STRING (name),
         auth_data
@@ -249,6 +253,34 @@ def encode_starttls ():
         FLAGS_APPLICATION,
         TLV (0, FLAGS_CONTEXT, '1.3.6.1.4.1.1466.20037')
     )
+
+class ReadyQueue:
+
+    "queue that blocks on pop() but not on push()"
+
+    def __init__ (self):
+        self.q = []
+        self.cv = coro.condition_variable()
+
+    def __len__ (self):
+        return len(self.q)
+
+    def push (self, item):
+        if not self.cv.wake_one (item):
+            self.q.insert (0, item)
+
+    def pop (self):
+        if len(self.q):
+            return self.q.pop()
+        else:
+            return self.cv.wait()
+
+    def pop_all (self):
+        if not(len(self.q)):
+            return [self.cv.wait()]
+        else:
+            result, self.q = self.q, []
+            return result
 
 class client:
 
@@ -327,7 +359,7 @@ class client:
                 if probe is None:
                     raise ProtocolError ('unknown message id in reply: %d' % (msgid,))
                 else:
-                    probe.schedule (reply)
+                    probe.push (reply)
 
     default_timeout = 10
 
@@ -336,9 +368,33 @@ class client:
         self.msgid += 1
         self.sock.send (SEQUENCE (INTEGER (msgid), msg))
         try:
-            self.pending[msgid] = me = coro.current()
-            reply = coro.with_timeout (self.default_timeout, me._yield)
+            q = ReadyQueue()
+            self.pending[msgid] = q
+            reply = coro.with_timeout (self.default_timeout, q.pop)
             return reply
+        finally:
+            del self.pending[msgid]
+
+    def search (self, *args, **kwargs):
+        msg = encode_search_request (*args, **kwargs)
+        msgid = self.msgid
+        self.msgid += 1
+        self.sock.send (SEQUENCE (INTEGER (msgid), msg))
+        result = []
+        q = ReadyQueue()
+        self.pending[msgid] = q
+        try:
+            while 1:
+                reply = coro.with_timeout (self.default_timeout, q.pop)
+                kind, tag, data = reply
+                if kind == 'application':
+                    if tag == LDAP.SearchResultDone:
+                        break
+                    else:
+                        result.append (reply[2])
+                else:
+                    raise ProtocolError ('unknown reply to search', reply)
+            return result
         finally:
             del self.pending[msgid]
 
@@ -372,36 +428,53 @@ class client:
     def sasl_bind (self, name, mechanism, credentials):
         return self.send_message (encode_sasl_bind (self.ldap_protocol_version, name, mechanism, credentials))
 
+    def unbind (self):
+        # no reply to unbind, so we can't use send_message
+        msgid = self.msgid
+        self.msgid += 1
+        self.sock.send (SEQUENCE (INTEGER (msgid), TLV (LDAP.UnbindRequest, FLAGS_APPLICATION, '')))
+
 def t0():
-    sample = encode_message (
-        3141,
-        encode_search_request (
-            'dc=nightmare,dc=com',
-            SCOPE.SUBTREE,
-            DEREF.NEVER,
-            0,
-            0,
-            0,
-            '(&(objectclass=inetorgperson)(userid=srushing))',
-            # '(&(objectclass=inetorgperson)(userid=newton))',
-            # ask for these specific attributes only
-            ['mailAlternateAddress', 'rfc822ForwardingMailbox']
-        )
+    # sample search request
+    return encode_search_request (
+        'dc=ldapserver,dc=example,dc=com',
+        SCOPE.SUBTREE,
+        DEREF.NEVER,
+        0,
+        0,
+        0,
+        '(&(objectclass=inetorgperson)(userid=sam))',
+        # '(&(objectclass=inetorgperson)(userid=newton))',
+        # ask for these specific attributes only
+        ['mailAlternateAddress', 'rfc822ForwardingMailbox']
     )
 
-    import pprint
-    import socket
-    s = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
-    s.connect (('127.0.0.1', 389))
-    s.send (sample)
-    pprint.pprint (decode (s.recv (8192)))
-
 def t1():
-    c = client (('127.0.0.1', 389))
-    c.bind_simple (3, 'cn=manager,dc=nightmare,dc=com', 'fnord')
-    return c
+    # sample search
+    LOG ('connect...')
+    c = client (('127.0.0.1', 8389))
+    LOG ('bind...')
+    c.simple_bind ('', '')
+    LOG ('search...')
+    r = c.search (
+        'dc=ldapserver,dc=example,dc=com',
+        SCOPE.SUBTREE,
+        DEREF.NEVER,
+        0,
+        0,
+        0,
+        '(objectclass=*)',
+        []
+    )
+    LOG ('unbinding...')
+    c.unbind()
+    from pprint import pprint
+    pprint (r)
+    coro.set_exit()
+    return r
 
 if __name__ == '__main__':
     import coro.backdoor
     coro.spawn (coro.backdoor.serve, unix_path='/tmp/ldap.bd')
+    coro.spawn (t1)
     coro.event_loop()
