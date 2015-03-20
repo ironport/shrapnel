@@ -626,8 +626,6 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
     # 1) get tag
     tag = _decode_tag (s, pos, eos, &flags)
     # 2) get length
-    print 'tag', tag
-    print 'flags', flags
     check_pos (pos, eos)
     if s[pos[0]] < 0x80:
         # one-byte length
@@ -656,7 +654,6 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
     elif just_tlv:
         return (tag, flags, length)
     elif flags == FLAGS_UNIVERSAL:
-        # these are builtin types
         if tag == TAGS_OCTET_STRING:
             return decode_string (s, pos, length)
         elif tag == TAGS_UTF8STRING:
@@ -668,10 +665,6 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
                 return decode_integer (s, pos, length)
         elif tag == TAGS_BOOLEAN:
             return decode_boolean (s, pos, length)
-        elif tag == TAGS_SEQUENCE:
-            return decode_structured (s, pos, length)
-        elif tag == TAGS_SET:
-            return decode_structured (s, pos, length)
         elif tag == TAGS_ENUMERATED:
             return decode_integer (s, pos, length)
         elif tag == TAGS_OBJID:
@@ -680,24 +673,26 @@ cdef object _decode (unsigned char * s, long * pos, long eos, bint just_tlv):
             return (kind_bitstring, decode_bitstring (s, pos, length))
         elif tag == TAGS_NULL:
             return None
+        elif TAG_TABLE.has_key (tag):
+            return (TAG_TABLE[tag], tag, decode_raw (s, pos, length))
         else:
             return (kind_unknown, tag, decode_raw (s, pos, length))
     else:
-        if flags & FLAGS_CONTEXT:
-            # union discriminator
-            kind = kind_context
-        elif flags & FLAGS_APPLICATION:
-            # user type tags
-            kind = kind_application
-        elif TAG_TABLE.has_key (tag):
-            # unsupported
-            kind = TAG_TABLE[tag]
+        if tag == TAGS_SEQUENCE and flags == FLAGS_STRUCTURED:
+            return decode_structured (s, pos, length)
+        elif tag == TAGS_SET and flags == FLAGS_STRUCTURED:
+            return decode_structured (s, pos, length)
         else:
-            kind = kind_unknown
-        if flags & FLAGS_STRUCTURED:
-            return (kind, tag, decode_structured (s, pos, length))
-        else:
-            return (kind, tag, decode_raw (s, pos, length))
+            if flags & FLAGS_CONTEXT:
+                kind = kind_context
+            elif flags & FLAGS_APPLICATION:
+                kind = kind_application
+            else:
+                kind = kind_unknown
+            if flags & FLAGS_STRUCTURED:
+                return (kind, tag, decode_structured (s, pos, length))
+            else:
+                return (kind, tag, decode_raw (s, pos, length))
 
 def decode (bytes s, long pos=0, just_tlv=0):
     return _decode (
