@@ -36,7 +36,7 @@ Features
  * DNS resolver and cache
  * HTTP server and client (plus WebSocket, RFC6455 & hixie-76)
  * Support for TLS via tlslite and openssl (plus NPN for both)
- * other protocols/codecs: ldap, asn1, ftp, mysql, postgres, AMQP_.
+ * other protocols/codecs: ldap, asn1, ftp, mysql, postgres, AMQP.
  * `MIT License`_.
  
 Advantages
@@ -79,4 +79,4 @@ API Documentation
 See http://ironport.github.com/shrapnel/
 
 .. _MIT License: http://www.opensource.org/licenses/mit-license.html
-.. _AMQP: https://github.com/samrushing/amqp-shrapnel
+
