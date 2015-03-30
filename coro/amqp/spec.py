@@ -37,7 +37,7 @@ class connection (object):
         id = (10, 10)
         __slots__ = ['version_major', 'version_minor', 'server_properties', 'mechanisms', 'locales']
 
-        def __init__ (self, version_major=0, version_minor=9, server_properties=None, mechanisms=u'PLAIN', locales=u'en_US'):
+        def __init__ (self, version_major=0, version_minor=9, server_properties=None, mechanisms='PLAIN', locales='en_US'):
             self.version_major = version_major
             self.version_minor = version_minor
             self.server_properties = server_properties
@@ -65,7 +65,7 @@ class connection (object):
         id = (10, 11)
         __slots__ = ['client_properties', 'mechanism', 'response', 'locale']
 
-        def __init__ (self, client_properties=None, mechanism=u'PLAIN', response=None, locale=u'en_US'):
+        def __init__ (self, client_properties=None, mechanism='PLAIN', response=None, locale='en_US'):
             self.client_properties = client_properties
             self.mechanism = mechanism
             self.response = response
@@ -166,7 +166,7 @@ class connection (object):
         id = (10, 40)
         __slots__ = ['virtual_host', 'capabilities', 'insist']
 
-        def __init__ (self, virtual_host=u'/', capabilities=u'', insist=False):
+        def __init__ (self, virtual_host='/', capabilities='', insist=False):
             self.virtual_host = virtual_host
             self.capabilities = capabilities
             self.insist = insist
@@ -192,7 +192,7 @@ class connection (object):
         id = (10, 41)
         __slots__ = ['known_hosts']
 
-        def __init__ (self, known_hosts=u''):
+        def __init__ (self, known_hosts=''):
             self.known_hosts = known_hosts
 
         def unpack (self, data, pos):
@@ -208,7 +208,7 @@ class connection (object):
         id = (10, 50)
         __slots__ = ['reply_code', 'reply_text', 'class_id', 'method_id']
 
-        def __init__ (self, reply_code=None, reply_text=u'', class_id=None, method_id=None):
+        def __init__ (self, reply_code=None, reply_text='', class_id=None, method_id=None):
             self.reply_code = reply_code
             self.reply_text = reply_text
             self.class_id = class_id
@@ -248,7 +248,7 @@ class connection (object):
         id = (10, 60)
         __slots__ = ['reason']
 
-        def __init__ (self, reason=u''):
+        def __init__ (self, reason=''):
             self.reason = reason
 
         def unpack (self, data, pos):
@@ -294,7 +294,7 @@ class channel (object):
         id = (20, 10)
         __slots__ = ['out_of_band']
 
-        def __init__ (self, out_of_band=u''):
+        def __init__ (self, out_of_band=''):
             self.out_of_band = out_of_band
 
         def unpack (self, data, pos):
@@ -310,7 +310,7 @@ class channel (object):
         id = (20, 11)
         __slots__ = ['channel_id']
 
-        def __init__ (self, channel_id=u''):
+        def __init__ (self, channel_id=''):
             self.channel_id = channel_id
 
         def unpack (self, data, pos):
@@ -366,7 +366,7 @@ class channel (object):
         id = (20, 40)
         __slots__ = ['reply_code', 'reply_text', 'class_id', 'method_id']
 
-        def __init__ (self, reply_code=None, reply_text=u'', class_id=None, method_id=None):
+        def __init__ (self, reply_code=None, reply_text='', class_id=None, method_id=None):
             self.reply_code = reply_code
             self.reply_text = reply_text
             self.class_id = class_id
@@ -415,7 +415,7 @@ class access (object):
         id = (30, 10)
         __slots__ = ['realm', 'exclusive', 'passive', 'active', 'write', 'read']
 
-        def __init__ (self, realm=u'/data', exclusive=False, passive=True, active=True, write=True, read=True):
+        def __init__ (self, realm='/data', exclusive=False, passive=True, active=True, write=True, read=True):
             self.realm = realm
             self.exclusive = exclusive
             self.passive = passive
@@ -475,7 +475,7 @@ class exchange (object):
         id = (40, 10)
         __slots__ = ['ticket', 'exchange', 'type', 'passive', 'durable', 'auto_delete', 'internal', 'nowait', 'arguments']
 
-        def __init__ (self, ticket=0, exchange=None, type=u'direct', passive=False, durable=False, auto_delete=False, internal=False, nowait=False, arguments={}):
+        def __init__ (self, ticket=0, exchange=None, type='direct', passive=False, durable=False, auto_delete=False, internal=False, nowait=False, arguments={}):
             self.ticket = ticket
             self.exchange = exchange
             self.type = type
@@ -584,7 +584,7 @@ class exchange (object):
         id = (40, 30)
         __slots__ = ['ticket', 'destination', 'source', 'routing_key', 'nowait', 'arguments']
 
-        def __init__ (self, ticket=0, destination=None, source=None, routing_key=u'', nowait=False, arguments={}):
+        def __init__ (self, ticket=0, destination=None, source=None, routing_key='', nowait=False, arguments={}):
             self.ticket = ticket
             self.destination = destination
             self.source = source
@@ -635,7 +635,7 @@ class exchange (object):
         id = (40, 40)
         __slots__ = ['ticket', 'destination', 'source', 'routing_key', 'nowait', 'arguments']
 
-        def __init__ (self, ticket=0, destination=None, source=None, routing_key=u'', nowait=False, arguments={}):
+        def __init__ (self, ticket=0, destination=None, source=None, routing_key='', nowait=False, arguments={}):
             self.ticket = ticket
             self.destination = destination
             self.source = source
@@ -697,7 +697,7 @@ class queue (object):
         id = (50, 10)
         __slots__ = ['ticket', 'queue', 'passive', 'durable', 'exclusive', 'auto_delete', 'nowait', 'arguments']
 
-        def __init__ (self, ticket=0, queue=u'', passive=False, durable=False, exclusive=False, auto_delete=False, nowait=False, arguments={}):
+        def __init__ (self, ticket=0, queue='', passive=False, durable=False, exclusive=False, auto_delete=False, nowait=False, arguments={}):
             self.ticket = ticket
             self.queue = queue
             self.passive = passive
@@ -765,7 +765,7 @@ class queue (object):
         id = (50, 20)
         __slots__ = ['ticket', 'queue', 'exchange', 'routing_key', 'nowait', 'arguments']
 
-        def __init__ (self, ticket=0, queue=u'', exchange=None, routing_key=u'', nowait=False, arguments={}):
+        def __init__ (self, ticket=0, queue='', exchange=None, routing_key='', nowait=False, arguments={}):
             self.ticket = ticket
             self.queue = queue
             self.exchange = exchange
@@ -816,7 +816,7 @@ class queue (object):
         id = (50, 30)
         __slots__ = ['ticket', 'queue', 'nowait']
 
-        def __init__ (self, ticket=0, queue=u'', nowait=False):
+        def __init__ (self, ticket=0, queue='', nowait=False):
             self.ticket = ticket
             self.queue = queue
             self.nowait = nowait
@@ -858,7 +858,7 @@ class queue (object):
         id = (50, 40)
         __slots__ = ['ticket', 'queue', 'if_unused', 'if_empty', 'nowait']
 
-        def __init__ (self, ticket=0, queue=u'', if_unused=False, if_empty=False, nowait=False):
+        def __init__ (self, ticket=0, queue='', if_unused=False, if_empty=False, nowait=False):
             self.ticket = ticket
             self.queue = queue
             self.if_unused = if_unused
@@ -908,7 +908,7 @@ class queue (object):
         id = (50, 50)
         __slots__ = ['ticket', 'queue', 'exchange', 'routing_key', 'arguments']
 
-        def __init__ (self, ticket=0, queue=u'', exchange=None, routing_key=u'', arguments={}):
+        def __init__ (self, ticket=0, queue='', exchange=None, routing_key='', arguments={}):
             self.ticket = ticket
             self.queue = queue
             self.exchange = exchange
@@ -1040,7 +1040,7 @@ class basic (object):
         id = (60, 20)
         __slots__ = ['ticket', 'queue', 'consumer_tag', 'no_local', 'no_ack', 'exclusive', 'nowait', 'arguments']
 
-        def __init__ (self, ticket=0, queue=u'', consumer_tag=u'', no_local=False, no_ack=False, exclusive=False, nowait=False, arguments={}):
+        def __init__ (self, ticket=0, queue='', consumer_tag='', no_local=False, no_ack=False, exclusive=False, nowait=False, arguments={}):
             self.ticket = ticket
             self.queue = queue
             self.consumer_tag = consumer_tag
@@ -1140,7 +1140,7 @@ class basic (object):
         id = (60, 40)
         __slots__ = ['ticket', 'exchange', 'routing_key', 'mandatory', 'immediate']
 
-        def __init__ (self, ticket=0, exchange=u'', routing_key=u'', mandatory=False, immediate=False):
+        def __init__ (self, ticket=0, exchange='', routing_key='', mandatory=False, immediate=False):
             self.ticket = ticket
             self.exchange = exchange
             self.routing_key = routing_key
@@ -1173,7 +1173,7 @@ class basic (object):
         id = (60, 50)
         __slots__ = ['reply_code', 'reply_text', 'exchange', 'routing_key']
 
-        def __init__ (self, reply_code=None, reply_text=u'', exchange=None, routing_key=None):
+        def __init__ (self, reply_code=None, reply_text='', exchange=None, routing_key=None):
             self.reply_code = reply_code
             self.reply_text = reply_text
             self.exchange = exchange
@@ -1231,7 +1231,7 @@ class basic (object):
         id = (60, 70)
         __slots__ = ['ticket', 'queue', 'no_ack']
 
-        def __init__ (self, ticket=0, queue=u'', no_ack=False):
+        def __init__ (self, ticket=0, queue='', no_ack=False):
             self.ticket = ticket
             self.queue = queue
             self.no_ack = no_ack
@@ -1290,7 +1290,7 @@ class basic (object):
         id = (60, 72)
         __slots__ = ['cluster_id']
 
-        def __init__ (self, cluster_id=u''):
+        def __init__ (self, cluster_id=''):
             self.cluster_id = cluster_id
 
         def unpack (self, data, pos):
