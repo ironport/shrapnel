@@ -57,8 +57,8 @@ class client:
     buffer_size = 4000
     properties = {
         'product': 'AMQP/shrapnel',
-        'version': '0.5',
-        'information': 'https://github.com/samrushing/amqp-shrapnel',
+        'version': '0.8',
+        'information': 'https://github.com/ironport/shrapnel',
         'capabilities': {
             'publisher_confirms': True,
         }
