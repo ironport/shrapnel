@@ -59,7 +59,23 @@ class Sync:
                     return i
         raise ValueError ("unable to sync: is this an asn1 log file?")
 
-def gen_log (f, limit=10000):
+def await (f):
+    magic = f.read (4)
+    if not magic:
+        pos0 = f.tell()
+        while 1:
+            coro.sleep_relative (1)
+            f.seek (0, 2)
+            pos1 = f.tell()
+            if pos1 > pos0:
+                f.seek (pos0)
+                magic = f.read (4)
+                if len (magic) == 4:
+                    return magic
+    else:
+        return magic
+
+def gen_log (f, limit=10000, follow=False):
     s = Sync()
     s.resync (f, limit)
     while 1:
@@ -73,7 +89,10 @@ def gen_log (f, limit=10000):
             s.resync (f, limit)
             continue
         yield size, timestamp / 1000000.0, info
-        magic = f.read (4)
+        if follow:
+            magic = await (f)
+        else:
+            magic = f.read (4)
         if not magic:
             break
         elif magic != Sync.magic:

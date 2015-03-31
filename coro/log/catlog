@@ -40,7 +40,7 @@ def main (args):
     big = args.big
     fromtimestamp = datetime.datetime.fromtimestamp
     write = sys.stdout.write
-    for size, timestamp, info in gen_log (f):
+    for size, timestamp, info in gen_log (f, follow=args.follow):
         if size < 1000 or args.big:
             info = ' '.join ([repr(frob(x, big)) for x in info])
             iso = fromtimestamp (timestamp).isoformat()
@@ -98,6 +98,7 @@ if __name__ == '__main__':
     p.add_argument ('-b', '--big', action='store_true', help="show large strings", default=False)
     p.add_argument ('file', help="input file", nargs="?", metavar="FILE")
     p.add_argument ('-a', '--ago', help="start this far back from the end (e.g., 1h, 3m, 20d, 2w)")
+    p.add_argument ('-f', '--follow', help="follow the file (like tail -f)", action='store_true')
     args = p.parse_args()
     try:
         main(args)
