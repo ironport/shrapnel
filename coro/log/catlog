@@ -45,6 +45,11 @@ def main (args):
             info = ' '.join ([repr(frob(x, big)) for x in info])
             iso = fromtimestamp (timestamp).isoformat()
             write ('%s %s\n' % (iso, info))
+        elif size >= 1000:
+            iso = fromtimestamp (timestamp).isoformat()
+            write ('%s <large log entry>\n' % (iso,))
+        else:
+            pass
 
 import re
 
