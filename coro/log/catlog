@@ -13,7 +13,8 @@ def is_binary (ob):
     if type(ob) is not bytes:
         return False
     else:
-        return '\x00' in ob
+        # any high bits set in the first 10 bytes.
+        return any (ord(x) & 0x80 for x in ob[:10])
 
 # the 'repr' module does size restrictions,
 #  but not limit-to-printable.  need.
@@ -21,7 +22,7 @@ def frob (ob, big):
     if type(ob) is bytes:
         if is_binary (ob):
             if len(ob) < 500 or big:
-                return ob.encode ('hex')
+                return '<' + ob.encode ('hex') + '>'
             else:
                 return '<large>'
         return ob
