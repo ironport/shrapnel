@@ -112,7 +112,7 @@ OpenSSL_Extension = Extension (
 
 setup (
     name='coro',
-    version='1.0.3-000',
+    version='1.0.4-000',
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
