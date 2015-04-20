@@ -551,7 +551,7 @@ class postgres_client:
 
         if self.ssl_context:
             self.send_packet (PG_SSLREQUEST_MSG, 80877103)
-            msg = self._socket.recv_exact (1) # not a normal packet?
+            msg = self._socket.recv_exact (1)  # not a normal packet?
             if msg == 'S':
                 # willing
                 import coro.ssl
@@ -1483,7 +1483,7 @@ def sleep(x):
 def test_ssl():
     import coro.ssl.openssl
     ctx = coro.ssl.openssl.ssl_ctx()
-    db = postgres_client ('mydb', 'myuser', 'mypass', ('192.168.1.99', 5432), ssl_context = ctx)
+    db = postgres_client ('mydb', 'myuser', 'mypass', ('192.168.1.99', 5432), ssl_context=ctx)
     return db
 
 def test_concurrent_dbm(tries):
