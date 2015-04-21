@@ -4,6 +4,7 @@ build/
 # Generated and compiled files
 coro/_coro.[ch]
 coro/oserrors.[ch]
+coro/asn1/python.c
 coro/clocks/tsc_time.c
 coro/dns/packet.c
 coro/event_queue.cpp
@@ -11,4 +12,4 @@ coro/event_queue.cpp
 *.so
 coro.egg-info
 dist
-distribute-*
+setuptools-*

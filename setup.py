@@ -4,7 +4,7 @@ import sys
 import glob
 import os
 
-from distribute_setup import use_setuptools
+from ez_setup import use_setuptools
 use_setuptools()
 from setuptools import setup, find_packages
 
@@ -84,6 +84,11 @@ compile_time_env = {
 
 ossl_base = '/usr'
 
+# Since openssl is deprecated on MacOSX 10.7+, look for homebrew installs
+homebrew_ossl_base = '/usr/local/opt/openssl'
+if os.uname()[0] == 'Darwin' and os.path.exists(homebrew_ossl_base):
+    ossl_base = homebrew_ossl_base
+
 def O (path):
     return os.path.join (ossl_base, path)
 
@@ -112,7 +117,7 @@ OpenSSL_Extension = Extension (
 
 setup (
     name='coro',
-    version='1.0.4-000',
+    version='1.0.4',
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
@@ -183,7 +188,7 @@ setup (
     packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
     scripts=['coro/log/catlog'],
-    download_url = 'http://github.com/ironport/shrapnel/tarball/master#egg=coro-1.0.2',
-    install_requires = ['cython>=0.12.1', 'distribute>=0.6.16', 'pycrypto'],
+    download_url = 'https://pypi.python.org/pypi?name=coro',
+    install_requires = ['cython>=0.20.1', 'pycrypto'],
     cmdclass={'build_ext': build_ext},
 )

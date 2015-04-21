@@ -1,0 +1,9 @@
+include INSTALL
+include LICENSE
+include README.rst
+include .gitignore
+include ez_setup.py
+recursive-include include *.h
+recursive-include coro *.pxd *.pxi *.pyx
+recursive-include pyrex *.pxd *.pxi *.pyx
+recursive-include test/build test_*.c
