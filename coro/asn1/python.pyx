@@ -24,8 +24,6 @@ class DecodingError (Exception):
 # NOTE: a streaming codec would be nice, but we would probably need to redo coro.asn1.ber
 #   to achieve it.
 
-# TODO: float/double - we'll probably use the same ASCII encoding that pickle uses.
-
 cpdef encode (object ob):
     "BER-encode (int|long|bytes|bool|list|tuple|dict|set)*"
     if type(ob) is int:
