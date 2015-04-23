@@ -498,10 +498,13 @@ cdef object decode_raw (unsigned char * s, long * pos, long length):
 
 cdef object decode_bitstring (unsigned char * s, long * pos, long length):
     # caller guarantees sufficient data in <s>
-    unused = <int>s[pos[0]]
-    result = PyBytes_FromStringAndSize (<char *> (s+(pos[0]+1)), length-1)
-    pos[0] = pos[0] + length
-    return unused, result
+    if length > 0:
+        unused = <int>s[pos[0]]
+        result = PyBytes_FromStringAndSize (<char *> (s+(pos[0]+1)), length-1)
+        pos[0] = pos[0] + length
+        return unused, result
+    else:
+        return 0, b''
 
 cdef object decode_integer (unsigned char * s, long * pos, long length):
     cdef long n
