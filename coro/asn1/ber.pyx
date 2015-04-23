@@ -578,11 +578,14 @@ cdef object decode_objid (unsigned char * s, long * pos, long length):
     return r
 
 cdef object decode_boolean (unsigned char * s, long * pos, long length):
-    pos[0] = pos[0] + 1
-    if s[pos[0]-1] == 0xff:
-        return True
+    if length == 0:
+        return False:
     else:
-        return False
+        pos[0] += 1
+        if s[pos[0]-1] == 0xff:
+            return True
+        else:
+            return False
 
 cdef long _decode_length (unsigned char * s, long * pos, long lol) except? -1:
     # actually supports only up to 32-bit lengths
