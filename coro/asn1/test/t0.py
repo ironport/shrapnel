@@ -137,6 +137,24 @@ class bignum_test_3 (ber_test_case):
         print n
         self.assertEquals (decode (INTEGER (n))[0], n)
 
+class zero_length_tests (ber_test_case):
+
+    # tests for Issue #71.
+    def runTest (self):
+        self.assertEquals (
+            # zero-length boolean
+            decode (SEQUENCE ('\x01\x00', INTEGER (3141))),
+            ([False, 3141], 8)
+        )
+        self.assertEquals (
+            # zero-length bitstring
+            decode (SEQUENCE ('\x03\x00', INTEGER (3141))),
+            ([('bitstring', (0, '')), 3141], 8)
+        )
+        # zero-length OBJID
+        with self.assertRaises (InsufficientData):
+            decode ('\x06\x00')
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest (simple_test())
@@ -144,6 +162,7 @@ def suite():
     suite.addTest (bignum_test())
     suite.addTest (bignum_test_2())
     suite.addTest (bignum_test_3())
+    suite.addTest (zero_length_tests())
     return suite
 
 if __name__ == '__main__':

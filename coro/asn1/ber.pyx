@@ -561,25 +561,28 @@ cdef object decode_structured (unsigned char * s, long * pos, long length):
 cdef object decode_objid (unsigned char * s, long * pos, long length):
     cdef long i, m, n, hi, lo
     cdef list r
-    m = s[pos[0]]
-    # first * 40 + second
-    r = [m // 40, m % 40]
-    n = 0
-    pos[0] = pos[0] + 1
-    for i from 1 <= i < length:
+    if length == 0:
+        raise InsufficientData (pos[0])
+    else:
         m = s[pos[0]]
-        hi = m & 0x80
-        lo = m & 0x7f
-        n = (n << 7) | lo
-        if not hi:
-            r.append (n)
-            n = 0
+        # first * 40 + second
+        r = [m // 40, m % 40]
+        n = 0
         pos[0] = pos[0] + 1
-    return r
+        for i from 1 <= i < length:
+            m = s[pos[0]]
+            hi = m & 0x80
+            lo = m & 0x7f
+            n = (n << 7) | lo
+            if not hi:
+                r.append (n)
+                n = 0
+            pos[0] = pos[0] + 1
+        return r
 
 cdef object decode_boolean (unsigned char * s, long * pos, long length):
     if length == 0:
-        return False:
+        return False
     else:
         pos[0] += 1
         if s[pos[0]-1] == 0xff:
