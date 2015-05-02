@@ -211,6 +211,29 @@ cdef class pkey:
             finally:
                 EVP_PKEY_CTX_free (ctx)
 
+    def decrypt (self, bytes iblock):
+        cdef size_t outlen = 0
+        cdef bytes oblock
+        cdef EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new (self.pkey, NULL)
+        if ctx is NULL:
+            raise_ssl_error()
+        else:
+            try:
+                if EVP_PKEY_decrypt_init (ctx) != 1:
+                    raise_ssl_error()
+                else:
+                    if EVP_PKEY_decrypt (ctx, NULL, &outlen, iblock, len(iblock)) != 1:
+                        raise_ssl_error()
+                    else:
+                        oblock = PyBytes_FromStringAndSize (NULL, outlen)
+                        if EVP_PKEY_decrypt (ctx, oblock, &outlen, iblock, len(iblock)) != 1:
+                            raise_ssl_error()
+                        else:
+                            return oblock
+            finally:
+                EVP_PKEY_CTX_free (ctx)
+
+
 # compatibility
 def read_pem_key (pem, pwd):
     return pkey (pem, pwd, True)

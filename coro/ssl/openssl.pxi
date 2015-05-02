@@ -160,6 +160,8 @@ cdef extern from "openssl/evp.h":
     void EVP_PKEY_CTX_free (EVP_PKEY_CTX *)
     int  EVP_PKEY_encrypt_init         (EVP_PKEY_CTX *)
     int  EVP_PKEY_encrypt              (EVP_PKEY_CTX *, unsigned char *, size_t *, const unsigned char *, size_t)
+    int  EVP_PKEY_decrypt_init         (EVP_PKEY_CTX *)
+    int  EVP_PKEY_decrypt              (EVP_PKEY_CTX *, unsigned char *, size_t *, const unsigned char *, size_t)
 
 cdef extern from "openssl/ec.h":
     ctypedef struct EC_KEY
