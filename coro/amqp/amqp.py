@@ -463,7 +463,10 @@ class channel:
         self.consumers[con.tag] = con
 
     def forget_consumer (self, tag):
-        del self.consumers[tag]
+        try:
+            del self.consumers[tag]
+        except KeyError:
+            pass
 
     def notify_consumers_of_close (self):
         for _, con in self.consumers.iteritems():
