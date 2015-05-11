@@ -87,6 +87,8 @@ class client:
         self.inflight = coro.semaphore (inflight)
         if conn is None:
             self.conn = coro.tcp_sock()
+        else:
+            self.conn = conn
         self.conn.connect ((host, port))
         self.stream = coro.read_stream.sock_stream (self.conn)
         self.pending = coro.fifo()
