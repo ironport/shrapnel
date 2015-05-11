@@ -1438,6 +1438,8 @@ class SSL_OP:
     NO_SSLv2      = SSL_OP_NO_SSLv2
     NO_SSLv3      = SSL_OP_NO_SSLv3
     NO_TLSv1      = SSL_OP_NO_TLSv1
+    NO_TLSv1_1    = SSL_OP_NO_TLSv1_1
+    NO_TLSv1_2    = SSL_OP_NO_TLSv1_2
     SINGLE_DH_USE = SSL_OP_SINGLE_DH_USE
 
 class SSL_VERIFY:

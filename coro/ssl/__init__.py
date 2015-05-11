@@ -7,6 +7,7 @@ ssl_op_map = {
     "sslv2": openssl.SSL_OP.NO_SSLv3 | openssl.SSL_OP.NO_TLSv1,
     "sslv3": openssl.SSL_OP.NO_SSLv2 | openssl.SSL_OP.NO_TLSv1,
     "tlsv1": openssl.SSL_OP.NO_SSLv2 | openssl.SSL_OP.NO_SSLv3,
+    "tlsv2": openssl.SSL_OP.NO_TLSv1 | openssl.SSL_OP.NO_TLSv1_1 | openssl.SSL_OP.NO_SSLv2,
     "sslv2sslv3": openssl.SSL_OP.NO_TLSv1,
     "sslv3tlsv1": openssl.SSL_OP.NO_SSLv2,
     "sslv2sslv3tlsv1": 0
