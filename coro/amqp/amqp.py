@@ -67,12 +67,13 @@ class client:
     # whether to log protocol-level info.
     debug = False
 
-    def __init__ (self, auth, host, port=5672, virtual_host='/', heartbeat=0):
+    def __init__ (self, auth, host, port=5672, virtual_host='/', heartbeat=0, tls_ctx=None):
         self.port = port
         self.host = host
         self.auth = auth
         self.virtual_host = virtual_host
         self.heartbeat = heartbeat
+        self.tls_ctx = tls_ctx
         self.frame_state = 0
         self.frames = coro.fifo()
         # collect body parts here.  heh.
@@ -99,8 +100,14 @@ class client:
 
     def go (self):
         "Connect to the server.  Spawns a new thread to monitor the connection."
-        self.s = coro.tcp_sock()
-        self.s.connect ((self.host, self.port))
+        if self.tls_ctx:
+            self.s = coro.ssl.sock (self.tls_ctx)
+        else:
+            self.s = coro.tcp_sock()
+        try:
+            self.s.connect ((self.host, self.port))
+        except:
+            LOG.exc()
         self.s.send ('AMQP' + struct.pack ('>BBBB', *self.version))
         self.buffer = self.s.recv (self.buffer_size)
         if self.buffer.startswith ('AMQP'):
