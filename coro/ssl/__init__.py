@@ -138,6 +138,8 @@ class sock (coro.sock):
     def close (self):
         try:
             self.shutdown()
+        except openssl.Error:
+            pass
         finally:
             coro.sock.close (self)
 
