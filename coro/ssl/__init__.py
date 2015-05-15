@@ -137,8 +137,8 @@ class sock (coro.sock):
 
     def close (self):
         try:
-            self.shutdown()
-        except openssl.Error:
+            coro.with_timeout (1, self.shutdown)
+        except (openssl.Error, coro.TimeoutError):
             pass
         finally:
             coro.sock.close (self)
