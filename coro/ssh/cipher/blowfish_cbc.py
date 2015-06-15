@@ -38,7 +38,7 @@ class Blowfish_CBC(SSH_Cipher_Method):
     def encrypt(self, data):
         return self.cipher.encrypt(data)
 
-    def descrypt(self, data):
+    def decrypt(self, data):
         return self.cipher.decrypt(data)
 
     def set_encryption_key_and_iv(self, key, IV):
