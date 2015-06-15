@@ -79,10 +79,24 @@ class Connection_Service(SSH_Service):
         self.local_channels[channel.channel_id] = channel
 
     def msg_global_request(self, pkt):
-        # XXX: finish this (it's a server thing)
         data, offset = ssh_packet.unpack_payload_get_offset(SSH_MSG_GLOBAL_REQUEST_PAYLOAD, pkt)
-        msg, request_name, want_reply = data
-        raise NotImplementedError
+        _, request_name, want_reply = data
+        self.transport.debug.write (
+            ssh_debug.DEBUG_3,
+            'global_request: request_name=%r want_reply=%r pkt=%r', (request_name, want_reply, pkt)
+        )
+        # Note: GLOBAL_REQUEST is a general mechanism, previously raising NotImplementedError here.
+        # https://github.com/openssh/openssh-portable/blob/master/PROTOCOL
+        if request_name == 'hostkeys-00@openssh.com':
+            #  XXX this needs a proper implementation.
+            self.transport.debug.write (ssh_debug.WARNING, 'ignoring hostkeys-00@openssh.com')
+            if want_reply:
+                self.transport.send (SSH_MSG_GLOBAL_REQUEST_FAILURE_PAYLOAD, (SSH_MSG_GLOBAL_REQUEST_FAILURE,))
+            else:
+                self.transport.send (SSH_MSG_GLOBAL_REQUEST_SUCCESS_PAYLOAD, (SSH_MSG_GLOBAL_REQUEST_SUCCESS,))
+        else:
+            # fail all other requests
+            self.transport.send (SSH_MSG_GLOBAL_REQUEST_FAILURE_PAYLOAD, (SSH_MSG_GLOBAL_REQUEST_FAILURE,))
 
     def msg_channel_window_adjust(self, pkt):
         msg, channel_id, bytes_to_add = ssh_packet.unpack_payload(SSH_MSG_CHANNEL_WINDOW_ADJUST_PAYLOAD, pkt)
