@@ -43,7 +43,9 @@ from coro.ssh.keys.dss import SSH_DSS
 from coro.ssh.keys.rsa import SSH_RSA
 from coro.ssh.cipher.des3_cbc import Triple_DES_CBC
 from coro.ssh.cipher.blowfish_cbc import Blowfish_CBC
+from coro.ssh.cipher.aes256_ctr import AES256_CTR
 from coro.ssh.mac.hmac_sha1 import HMAC_SHA1
+from coro.ssh.mac.hmac_sha256 import HMAC_SHA256
 from coro.ssh.mac.hmac_md5 import HMAC_MD5
 from coro.ssh.mac.none import MAC_None
 from coro.ssh.cipher.none import Cipher_None
@@ -51,6 +53,10 @@ from coro.ssh.compression.none import Compression_None
 from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
 
 from coro import write_stderr as W
+
+from coro.log import Facility
+
+LOG = Facility ('ssh.transport')
 
 class SSH_Transport:
 
@@ -168,6 +174,7 @@ class SSH_Transport:
         """disconnect(self) -> None
         Closes the connection.
         """
+        self.debug.write(ssh_debug.DEBUG_3, 'disconnect')
         if not self.closed:
             self.stop_receive_thread()
             self.closed = True
@@ -208,6 +215,7 @@ class SSH_Transport:
                 self._send_packet(data)
             except:
                 # Any error is fatal.
+                LOG.exc()
                 self.disconnect()
                 raise
         finally:
@@ -306,6 +314,7 @@ class SSH_Transport:
             except Stop_Receiving_Exception:
                 break
             except:
+                LOG.exc()
                 exc_type, exc_data, exc_tb = sys.exc_info()
                 break
             if self.ignore_first_packet:
@@ -324,6 +333,7 @@ class SSH_Transport:
             except Stop_Receiving_Exception:
                 break
             except:
+                LOG.exc()
                 exc_type, exc_data, exc_tb = sys.exc_info()
                 break
             # XXX: We should check here for SSH_MSG_KEXINIT.
@@ -724,13 +734,17 @@ class One_Way_SSH_Transport:
         self.supported_key_exchanges = [Diffie_Hellman_Group1_SHA1(transport)]
         self.supported_server_keys = [SSH_DSS(), SSH_RSA()]
         self.supported_compressions = [Compression_None()]
-        self.supported_ciphers = [Triple_DES_CBC(),
-                                  Blowfish_CBC(),
-                                  Cipher_None(),
-                                  ]
-        self.supported_macs = [HMAC_SHA1(),
-                               MAC_None(),
-                               ]
+        self.supported_ciphers = [
+            AES256_CTR(),
+            Triple_DES_CBC(),
+            Blowfish_CBC(),
+            Cipher_None(),
+        ]
+        self.supported_macs = [
+            HMAC_SHA1(),
+            HMAC_SHA256(),
+            MAC_None(),
+        ]
         self.supported_languages = []
 
         self.set_none()
