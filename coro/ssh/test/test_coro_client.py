@@ -18,11 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# NOTE: THIS DOES NOT WORK.
-# There is a problem with reading from stdin via kqueue.
-# I'm not sure (yet) what exactly is wrong.
-#
-# SMR 2013: seems to kinda work on OSX
 
 import coro.ssh.transport.client
 import coro.ssh.connection.connect
@@ -38,8 +33,7 @@ import coro.ssh.util.debug
 import socket
 import coro
 
-def usage():
-    print 'test_coro_client [-l login_name] [-p port] hostname | user@hostname'
+from coro.log import redirect_stderr
 
 def is_ip (s):
     if s.count ('%') == 1:
@@ -80,17 +74,16 @@ def transport_thread(channel):
         try:
             data = channel.read(1024)
             if data:
-                stdout.send (data)
-                # os.write(1, data)
+                stdout.write (data)
         except EOFError:
             break
     coro.set_exit()
 
-def doit (ip, port, username):
+def doit (ip, port, username, debug_level):
     if not is_ip (ip):
         ip = coro.get_resolver().resolve_ipv4 (ip)
     debug = coro.ssh.util.debug.Debug()
-    debug.level = coro.ssh.util.debug.DEBUG_3
+    debug.level = debug_level
     client = coro.ssh.transport.client.SSH_Client_Transport(debug=debug)
     transport = coro.ssh.l4_transport.coro_socket_transport.coro_socket_transport(ip, port=port)
     client.connect(transport)
@@ -111,34 +104,32 @@ def main():
     ip = None
     port = 22
 
-    try:
-        optlist, args = getopt.getopt(sys.argv[1:], 'l:p:')
-    except getopt.GetoptError, why:
-        print str(why)
-        usage()
-        sys.exit(1)
+    import argparse
+    p = argparse.ArgumentParser (description = 'shrapnel ssh demo client')
+    p.add_argument ('-l', '--login', help='login username')
+    p.add_argument ('-p', '--port', type=int, help='server port', default=22)
+    p.add_argument ('-d', '--debug', type=int, help='debug level', default=1) # WARNING
+    p.add_argument ('hostname', help='hostname/address of server')
 
-    for option, value in optlist:
-        if option == '-l':
-            login_username = value
-        elif option == '-p':
-            port = int (value)
+    args = p.parse_args()
 
-    if len(args) != 1:
-        usage()
-        sys.exit(1)
+    login_username = args.login
+    port = args.port
 
-    ip = args[0]
+    ip = args.hostname
     if '@' in ip:
         login_username, ip = ip.split('@', 1)
 
-    coro.spawn(doit, ip, port, login_username)
+    import sys
+    coro.spawn (doit, ip, port, login_username, args.debug)
     try:
         coro.event_loop()
     finally:
         if oldterm:
             termios.tcsetattr(0, termios.TCSAFLUSH, oldterm)
             fcntl.fcntl(0, fcntl.F_SETFL, oldflags)
+        sys.stdout.flush()
+        sys.stdout.close()
 
 if __name__ == '__main__':
     main()
