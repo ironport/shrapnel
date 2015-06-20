@@ -27,11 +27,13 @@
 from coro.ssh.util import packet
 import dss
 import rsa
+import ed25519
 
 # Map of supported key types.
 keytypes = {
     'ssh-dss': dss.SSH_DSS,
     'ssh-rsa': rsa.SSH_RSA,
+    'ssh-ed25519' : ed25519.SSH_ED25519,
 }
 
 class Unknown_Key_Type(Exception):

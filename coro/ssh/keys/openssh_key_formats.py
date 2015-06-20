@@ -51,7 +51,7 @@ ssh1_key = re.compile(
 # The man page for OpenSSH specifies that "ssh-dss" and "ssh-rsa" are the only
 # valid types, but the code actually checks for this list of types.  Let's
 # try to be as flexible as possible.
-KEYTYPE = NAME('keytype', OR('ssh-dss', 'ssh-rsa', 'rsa1', 'rsa', 'dsa'))
+KEYTYPE = NAME('keytype', OR('ssh-dss', 'ssh-rsa', 'rsa1', 'rsa', 'dsa', 'ssh-ed25519'))
 # Not a very exact base64 regex, but should be good enough.
 # OpenSSH seems to ignore spaces anywhere.  Also, this doesn't check for
 # a "partial" or truncated base64 string.

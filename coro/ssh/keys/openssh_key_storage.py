@@ -34,11 +34,13 @@ import re
 import rebuild
 import dss
 import rsa
+import ed25519
 
 from coro.asn1.ber import decode as ber_decode
 from coro.ssh.keys import openssh_key_formats
 from coro.ssh.util import str_xor
 from coro.ssh.util.password import get_password
+from coro.ssh.util.packet import unpack_payload_get_offset, STRING, UINT32
 
 from Crypto.Cipher import DES
 import openssh_known_hosts
@@ -55,7 +57,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
         )
     )
 
-    key_types = ('dsa', 'rsa')
+    key_types = ('dsa', 'rsa', 'ed25519', 'openssh')
 
     def get_private_key_filenames(self, username, private_key_filename):
         """get_private_key_filenames(self, username, private_key_filename) -> [filename, ...]
@@ -188,12 +190,16 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
         # keydata is BER-encoded
         data = private_key.split('\n')
         self._strip_empty_surrounding_lines(data)
+
         for key_type in self.key_types:
             if (data[0] == '-----BEGIN %s PRIVATE KEY-----' % (key_type.upper(),) and
                     data[-1] == '-----END %s PRIVATE KEY-----' % (key_type.upper(),)):
                 break
         else:
             raise ValueError('Corrupt key header/footer format: %s %s' % (data[0], data[-1]))
+
+        if key_type == 'openssh':
+            return self.parse_openssh_key_v1 (data)
 
         key_data = []
         # XXX: Does not support multiple headers with the same name.
@@ -277,6 +283,41 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
         return key_obj
 
     parse_private_key = classmethod(parse_private_key)
+
+    def parse_openssh_key_v1 (self, data):
+        data = binascii.a2b_base64 (''.join (data[1:-1]))
+        magic = 'openssh-key-v1\x00'
+        assert data.startswith (magic)
+        info, offset = unpack_payload_get_offset ((STRING, STRING, STRING, UINT32), data, len(magic))
+        (ciphername, kdfname, kdfoptions, nkeys) = info
+        pkeys = []
+        assert nkeys >= 1
+        for i in range (nkeys):
+            (pkey,), offset = unpack_payload_get_offset ((STRING,), data, offset)
+            pkeys.append (pkey)
+        # This doesn't appear to match exactly the info in PROTOCOL.key,
+        #  I've basically winged it here.  This may only work for ed25519 keys.
+        #  The private key format seems to have 3 copies of the pkey for each skey.
+        if ciphername == 'none' and kdfname == 'none':
+            mystery_number, offset = unpack_payload_get_offset ((UINT32,), data, offset)
+            checkints, offset = unpack_payload_get_offset ((UINT32, UINT32), data, offset)
+            skeys = []
+            for i in range (nkeys):
+                (comment, pkey, skey), offset = unpack_payload_get_offset ((STRING, STRING, STRING), data, offset)
+                skeys.append (skey)
+        else:
+            raise NotImplementedError ("openssh key v1 decryption TBD")
+        # XXX warn if nkeys > 1
+        pkey0 = pkeys[0]
+        skey0 = skeys[0]
+        (key_type,), _ = unpack_payload_get_offset ((STRING,), pkey0)
+        key_obj = keytype_map[key_type]()
+        key_obj.set_private_key (skey0)
+        # this is probably redundant given the skey format.
+        key_obj.set_public_key (pkey0)
+        return key_obj
+
+    parse_openssh_key_v1 = classmethod (parse_openssh_key_v1)
 
     def ask_for_passphrase():
         return get_password('Enter passphrase> ')
@@ -386,13 +427,15 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
     update_known_hosts = staticmethod(update_known_hosts)
 
 
-keytype_map = {'ssh-dss': dss.SSH_DSS,
-               'dss': dss.SSH_DSS,
-               'dsa': dss.SSH_DSS,
-               'ssh-rsa': rsa.SSH_RSA,
-               'rsa': rsa.SSH_RSA,
-               #               'rsa1': None
-               }
+keytype_map = {
+    'ssh-dss': dss.SSH_DSS,
+    'dss': dss.SSH_DSS,
+    'dsa': dss.SSH_DSS,
+    'ssh-rsa': rsa.SSH_RSA,
+    'rsa': rsa.SSH_RSA,
+    'ssh-ed25519' : ed25519.SSH_ED25519,
+    #'rsa1': None
+}
 
 import unittest
 

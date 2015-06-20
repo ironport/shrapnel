@@ -52,10 +52,11 @@ import errno
 import os
 import re
 
-from coro.ssh.keys import dss, rsa
+from coro.ssh.keys import dss, rsa, ed25519
 from coro.ssh.keys import openssh_key_formats
 from coro.ssh.keys.key_storage import Host_Key_Changed_Error
 from coro.ssh.keys.remote_host import IPv4_Remote_Host_ID
+
 
 class OpenSSH_Known_Hosts:
 
@@ -250,6 +251,8 @@ class OpenSSH_Known_Hosts:
                                 key_obj = dss.SSH_DSS()
                             elif public_host_key.name == 'ssh-rsa':
                                 key_obj = dss.SSH_RSA()
+                            elif public_host_key.name == 'ssh-ed25519':
+                                key_obj = ed25519.SSH_ED25519()
                             else:
                                 # This should never happen.
                                 raise ValueError(public_host_key.name)

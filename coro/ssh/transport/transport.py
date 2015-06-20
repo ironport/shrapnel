@@ -39,8 +39,10 @@ from coro.ssh.transport import SSH_Protocol_Error
 
 from coro.ssh.transport.constants import *
 from coro.ssh.key_exchange.diffie_hellman import Diffie_Hellman_Group1_SHA1
+from coro.ssh.key_exchange.ecdh import ECDH_CURVE25519
 from coro.ssh.keys.dss import SSH_DSS
 from coro.ssh.keys.rsa import SSH_RSA
+from coro.ssh.keys.ed25519 import SSH_ED25519
 from coro.ssh.cipher.des3_cbc import Triple_DES_CBC
 from coro.ssh.cipher.blowfish_cbc import Blowfish_CBC
 from coro.ssh.cipher.aes256_ctr import AES256_CTR
@@ -731,8 +733,15 @@ class One_Way_SSH_Transport:
         # Instantiate all components.
         # An assumption is made that the first (preferred) key exchange algorithm
         # supports the first (preferred) server key type.
-        self.supported_key_exchanges = [Diffie_Hellman_Group1_SHA1(transport)]
-        self.supported_server_keys = [SSH_DSS(), SSH_RSA()]
+        self.supported_key_exchanges = [
+            ECDH_CURVE25519 (transport),
+            Diffie_Hellman_Group1_SHA1(transport),
+        ]
+        self.supported_server_keys = [
+            SSH_ED25519(),
+            SSH_DSS(),
+            SSH_RSA()
+        ]
         self.supported_compressions = [Compression_None()]
         self.supported_ciphers = [
             AES256_CTR(),
@@ -746,7 +755,6 @@ class One_Way_SSH_Transport:
             MAC_None(),
         ]
         self.supported_languages = []
-
         self.set_none()
 
     def inc_packet_sequence_number(self):
