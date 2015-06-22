@@ -614,16 +614,18 @@ class SSH_Transport:
                             continue
                         else:
                             # This meets our requirements.
+                            self.remote2self.server_key = server_server_key_type
                             break
                 else:
                     # None of the server key types worked.
                     self.send_disconnect(
                         SSH_DISCONNECT_KEY_EXCHANGE_FAILED,
-                        'Could not find matching server key type for %s key exchange.' %
-                        self.remote2self.key_exchange.name)
-            self.debug.write (ssh_debug.DEBUG_3, 'msg_kexinit: set_key_exchange: %r' %
-                              (self.remote2self.server_key.name,))
-            self.set_key_exchange(self.remote2self.key_exchange.name, self.remote2self.server_key.name)
+                        'Could not find matching server key type for %s key exchange.' % self.remote2self.key_exchange.name
+                    )
+            self.debug.write (
+                ssh_debug.DEBUG_3, 'msg_kexinit: set_key_exchange: %s/%s' % (self.remote2self.key_exchange.name, self.remote2self.server_key.name)
+            )
+            self.set_key_exchange (self.remote2self.key_exchange.name, self.remote2self.server_key.name)
 
     def set_key_exchange(self, key_exchange=None, server_host_key_type=None):
         """set_key_exchange(self, key_exchange=None, server_host_key_type=None) -> None
@@ -673,26 +675,24 @@ class SSH_Transport:
         Separate function to help with unittests.
         """
         cookie = random.get_random_data(16)
-        server_keys = [x.name for x in self.self2remote.supported_server_keys]
-        server_keys.reverse()
-        packet = ssh_packet.pack_payload(ssh_packet.PAYLOAD_MSG_KEXINIT,
-                                         (SSH_MSG_KEXINIT,
-                                          cookie,
-                                          [x.name for x in self.self2remote.supported_key_exchanges],
-                                             # [x.name for x in self.self2remote.supported_server_keys],
-                                             server_keys,
-                                             [x.name for x in self.c2s.supported_ciphers],
-                                             [x.name for x in self.s2c.supported_ciphers],
-                                             [x.name for x in self.c2s.supported_macs],
-                                             [x.name for x in self.s2c.supported_macs],
-                                             [x.name for x in self.c2s.supported_compressions],
-                                             [x.name for x in self.s2c.supported_compressions],
-                                             [x.name for x in self.c2s.supported_languages],
-                                             [x.name for x in self.s2c.supported_languages],
-                                             self.self2remote.proactive_kex,  # first_kex_packet_follows
-                                             0  # reserved
-                                          )
-                                         )
+        packet = ssh_packet.pack_payload (
+            ssh_packet.PAYLOAD_MSG_KEXINIT, (
+                SSH_MSG_KEXINIT,
+                cookie,
+                [x.name for x in self.self2remote.supported_key_exchanges],
+                [x.name for x in self.self2remote.supported_server_keys],
+                [x.name for x in self.c2s.supported_ciphers],
+                [x.name for x in self.s2c.supported_ciphers],
+                [x.name for x in self.c2s.supported_macs],
+                [x.name for x in self.s2c.supported_macs],
+                [x.name for x in self.c2s.supported_compressions],
+                [x.name for x in self.s2c.supported_compressions],
+                [x.name for x in self.c2s.supported_languages],
+                [x.name for x in self.s2c.supported_languages],
+                self.self2remote.proactive_kex,  # first_kex_packet_follows
+                0  # reserved
+            )
+        )
         self.self2remote.kexinit_packet = packet
         return packet
 
