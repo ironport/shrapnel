@@ -4,7 +4,7 @@
 
 # http://www.openssh.com/txt/rfc5656.txt
 
-# note: for now, only ed25519
+# note: for now, only curve25519
 
 import hashlib
 
@@ -17,7 +17,7 @@ from coro.ssh.util import random as ssh_random
 from coro.ssh.key_exchange import SSH_Key_Exchange
 from coro.ssh.transport import constants
 from coro.ssh.keys import parse_public_key
-from coro.ssh.crypto import ed25519, curve25519
+from coro.ssh.crypto import curve25519
 
 from coro.ssh.util.mpint import pack_mpint
 
@@ -31,7 +31,7 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
     name = 'curve25519-sha256@libssh.org'
 
     wants_signature_host_key = 1
-    wants_encryption_host_key = 1
+    wants_encryption_host_key = 0
 
     def get_initial_client_kex_packet(self):
         self.transport.debug.write(ssh_debug.DEBUG_3, 'get_initial_kex_packet()')
@@ -64,21 +64,11 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
         # string    signature of H
         _, k_s, q_s, sig_h = unpack_payload (KEX_ECDH_REPLY_PAYLOAD, packet)
 
-        # Verify that server public key length is 32 bytes.
         self.server_public_host_key = parse_public_key (k_s)
-        assert (len (self.server_public_host_key.public_key) == 32)
-
-        # Verify host keys belong to server.
         self.transport.verify_public_host_key (self.server_public_host_key)
-
-        self.transport.debug.write (ssh_debug.DEBUG_3, 'public_key: %s', self.server_public_host_key.public_key.encode ('hex'))
-
-        # Compute shared secret.
         shared_secret = curve25519.curve25519 (self.secret_key, q_s)
         # note: endian reversal.
         self.shared_secret = int (shared_secret.encode ('hex'), 16)
-
-        self.transport.debug.write (ssh_debug.DEBUG_3, 'shared_secret: %s', hex(self.shared_secret))
 
         # Verify hash.
         # string   V_C, client's identification string (CR and LF excluded)
@@ -103,11 +93,7 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
             )
         )
 
-        self.transport.debug.write (ssh_debug.DEBUG_3, 'to_hash: %s', H.encode ('hex'))
-        # Generate exchange hash.
-
         self.exchange_hash = hashlib.sha256(H).digest()
-        self.transport.debug.write (ssh_debug.DEBUG_3, 'exchange hash: %s', self.exchange_hash.encode ('hex'))
 
         if self.session_id is None:
             # The session id is the first exchange hash.
@@ -117,7 +103,7 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
         if not self.server_public_host_key.verify (self.exchange_hash, sig_h):
             self.transport.send_disconnect (
                 constants.SSH_DISCONNECT_KEY_EXCHANGE_FAILED,
-                'Key exchange did not succeed:  Signature did not match.'
+                'Key exchange did not succeed:  Signature did not verify.'
             )
 
 
