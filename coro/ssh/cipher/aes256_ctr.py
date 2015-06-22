@@ -28,7 +28,7 @@ class AES256_CTR (SSH_Cipher_Method):
         return self.cipher.decrypt(data)
 
     def counter (self):
-        r = hex(self.counter_value)[2:-1].decode ('hex')
+        r = ('%032x' % (self.counter_value,)).decode ('hex')
         self.counter_value += 1
         return r
 
