@@ -64,6 +64,8 @@ duration_map = {
 
 def seek (path, f, spec):
     m = spec_re.match (spec)
+    if m is None:
+        raise ValueError ("invalid seek specification: try [0-9]+([hmdw])", spec)
     count, duration = m.groups()
     count = int (count)
     duration = duration_map[duration.lower()]
