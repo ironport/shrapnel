@@ -16,7 +16,7 @@ class S2N:
     TLS12 = 33
 
 cdef extern from "s2n.h":
-    
+
     struct s2n_config
 
     int s2n_errno
@@ -32,9 +32,9 @@ cdef extern from "s2n.h":
     int s2n_config_add_cert_chain_and_key (s2n_config *config, char *cert_chain_pem, char *private_key_pem)
     int s2n_config_add_cert_chain_and_key_with_status (
         s2n_config *config,
-        char *cert_chain_pem, 
-        char *private_key_pem, 
-        const uint8_t *status, 
+        char *cert_chain_pem,
+        char *private_key_pem,
+        const uint8_t *status,
         uint32_t length
     )
     int s2n_config_add_dhparams (s2n_config *config, char *dhparams_pem)
@@ -42,13 +42,13 @@ cdef extern from "s2n.h":
     int s2n_config_set_cipher_preferences (s2n_config *config, const char *version)
     int s2n_config_set_protocol_preferences (s2n_config *config, const char * const *protocols, int protocol_count)
     ctypedef enum s2n_status_request_type:
-        S2N_STATUS_REQUEST_NONE = 0, 
-        S2N_STATUS_REQUEST_OCSP = 1 
+        S2N_STATUS_REQUEST_NONE = 0,
+        S2N_STATUS_REQUEST_OCSP = 1
     int s2n_config_set_status_request_type (s2n_config *config, s2n_status_request_type type)
 
     struct s2n_connection
     ctypedef enum s2n_mode:
-        S2N_SERVER, 
+        S2N_SERVER,
         S2N_CLIENT
     s2n_connection *s2n_connection_new (s2n_mode mode)
     int s2n_connection_set_config (s2n_connection *conn, s2n_config *config)
@@ -107,6 +107,3 @@ cdef class config:
         self.c = s2n_config_new()
         if not self.c:
             raise_s2n_error()
-        
-    
-        
