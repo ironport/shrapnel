@@ -113,6 +113,24 @@ OpenSSL_Extension = Extension (
     include_dirs=[O('include')],
     cython_compile_time_env={'NPN': USE_NPN},
 )
+
+# --------------------------------------------------------------------------
+
+def path_join (*parts):
+    return os.path.join (*parts)
+
+s2n_base = '/Users/rushing/src/s2n/'
+s2n_lib = path_join (s2n_base, 'lib')
+
+s2n_Extension = Extension (
+    'coro.ssl.s2n',
+    ['coro/ssl/s2n/s2n.pyx'],
+    libraries = ['s2n'],
+    #extra_link_args = ['-L', s2n_lib],
+    #include_dirs = [path_join (s2n_base, 'api')],
+    #extra_link_args = ['-L', s2n_lib, '-Wl,-rpath,%s' % (s2n_lib,)],
+    extra_link_args = ['-lgcc_eh'],
+    )
 # --------------------------------------------------------------------------
 
 setup (
@@ -184,6 +202,7 @@ setup (
         ),
         # the pre-computed openssl extension from above
         OpenSSL_Extension,
+        s2n_Extension,
     ],
     packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
