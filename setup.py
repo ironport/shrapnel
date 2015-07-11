@@ -82,7 +82,7 @@ compile_time_env = {
 # OS X: as of 10.9, openssl seems to have been completely removed.  You'll need
 #  to install from the sources.  Once this is done, use '/usr/local/ssl/' for ossl_base.
 
-ossl_base = '/usr'
+ossl_base = '/usr/local/ssl'
 
 # Since openssl is deprecated on MacOSX 10.7+, look for homebrew installs
 homebrew_ossl_base = '/usr/local/opt/openssl'
@@ -105,14 +105,15 @@ OpenSSL_Extension = Extension (
     ['coro/ssl/openssl.pyx'],
     depends=['coro/ssl/openssl.pxi'],
     # manual static link
-    # extra_link_args = [O('libcrypto.a'), O('libssl.a')],
+    #extra_link_args = [O('libcrypto.a'), O('libssl.a')],
     # link to an absolute location
-    # extra_link_args = ['-L %s -lcrypto -lssl' % (ossl_base,)]
+    extra_link_args = ['-L', '%s/lib' % (ossl_base), '-lcrypto', '-lssl'],
     # 'normal' link
-    libraries=['crypto', 'ssl'],
+    #libraries=['crypto', 'ssl'],
     include_dirs=[O('include')],
     cython_compile_time_env={'NPN': USE_NPN},
 )
+
 
 # --------------------------------------------------------------------------
 
@@ -123,13 +124,13 @@ s2n_base = '/Users/rushing/src/s2n/'
 s2n_lib = path_join (s2n_base, 'lib')
 
 s2n_Extension = Extension (
-    'coro.ssl.s2n',
-    ['coro/ssl/s2n/s2n.pyx'],
+    'coro.ssl.s2n._s2n',
+    ['coro/ssl/s2n/_s2n.pyx'],
     libraries = ['s2n'],
     #extra_link_args = ['-L', s2n_lib],
     #include_dirs = [path_join (s2n_base, 'api')],
     #extra_link_args = ['-L', s2n_lib, '-Wl,-rpath,%s' % (s2n_lib,)],
-    extra_link_args = ['-lgcc_eh'],
+    #extra_link_args = ['-lgcc_eh'],
     )
 # --------------------------------------------------------------------------
 
