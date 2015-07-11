@@ -64,6 +64,9 @@ compile_time_env = {
     'CORO_DEBUG': False,
 }
 
+def path_join (*parts):
+    return os.path.join (*parts)
+
 # --------------------------------------------------------------------------
 # OpenSSL support
 # --------------------------------------------------------------------------
@@ -82,12 +85,21 @@ compile_time_env = {
 # OS X: as of 10.9, openssl seems to have been completely removed.  You'll need
 #  to install from the sources.  Once this is done, use '/usr/local/ssl/' for ossl_base.
 
-ossl_base = '/usr/local/ssl'
+ossl_base = '/usr'
 
 # Since openssl is deprecated on MacOSX 10.7+, look for homebrew installs
 homebrew_ossl_base = '/usr/local/opt/openssl'
-if os.uname()[0] == 'Darwin' and os.path.exists(homebrew_ossl_base):
-    ossl_base = homebrew_ossl_base
+standard_ossl_base = '/usr/local/ssl'
+
+if os.uname()[0] == 'Darwin':
+    if os.path.exists (homebrew_ossl_base):
+        ossl_base = homebrew_ossl_base
+    elif os.path.exists (standard_ossl_base):
+        ossl_base = standard_ossl_base
+    else:
+        raise ValueError ("can't find an openssl installation")
+
+# look for generic 'make install' in /usr/local/
 
 def O (path):
     return os.path.join (ossl_base, path)
@@ -107,31 +119,24 @@ OpenSSL_Extension = Extension (
     # manual static link
     #extra_link_args = [O('libcrypto.a'), O('libssl.a')],
     # link to an absolute location
-    extra_link_args = ['-L', '%s/lib' % (ossl_base), '-lcrypto', '-lssl'],
+    #extra_link_args = ['-L', '%s/lib' % (ossl_base), '-lcrypto', '-lssl'],
     # 'normal' link
-    #libraries=['crypto', 'ssl'],
+    libraries=['crypto', 'ssl'],
     include_dirs=[O('include')],
     cython_compile_time_env={'NPN': USE_NPN},
 )
 
 
 # --------------------------------------------------------------------------
-
-def path_join (*parts):
-    return os.path.join (*parts)
-
-s2n_base = '/Users/rushing/src/s2n/'
-s2n_lib = path_join (s2n_base, 'lib')
+# S2N support.
+# --------------------------------------------------------------------------
 
 s2n_Extension = Extension (
     'coro.ssl.s2n._s2n',
     ['coro/ssl/s2n/_s2n.pyx'],
     libraries = ['s2n'],
-    #extra_link_args = ['-L', s2n_lib],
-    #include_dirs = [path_join (s2n_base, 'api')],
-    #extra_link_args = ['-L', s2n_lib, '-Wl,-rpath,%s' % (s2n_lib,)],
-    #extra_link_args = ['-lgcc_eh'],
     )
+
 # --------------------------------------------------------------------------
 
 setup (
