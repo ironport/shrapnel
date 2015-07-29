@@ -24,7 +24,6 @@
 
 cdef object oserrors
 from coro import oserrors
-from xlibc cimport stdarg
 
 from libc cimport string
 from libc cimport errno
@@ -42,9 +41,6 @@ cdef object bool
 bool = __builtin__.bool
 
 cdef extern from "pyrex_helpers.h":
-
-    int     va_int(stdarg.va_list)
-    char *  va_charptr(stdarg.va_list)
 
     object  PySequence_Fast_GET_ITEM_SAFE   (object, int)
 

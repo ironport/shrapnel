@@ -1,8 +1,0 @@
-This directory contains a collection of generic Pyrex include files.
-Do not put any pyrex modules in here.
-
-Note: early in Shrapnel's history, we built our own 'libc.pxd' and 'python.pxi' files
-that eventually made their way into the Pyrex/Cython distribution, and have since been
-split into separate 'packages' (e.g., libc.string.memcpy).  What remains here should
-truly be either platform or shrapnel-specific.
-

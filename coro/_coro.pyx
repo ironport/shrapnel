@@ -137,10 +137,10 @@ IF UNAME_SYSNAME == "FreeBSD":
     cdef int get_sysctl_int (name) except? -1:
         cdef int result
         cdef size_t oldlen
-        oldlen = sizeof (result)
+        oldlen = sizeof (int)
         if sysctlbyname (name, <void*>&result, &oldlen, NULL, 0) == -1:
             raise_oserror()
-        elif oldlen != sizeof (result):
+        elif oldlen != sizeof (int):
             raise SysctlError, "sizeof (sysctl(%s)) != sizeof(int)" % (name,)
         else:
             return result
