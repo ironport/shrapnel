@@ -128,10 +128,8 @@ setup (
             'coro.event_queue',
             ['coro/event_queue.pyx'],
             language='c++',
-            depends=[os.path.join(include_dir, 'pyrex', 'python.pxi'), ],
-            pyrex_include_dirs=[
+            cython_include_dirs=[
                 os.path.join(include_dir, '.'),
-                os.path.join(include_dir, 'pyrex'),
             ],),
         Extension (
             'coro._coro',
@@ -141,22 +139,18 @@ setup (
                 glob.glob('coro/*.pyx') +
                 glob.glob('coro/*.pxi') +
                 glob.glob('coro/*.pxd') + [
-                    os.path.join(include_dir, 'pyrex', 'python.pxi'),
-                    os.path.join(include_dir, 'pyrex', 'pyrex_helpers.pyx'),
                     os.path.join(include_dir, 'include', 'pyrex_helpers.h'),
-                    os.path.join(include_dir, 'pyrex', 'tsc_time_include.pyx'),
                     os.path.join(include_dir, 'include', 'tsc_time.h'),
                 ]
             ),
-            pyrex_include_dirs=[
+            cython_include_dirs=[
                 os.path.join(include_dir, '.'),
-                os.path.join(include_dir, 'pyrex'),
             ],
             include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'include'),
             ],
-            pyrex_compile_time_env=compile_time_env,
+            cython_compile_time_env=compile_time_env,
             # to enable LZO|LZ4 for stack compression, set COMPILE_LZO|COMPILE_LZ4 above
             #   and uncomment one of the following:
             # libraries=['lzo2', 'z']
@@ -176,7 +170,6 @@ setup (
         Extension (
             'coro.clocks.tsc_time',
             ['coro/clocks/tsc_time.pyx', ],
-            pyrex_include_dirs=[os.path.join(include_dir, 'pyrex')],
             include_dirs=[
                 os.path.join(include_dir, '.'),
                 os.path.join(include_dir, 'include'),
@@ -189,6 +182,6 @@ setup (
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
     scripts=['coro/log/catlog'],
     download_url = 'https://pypi.python.org/pypi?name=coro',
-    install_requires = ['cython>=0.20.1', 'pycrypto'],
+    install_requires = ['cython>=0.22', 'pycrypto'],
     cmdclass={'build_ext': build_ext},
 )

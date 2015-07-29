@@ -6,7 +6,7 @@ from cpython.ref cimport PyObject
 from libc.stdint cimport intptr_t, uintptr_t, uint64_t
 from libc.string cimport memcpy, memset
 from posix.unistd cimport off_t
-from xlibc.time cimport timeval
+from posix.time cimport timeval
 
 cdef extern from "Python.h":
 

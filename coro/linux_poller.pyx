@@ -31,7 +31,9 @@ __poller_version__ = "$Id"
 from libc.stdint cimport uint64_t, uint32_t
 from posix cimport unistd
 from libc cimport errno
-from xlibc.stdlib cimport alloca
+
+cdef extern from "stdlib.h":
+    void * alloca (size_t size)
 
 IF COMPILE_LINUX_AIO:
     include "linux_aio.pyx"

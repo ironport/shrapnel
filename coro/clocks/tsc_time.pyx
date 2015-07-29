@@ -194,16 +194,23 @@ TODO
       `relative_tsc_time`.
 """
 
-include "python.pxi"
 include "pyrex_helpers.pyx"
 
 import time
 from libc.stdint cimport uint64_t, int64_t, uint32_t
 from libc.stddef cimport size_t
 from libc.string cimport strlen
-# cython does not have a libc/time.pxd yet
-from xlibc cimport time
 from libc cimport stdlib
+from libc cimport time
+from posix.time cimport gettimeofday, timeval
+
+from cpython.float cimport *
+from cpython.int cimport *
+from cpython.long cimport *
+from cpython.number cimport *
+from cpython.string cimport *
+from cpython.cobject cimport PyCObject_FromVoidPtr
+from cpython.tuple cimport *
 
 cdef extern from "rdtsc.h":
     uint64_t _c_rdtsc "rdtsc" ()
@@ -227,9 +234,9 @@ c_rdtsc = _c_rdtsc
 
 cdef int64_t c_get_kernel_usec():
     global emulation_offset_usec
-    cdef time.timeval tv_now
+    cdef timeval tv_now
 
-    time.gettimeofday(&tv_now, NULL)
+    gettimeofday(&tv_now, NULL)
 
     return ((<int64_t>tv_now.tv_sec) * 1000000 + tv_now.tv_usec) + emulation_offset_usec
 
@@ -446,7 +453,7 @@ def set_time(posix_timestamp):
           current time.  Pass in a value of 0 to disable emulation.
     """
     global emulation_offset_usec, emulation_offset_tsc, c_rdtsc
-    cdef time.timeval tv_now
+    cdef timeval tv_now
     cdef int64_t diff
 
     if posix_timestamp == 0:
@@ -454,7 +461,7 @@ def set_time(posix_timestamp):
         emulation_offset_tsc = 0
         c_rdtsc = _c_rdtsc
     else:
-        time.gettimeofday(&tv_now, NULL)
+        gettimeofday(&tv_now, NULL)
 
         diff = posix_timestamp - tv_now.tv_sec
         emulation_offset_usec = diff * 1000000

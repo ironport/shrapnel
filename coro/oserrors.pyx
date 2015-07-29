@@ -26,8 +26,6 @@ exceptions derive from OSError, so it is compatible with regular OSError
 handling.
 """
 
-include "python.pxi"
-
 import errno
 import new
 import sys

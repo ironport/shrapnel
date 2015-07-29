@@ -22,7 +22,7 @@
 
 __event_queue_version__ = "$Id: event_queue.pyx,v 1.1 2007/01/03 00:19:50 ehuss Exp $"
 
-include "python.pxi"
+from cpython.ref cimport *
 from cython.operator cimport dereference as deref, preincrement as inc
 from libcpp.utility cimport pair
 from libc.stdint cimport uint64_t

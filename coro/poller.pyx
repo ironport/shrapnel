@@ -33,7 +33,8 @@ cdef extern from "sys/time.h":
         unsigned int tv_sec
         unsigned int tv_nsec
 
-from xlibc.stdlib cimport alloca
+cdef extern from "stdlib.h":
+    void * alloca (size_t size)
 
 # XXX consider putting these into a pxd file
 cdef extern from "sys/event.h":

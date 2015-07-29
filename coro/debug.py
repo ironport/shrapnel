@@ -82,7 +82,7 @@ def serve (address='/tmp/debug.sock', global_dict=None):
     "serve a debugging console.  address := a string (for a unix socket) or an (ip, port) pair."
     import errno
     global dbg_conn
-    if type(address) is type(''):
+    if isinstance(address, basestring):
         try:
             os.remove (address)
         except OSError, why:
@@ -102,7 +102,7 @@ def serve (address='/tmp/debug.sock', global_dict=None):
 
     while 1:
         conn, addr = s.accept()
-        LOG ('open',  conn.getpeername())
+        LOG ('open', conn.getpeername())
         dbg_conn = Client (conn)
 
 
