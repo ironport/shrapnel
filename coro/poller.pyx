@@ -298,6 +298,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         if self.kq_fd != -1:
             unistd.close (self.kq_fd)
             self.kq_fd = -1
+        self.event_map = {}
 
     cdef object set_wait_for (self, kevent_key kk, unsigned int fflags):
         cdef kevent * k

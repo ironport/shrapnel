@@ -249,6 +249,7 @@ cdef public class queue_poller [ object queue_poller_object, type queue_poller_t
         if self.ep_fd != -1:
             unistd.close (self.ep_fd)
             self.ep_fd = -1
+        self.event_map = {}
         IF COMPILE_LINUX_AIO:
             aio_teardown()
 
