@@ -12,7 +12,6 @@ class sock (coro.sock):
     #   set mode automatically?
     def __init__ (self, cfg, fd=-1, verify=False, domain=coro.AF.INET, mode=MODE.SERVER):
         coro.sock.__init__ (self, fd=fd, domain=domain)
-        print 'fd=', self.fd
         self.cfg = cfg
         self.conn_ob = _s2n.Connection(mode)
         self.conn_ob.set_config (cfg)
@@ -49,7 +48,6 @@ class sock (coro.sock):
         left = block_size
         while left:
             b, more = self.conn_ob.recv (left)
-            print 'more, b', more, repr(b)
             r.append (b)
             if not more:
                 break
@@ -77,7 +75,6 @@ class sock (coro.sock):
         left = len(data)
         while left:
             n, more = self.conn_ob.send (data, pos)
-            print 'n, more', n, more
             pos += n
             if not more:
                 break
