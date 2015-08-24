@@ -70,13 +70,16 @@ cfg = Config()
 cfg.add_cert_chain_and_key (crt, key)
 
 def echo (conn):
+    global rbytes, wbytes
     conn.send ('Howdy!\r\n')
     while 1:
         block = conn.recv (1024)
         if not block:
             break
         else:
+            rbytes += len(block)
             conn.send (block)
+            wbytes += len(block)
 
 def serve (port):
     s = sock (cfg, mode=MODE.SERVER)
@@ -86,6 +89,22 @@ def serve (port):
         conn, addr = s.accept()
         coro.spawn (echo, conn)
 
+from coro.log import NoFacility
+LOG = NoFacility()
+
+rbytes = 0
+wbytes = 0
+
+def monitor (interval=10):
+    global rbytes, wbytes
+    while 1:
+        r0, w0 = rbytes, wbytes
+        coro.sleep_relative (interval)
+        r = rbytes - r0
+        w = wbytes - w0
+        LOG ('throughput', r / interval, w / interval)
+
 coro.spawn (serve, 7777)
+coro.spawn (monitor)
 coro.event_loop()
 
