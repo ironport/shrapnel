@@ -3,12 +3,14 @@
 from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdint cimport uint64_t, uint32_t, uint16_t, uint8_t
 
+
 class S2N:
     SSLv2 = 20
     SSLv3 = 30
     TLS10 = 31
     TLS11 = 32
     TLS12 = 33
+
 
 cdef extern from "s2n.h":
     struct s2n_config
@@ -145,7 +147,7 @@ cdef class Config:
 
     def add_cert_chain_and_key_with_status (self, bytes chain_pem, bytes skey_pem):
         cdef uint8_t status[512]
-        check (s2n_config_add_cert_chain_and_key_with_status (self.c, chain_pem, skey_pem, &status[0], 512))
+        check (s2n_config_add_cert_chain_and_key_with_status (self.c, chain_pem, skey_pem, &status[0], sizeof(status)))
         return <char*>status
 
     def add_dhparams (self, bytes dhparams_pem):
