@@ -78,12 +78,11 @@ def session (addr):
     ctx = openssl.ssl_ctx()
     s = coro.ssl.sock (ctx)
     s.connect (addr)
-    assert (s.recv (1024) == 'Howdy!\r\n')
     coro.spawn (feed, s)
     # generates the same stream of characters we sent
     blockgen = random_block (random_char_gen())
     while 1:
-        data = s.recv (50)
+        data = s.recv (500)
         #LOG ('<=', data.encode ('hex'))
         rbytes += len (data)
         assert (data == blockgen.next (len (data)))
