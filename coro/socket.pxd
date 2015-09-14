@@ -197,7 +197,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cpdef listen (self, int backlog)
     cpdef accept (self)
     cpdef accept_many (self, int max=?)
-    cpdef shutdown (self, int how)
+    cpdef shutdown (self, int how=?)
     cpdef getpeername (self)
     cpdef getsockname (self)
     cpdef dup(self)

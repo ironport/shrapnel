@@ -1104,7 +1104,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
                 count = count + 1
         return result
 
-    cpdef shutdown (self, int how):
+    cpdef shutdown (self, int how=SHUT_WR):
         """Shutdown the socket.
 
         :param how: How to shut down the socket (see the shutdown(2) manpage).
