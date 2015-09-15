@@ -67,6 +67,8 @@ compile_time_env = {
 def path_join (*parts):
     return os.path.join (*parts)
 
+probed_extensions = []
+
 # --------------------------------------------------------------------------
 # OpenSSL support
 # --------------------------------------------------------------------------
@@ -131,11 +133,18 @@ OpenSSL_Extension = Extension (
 # S2N support.
 # --------------------------------------------------------------------------
 
-s2n_Extension = Extension (
-    'coro.ssl.s2n._s2n',
-    ['coro/ssl/s2n/_s2n.pyx'],
-    libraries = ['s2n'],
-    )
+# probe for cys2n
+try:
+    import cys2n
+    s2n_Extension = Extension (
+        'coro.ssl.s2n._s2n',
+        ['coro/ssl/s2n/_s2n.pyx'],
+        libraries = ['s2n'],
+        cython_compile_time_env=compile_time_env,
+        )
+    probed_extensions.append (s2n_Extension)
+except ImportError:
+    pass
 
 # --------------------------------------------------------------------------
 
@@ -208,8 +217,7 @@ setup (
         ),
         # the pre-computed openssl extension from above
         OpenSSL_Extension,
-        s2n_Extension,
-    ],
+    ] + probed_extensions,
     packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
     scripts=['coro/log/catlog'],
