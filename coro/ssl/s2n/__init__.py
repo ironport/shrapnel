@@ -1,36 +1,42 @@
 # -*- Mode: Python -*-
 
 import coro
+from cys2n import MODE
+from ._s2n import *
 
-from ._s2n import Config, Connection, S2N, MODE
+# Note: the plan is to push this class into _s2n.pyx as well.
 
-Config = _s2n.Config
+class S2NSocket (coro.sock):
 
-class sock (coro.sock):
-
-    # XXX maybe delay creating connection object until either accept or connect in order to
-    #   set mode automatically?
-    def __init__ (self, cfg, fd=-1, verify=False, domain=coro.AF.INET, mode=MODE.SERVER):
-        coro.sock.__init__ (self, fd=fd, domain=domain)
+    def __init__ (self, cfg, fd=-1, verify=False, mode=MODE.SERVER):
+        coro.sock.__init__ (self, fd=fd)
         self.cfg = cfg
-        self.conn_ob = _s2n.Connection(mode)
-        self.conn_ob.set_config (cfg)
-        self.conn_ob.set_fd (fd)
+        self.s2n_conn = NonBlockingConnection (mode, self)
+        self.s2n_conn.set_config (cfg)
+        self.s2n_conn.set_fd (fd)
+        self.negotiated = False
         # XXX verify
 
     def __repr__ (self):
         return '<s2n sock fd=%d @%x>' % (self.fd, id (self))
 
+    def _check_negotiated (self):
+        if not self.negotiated:
+            self.negotiate()
+
+    def negotiate (self):
+        while 1:
+            blocked = self.s2n_conn.negotiate()
+            if not blocked:
+                break
+        self.negotiated = True
+
     def accept (self):
         conn, addr = coro.sock.accept (self)
         try:
-            new = self.__class__ (self.cfg, domain=conn.domain, fd=conn.fd, mode=MODE.SERVER)
+            new = self.__class__ (self.cfg, fd=conn.fd, mode=MODE.SERVER)
             # ...avoid having socket.pyx close the fd
             conn.fd = -1
-            while 1:
-                more = new.conn_ob.negotiate()
-                if not more:
-                    break
             return new, addr
         except:
             conn.close()
@@ -38,16 +44,14 @@ class sock (coro.sock):
 
     def connect (self, addr):
         coro.sock.connect (self, addr)
-        while 1:
-            more = new.conn_ob.negotiate()
-            if not more:
-                break
+        self.negotiate()
 
     def recv (self, block_size):
+        self._check_negotiated()
         r = []
         left = block_size
         while left:
-            b, more = self.conn_ob.recv (left)
+            b, more = self.s2n_conn.recv (left)
             r.append (b)
             if not more:
                 break
@@ -71,10 +75,11 @@ class sock (coro.sock):
         return ''.join (r)
 
     def send (self, data):
+        self._check_negotiated()
         pos = 0
         left = len(data)
         while left:
-            n, more = self.conn_ob.send (data, pos)
+            n, more = self.s2n_conn.send (data, pos)
             pos += n
             if not more:
                 break
@@ -96,7 +101,7 @@ class sock (coro.sock):
     def shutdown (self, how=None):
         more = 1
         while more:
-            more = self.conn_ob.shutdown()
+            more = self.s2n_conn.shutdown()
 
     def close (self):
         try:
