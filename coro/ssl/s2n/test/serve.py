@@ -2,7 +2,12 @@
 
 import coro
 
-from coro.ssl.s2n import sock, Config, MODE
+from cys2n import Config, MODE, PROTOCOL
+from coro.ssl.s2n import S2NSocket
+
+from coro.log import NoFacility
+
+LOG = NoFacility()
 
 # EC doesn't work with s2n?
 key = """-----BEGIN EC PARAMETERS-----
@@ -68,10 +73,10 @@ gYEAIxmqzFn2JD4+Yp+wr2P+KiqCeP1NeNuDUsfqbx4p5xgM9fEMX3lnZsWeiCkX
 
 cfg = Config()
 cfg.add_cert_chain_and_key (crt, key)
+cfg.set_protocol_preferences (['nork/1'])
 
 def echo (conn):
     global rbytes, wbytes
-    conn.send ('Howdy!\r\n')
     while 1:
         block = conn.recv (1024)
         if not block:
@@ -82,7 +87,7 @@ def echo (conn):
             wbytes += len(block)
 
 def serve (port):
-    s = sock (cfg, mode=MODE.SERVER)
+    s = S2NSocket (cfg, mode=MODE.SERVER)
     s.bind (('', port))
     s.listen (10)
     while 1:
