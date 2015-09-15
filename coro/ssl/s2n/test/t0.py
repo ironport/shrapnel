@@ -1,8 +1,16 @@
 # -*- Mode: Python -*-
 
+# test this with:
+# openssl s_client -connect 127.0.0.1:7777 -alpn spdy/3,nork/1 -crlf
+
 import coro
 
-from coro.ssl.s2n import sock, Config, MODE
+from cys2n import Config, MODE, PROTOCOL
+from coro.ssl.s2n import S2NSocket
+
+from coro.log import NoFacility
+
+LOG = NoFacility()
 
 # EC doesn't work with s2n?
 key = """-----BEGIN EC PARAMETERS-----
@@ -68,24 +76,39 @@ gYEAIxmqzFn2JD4+Yp+wr2P+KiqCeP1NeNuDUsfqbx4p5xgM9fEMX3lnZsWeiCkX
 
 cfg = Config()
 cfg.add_cert_chain_and_key (crt, key)
+cfg.set_protocol_preferences (['nork/1'])
+
+def unproto (n):
+    return PROTOCOL.reverse_map.get (n, "unknown")
 
 def go (conn):
+    s2n = conn.s2n_conn
+    s2n.negotiate()
+    LOG ('client_hello_version', unproto (s2n.get_client_hello_version()))
+    LOG ('client_protocol_version', unproto (s2n.get_client_protocol_version()))
+    LOG ('server_protocol_version', unproto (s2n.get_server_protocol_version()))
+    LOG ('actual_protocol_version', unproto (s2n.get_actual_protocol_version()))
+    LOG ('application_protocol', s2n.get_application_protocol())
+    LOG ('cipher', s2n.get_cipher())
     try:
-        for i in range (10):
-            n = conn.send (crt)
-            print 'n, len(crt)', n, len(crt)
-        conn.shutdown()
+        #for i in range (10):
+        #    n = conn.send (crt)
+        #    print 'n, len(crt)', n, len(crt)
+        block = conn.recv (1024)
+        print repr(block)
     finally:
+        print 'bytes:', conn.s2n_conn.get_wire_bytes()
         conn.close()
 
 def serve (port):
-    s = sock (cfg, mode=MODE.SERVER)
+    s = S2NSocket (cfg, mode=MODE.SERVER)
     s.bind (('', port))
     s.listen (10)
     while 1:
         conn, addr = s.accept()
         coro.spawn (go, conn)
 
+import coro.backdoor
+coro.spawn (coro.backdoor.serve, unix_path='/tmp/t0.bd')
 coro.spawn (serve, 7777)
 coro.event_loop()
-
