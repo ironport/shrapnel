@@ -108,11 +108,18 @@ def O (path):
 
 # cheap probe for npn support
 USE_NPN = (open (O('include/openssl/ssl.h')).read().find ('next_protos') != -1)
+# cheap probe for alpn support
+USE_ALPN = (open (O('include/openssl/ssl.h')).read().find ('SSL_CTX_set_alpn_protos') != -1)
 
 if USE_NPN:
     sys.stderr.write ('detected NPN-capable OpenSSL\n')
 else:
     sys.stderr.write ('NPN support disabled.  Needs OpenSSL-1.0.1+\n')
+
+if USE_ALPN:
+    sys.stderr.write ('detected ALPN-capable OpenSSL\n')
+else:
+    sys.stderr.write ('ALPN support disabled.  Needs OpenSSL-1.0.2+\n')
 
 OpenSSL_Extension = Extension (
     'coro.ssl.openssl',
@@ -121,11 +128,11 @@ OpenSSL_Extension = Extension (
     # manual static link
     #extra_link_args = [O('libcrypto.a'), O('libssl.a')],
     # link to an absolute location
-    #extra_link_args = ['-L', '%s/lib' % (ossl_base), '-lcrypto', '-lssl'],
+    extra_link_args = ['-L', '%s/lib' % (ossl_base), '-lcrypto', '-lssl'],
     # 'normal' link
-    libraries=['crypto', 'ssl'],
+    #libraries=['crypto', 'ssl'],
     include_dirs=[O('include')],
-    cython_compile_time_env={'NPN': USE_NPN},
+    cython_compile_time_env={'NPN': USE_NPN, 'ALPN': USE_ALPN},
 )
 
 
