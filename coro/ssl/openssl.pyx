@@ -1057,7 +1057,17 @@ cdef class ssl:
             cdef unsigned int len
             SSL_get0_next_proto_negotiated (self.ssl, &data, &len)
             if data:
-                return PyBytes_FromStringAndSize (<char*>data, len)
+                return data[:len]
+            else:
+                return None
+
+    IF ALPN:
+        def get_alpn_selected (self):
+            cdef unsigned char * data = NULL
+            cdef unsigned int dlen = 0
+            SSL_get0_alpn_selected (self.ssl, &data, &dlen)
+            if data:
+                return data[:dlen]
             else:
                 return None
 
@@ -1070,6 +1080,7 @@ cdef class ssl_ctx:
     cdef readonly pkey key
     cdef readonly dh_param dh
     cdef bytes next_protos
+    cdef bytes alpn_protos
 
     def __init__ (self):
         self.ctx = SSL_CTX_new (SSLv23_method())
@@ -1174,6 +1185,26 @@ cdef class ssl_ctx:
             SSL_select_next_proto (out, outlen, server, server_len, self.next_protos, len (self.next_protos))
             return SSL_TLSEXT_ERR_OK
 
+    IF ALPN:
+        def set_alpn_protos (self, list protos):
+            encoded = []
+            for proto in protos:
+                encoded.append (chr (len (proto)))
+                encoded.append (proto)
+            self.alpn_protos = b''.join (encoded)
+            if SSL_CTX_set_alpn_protos (self.ctx, self.alpn_protos, len(self.alpn_protos)):
+                raise_ssl_error()
+            else:
+                SSL_CTX_set_alpn_select_cb (self.ctx, alpn_select_callback, <void*>self)
+
+        cdef alpn_select_callback (self,
+                                   const unsigned char **out, unsigned char *outlen,
+                                   const unsigned char *xin, unsigned int inlen):
+            # in CPython's _ssl.c and in openssl's ssltest.c, this function is called here.
+            #   can we assume its name will change once NPN is deprecated?
+            SSL_select_next_proto (out, outlen, xin, inlen, self.alpn_protos, len(self.alpn_protos))
+            return SSL_TLSEXT_ERR_OK
+
 IF NPN:
     cdef int next_protos_server_callback (SSL *ssl, unsigned char **out, unsigned int *outlen, void *arg):
         cdef ssl_ctx ctx = <ssl_ctx> arg
@@ -1183,6 +1214,13 @@ IF NPN:
                                           unsigned char * server, unsigned int server_len, void *arg):
         cdef ssl_ctx ctx = <ssl_ctx> arg
         return ctx.next_protos_client_callback (out, outlen, server, server_len)
+
+IF ALPN:
+
+    cdef int alpn_select_callback (SSL *ssl, unsigned char **out, unsigned char *outlen,
+                            unsigned char * server, unsigned int server_len, void *arg):
+        cdef ssl_ctx ctx = <ssl_ctx> arg
+        return ctx.alpn_select_callback (out, outlen, server, server_len)
 
 # ================================================================================
 

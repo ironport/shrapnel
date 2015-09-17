@@ -319,6 +319,36 @@ cdef extern from "openssl/ssl.h":
             unsigned char *, unsigned int
             )
 
+    IF ALPN:
+        # application layer protocol negotiation ('ALPN') support
+        int SSL_CTX_set_alpn_protos (
+            SSL_CTX *ctx,
+            const unsigned char *protos,
+            unsigned protos_len
+        )
+        int SSL_set_alpn_protos (
+            SSL *ssl,
+            const unsigned char *protos,
+            unsigned protos_len
+        )
+        void SSL_CTX_set_alpn_select_cb (
+            SSL_CTX *ctx,
+            int (*cb) (
+                SSL *ssl,
+                const unsigned char **out,
+                unsigned char *outlen,
+                const unsigned char *,
+                unsigned int inlen,
+                void *arg
+            ),
+            void *arg
+        )
+        void SSL_get0_alpn_selected (
+            const SSL *ssl,
+            const unsigned char **data,
+            unsigned *len
+        )
+
     X509_STORE * SSL_CTX_get_cert_store (SSL_CTX *)
     int X509_STORE_CTX_init             (X509_STORE_CTX *, X509_STORE *, X509 *, void *)
     void X509_STORE_CTX_free            (X509_STORE_CTX *)
