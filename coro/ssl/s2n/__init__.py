@@ -1,8 +1,12 @@
 # -*- Mode: Python -*-
 
 import coro
-from cys2n import MODE
+from cys2n import MODE, PROTOCOL, Config
 from ._s2n import *
+
+from coro.log import Facility
+
+LOG = Facility ('s2n')
 
 # Note: the plan is to push this class into _s2n.pyx as well.
 
@@ -25,10 +29,7 @@ class S2NSocket (coro.sock):
             self.negotiate()
 
     def negotiate (self):
-        while 1:
-            blocked = self.s2n_conn.negotiate()
-            if not blocked:
-                break
+        self.s2n_conn.negotiate()
         self.negotiated = True
 
     def accept (self):
@@ -80,6 +81,7 @@ class S2NSocket (coro.sock):
         left = len(data)
         while left:
             n, more = self.s2n_conn.send (data, pos)
+            #LOG ('send', data, pos, n, more)
             pos += n
             if not more:
                 break
@@ -93,7 +95,11 @@ class S2NSocket (coro.sock):
     # XXX verify this
     sendall = send
 
-    # XXX writev
+    def writev (self, list_of_data):
+        _sum = 0
+        for data in list_of_data:
+            _sum += self.send (data)
+        return _sum
 
     def readv (self, _ignore):
         raise NotImplementedError
