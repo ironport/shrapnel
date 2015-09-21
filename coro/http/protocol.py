@@ -146,6 +146,10 @@ class header_set:
             coro.write_stderr ('dropping bogus header %r\n' % (h,))
             pass
 
+    def __iter__ (self):
+        for k, v in self.headers.items():
+            yield k, v
+
     def get_one (self, key):
         """Get the value of a header expected to have at most one value.
            If not present, return None.  If more than one, raise ValueError."""
@@ -156,6 +160,15 @@ class header_set:
             raise ValueError ("expected only one %s header, got %r" % (key, r))
         else:
             return r[0]
+
+    def set_one (self, key, val):
+        """Set the value of a header expected to have at most one value.
+           If a value is already present, raise ValueError."""
+        r = self.headers.get (key, None)
+        if r is None:
+            self.headers[key] = val
+        else:
+            raise ValueError ("header %r already has a value: %r" % (key, r))
 
     def has_key (self, key):
         "Is this header present?"
