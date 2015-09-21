@@ -4,7 +4,7 @@ import struct
 import coro
 import sys
 
-from coro.http import connection, tlslite_server, openssl_server, http_request
+from coro.http import connection, tlslite_server, openssl_server, s2n_server, http_request
 from coro.http.protocol import header_set, http_file
 from coro.http.zspdy import inflator, deflator, unpack_control_frame, pack_control_frame
 from coro.http.zspdy import pack_data_frame, pack_http_header, unpack_http_header
@@ -173,7 +173,7 @@ class spdy_protocol:
     def read_control_frame (self, head):
         fversion, ftype, flags, length = unpack_control_frame (head)
         data = self.read_exact (length)
-        # W ('control: version=%d type=%d flags=%x length=%d\n' % (fversion, ftype, flags, length, ))
+        LOG ('control: version=%d type=%d flags=%x length=%d' % (fversion, ftype, flags, length, ))
         assert (fversion == 3)
         method_name = 'frame_%s' % (self.frame_types.get (ftype, ''),)
         if method_name == 'frame_':
@@ -185,7 +185,7 @@ class spdy_protocol:
     def read_data_frame (self, head):
         stream_id, flags, length = unpack_data_frame (head)
         data = self.read_exact (length)
-        # W ('data: stream_id=%d flags=%x length=%d\n' % (stream_id, flags, length))
+        LOG ('data: stream_id=%d flags=%x length=%d' % (stream_id, flags, length))
         self.handle_data_frame (stream_id, flags, data)
 
     spdy_version = 3
@@ -240,6 +240,7 @@ class spdy_connection (spdy_protocol, connection):
             if block is None:
                 break
             else:
+                #LOG ('send', block)
                 self.conn.send (block)
                 self.obuf.release (len(block))
 
@@ -264,9 +265,9 @@ class spdy_connection (spdy_protocol, connection):
             flags = 0x01
         else:
             flags = 0x00
-        # W ('req.reply_headers=%r\n' % (str(req.reply_headers),))
+        #LOG ('req.reply_headers=%r' % (str(req.reply_headers),))
         name_vals = self.pack_http_header (req.reply_headers)
-        # W ('compressed name_vals=%r\n' % (name_vals,))
+        #LOG ('compressed name_vals=%r' % (name_vals,))
         frame = self.pack_control_frame (
             0x02, flags,
             ''.join ([struct.pack ('>L', req.stream_id), name_vals])
@@ -279,10 +280,10 @@ class spdy_connection (spdy_protocol, connection):
         # XXX do something with priority
         sid  &= 0x7fffffff
         asid &= 0x7fffffff
-        # W ('syn_stream: sid=%d asid=%d pri=%x ' % (sid, asid, pri))
+        #LOG ('syn_stream: sid=%d asid=%d pri=%x' % (sid, asid, pri))
         headers = self.unpack_http_header (data[10:])
         req = spdy_server_request (flags, sid, self, headers)
-        # W ('%s\n' % req.request,)
+        #LOG (req.request)
         self.streams[sid] = req
         coro.spawn (self.handle_request, req)
 
@@ -311,30 +312,29 @@ class spdy_connection (spdy_protocol, connection):
 
     def frame_rst_stream (self, flags, data):
         stream_id, status_code = struct.unpack ('>LL', data)
-        # W ('reset: %x status=%d %s\n' % (stream_id, status_code, self.status_codes.get (status_code, 'unknown')))
+        #LOG ('reset: %x status=%d %s' % (stream_id, status_code, self.status_codes.get (status_code, 'unknown')))
         del self.streams[stream_id]
 
     def frame_goaway (self, flags, data):
         last_stream_id, = struct.unpack ('>L', data)
-        # W ('goaway last_stream_id=%d\n' % (last_stream_id,))
+        #LOG ('goaway last_stream_id=%d' % (last_stream_id,))
         # XXX arrange for the connection to close
         self.close()
 
     def frame_ping (self, flags, data):
         ping_id, = struct.unpack ('>L', data)
-        # W ('ping_id=%x\n' % (ping_id,))
+        #LOG ('ping', flags, ping_id)
         self.send_frame (self.pack_control_frame (6, 0, data))
 
     def frame_settings (self, flags, data):
-        # self.log ('SPDY settings frame received [ignored]')
+        self.log ('SPDY settings frame received [ignored]')
         pass
 
     def frame_headers (self, flags, data):
-        # self.log ('SPDY headers frame received [ignored]')
+        self.log ('SPDY headers frame received [ignored]')
         pass
 
     def frame_window_update (self, flags, data):
-        # self.log ('SPDY window_update frame received [ignored]')
         stream_id, delta_window_size = struct.unpack ('>LL', data)
         self.log ('spdy window update', stream_id, delta_window_size)
 
@@ -358,6 +358,24 @@ class spdy_openssl_server (openssl_server):
     def create_connection (self, conn, addr):
         # ensure that negotiation finishes...
         if conn.ssl.get_next_protos_negotiated() == b'spdy/3.1':
+            return spdy_connection (self, conn, addr)
+        else:
+            return connection (self, conn, addr)
+
+class spdy_s2n_server (s2n_server):
+
+    protocol = 'spdy'
+
+    def create_connection (self, conn, addr):
+
+        def unproto (n):
+            from coro.ssl.s2n import PROTOCOL
+            return PROTOCOL.reverse_map.get (n, "unknown")
+
+        conn._check_negotiated()
+        s2n = conn.s2n_conn
+        #LOG ('ALPN', s2n.get_application_protocol())
+        if conn.s2n_conn.get_application_protocol() == b'spdy/3.1':
             return spdy_connection (self, conn, addr)
         else:
             return connection (self, conn, addr)
