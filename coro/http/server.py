@@ -587,3 +587,16 @@ class openssl_server (server):
         else:
             domain = socket.AF_INET
         return coro.ssl.sock (self.ctx, domain=domain)
+
+class s2n_server (server):
+
+    def __init__ (self, cfg):
+        self.cfg = cfg
+        server.__init__ (self)
+
+    def create_sock (self):
+        return coro.ssl.s2n.S2NSocket (self.cfg)
+
+    def create_connection (self, conn, addr):
+        LOG ('create_connection', repr(conn), addr)
+        return self
