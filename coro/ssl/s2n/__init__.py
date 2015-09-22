@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
 import coro
-from cys2n import MODE, PROTOCOL, Config
+from cys2n import MODE, PROTOCOL, Config, Error as S2NError
 from ._s2n import *
 
 from coro.log import Facility
@@ -58,7 +58,6 @@ class S2NSocket (coro.sock):
                 break
             else:
                 left -= len(b)
-                self.wait_for_read()
         return ''.join (r)
 
     read = recv
@@ -85,8 +84,6 @@ class S2NSocket (coro.sock):
             pos += n
             if not more:
                 break
-            else:
-                self.wait_for_write()
             left -= n
         return pos
 
@@ -105,14 +102,20 @@ class S2NSocket (coro.sock):
         raise NotImplementedError
 
     def shutdown (self, how=None):
-        more = 1
-        while more:
-            more = self.s2n_conn.shutdown()
+        try:
+            self.s2n_conn.shutdown()
+        except S2NError:
+            pass
 
     def close (self):
-        try:
-            coro.with_timeout (1, self.shutdown)
-        except coro.TimeoutError:
-            pass
-        finally:
-            coro.sock.close (self)
+        if self.fd != -1:
+            # another thread closed us already.
+            return
+        else:
+            try:
+                coro.with_timeout (1, self.shutdown)
+            except coro.TimeoutError:
+                pass
+            finally:
+                LOG ('coro.sock.close', self.orig_fd)
+                coro.sock.close (self)
