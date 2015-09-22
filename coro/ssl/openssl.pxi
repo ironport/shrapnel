@@ -268,6 +268,9 @@ cdef extern from "openssl/ssl.h":
     ctypedef struct SSL
     ctypedef struct SSL_CTX
     ctypedef struct SSL_METHOD
+    int SSL_CB_ALERT
+    int SSL_CB_LOOP
+    int SSL_CB_EXIT
     void SSL_CTX_free                   (SSL_CTX *)
     SSL_CTX * SSL_CTX_new               (SSL_METHOD *)
     SSL * SSL_new                       (SSL_CTX *)
@@ -287,6 +290,17 @@ cdef extern from "openssl/ssl.h":
     int SSL_CTX_check_private_key       (SSL_CTX *)
     int SSL_check_private_key           (SSL *)
     int SSL_CTX_load_verify_locations   (SSL_CTX *, char *, char *)
+    const char *SSL_state_string_long(const SSL *s)
+    const char *SSL_alert_type_string_long(int value);
+    const char *SSL_alert_desc_string_long(int value);
+    void SSL_set_info_callback (
+        SSL *ssl,
+        void (*cb) (const SSL *ssl, int type, int val)
+    )
+    void SSL_CTX_set_info_callback (
+        SSL_CTX *ctx,
+        void (*cb) (const SSL *ssl, int type, int val)
+    )
 
     IF NPN:
         # next protocol ('NPN') support

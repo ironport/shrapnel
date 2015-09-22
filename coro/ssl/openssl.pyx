@@ -864,6 +864,18 @@ cdef class dh_param:
 
 # ================================================================================
 
+from coro.log import Facility
+
+LOG = Facility ('openssl')
+
+cdef void info_callback (const SSL * s, int where, int ret):
+    if where & SSL_CB_LOOP:
+        LOG ('loop', SSL_state_string_long (s))
+    elif where & SSL_CB_ALERT:
+        LOG ('alert', SSL_alert_type_string_long (ret), SSL_alert_desc_string_long(ret))
+    elif where & SSL_CB_EXIT:
+        LOG ('exit', ret, SSL_state_string_long (s))
+
 cdef class ssl_ctx
 
 cdef class ssl:
@@ -1164,6 +1176,9 @@ cdef class ssl_ctx:
 
     def set_options (self, long options):
         return SSL_CTX_set_options (self.ctx, options)
+
+    def set_info_callback (self):
+        SSL_CTX_set_info_callback (self.ctx, &info_callback)
 
     IF NPN:
         def set_next_protos (self, list protos):
