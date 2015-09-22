@@ -37,9 +37,6 @@ class h2_file (http_file):
             else:
                 yield block
 
-FLAG_FIN = 0x01
-FLAG_UNIDIRECTIONAL = 0x02
-
 class h2_server_request (http_request):
 
     def __init__ (self, flags, stream_id, client, headers):
@@ -66,7 +63,7 @@ class h2_server_request (http_request):
         return True
 
     def has_body (self):
-        return not (self.flags & FLAG_FIN)
+        return not (self.flags & FLAGS.END_STREAM)
 
     def make_content_file (self):
         # XXX probably untested...
@@ -114,13 +111,36 @@ def unpack_frame_header (head):
 
 def pack_frame_header (length, ftype, flags, stream_id):
     lentype = (length << 8) | (ftype & 0xff)
-    return struct.pack ('>LBL', lentype, flags, stream_id)
+    return struct.pack ('>LBl', lentype, flags, stream_id)
 
-# this is a mixin class used for both server and client.
+class ERROR:
+    NO_ERROR            = 0x0
+    PROTOCOL_ERROR      = 0x1
+    INTERNAL_ERROR      = 0x2
+    FLOW_CONTROL_ERROR  = 0x3
+    SETTINGS_TIMEOUT    = 0x4
+    STREAM_CLOSED       = 0x5
+    FRAME_SIZE_ERROR    = 0x6
+    REFUSED_STREAM      = 0x7
+    CANCEL              = 0x8
+    COMPRESSION_ERROR   = 0x9
+    CONNECT_ERROR       = 0xa
+    ENHANCE_YOUR_CALM   = 0xb
+    INADEQUATE_SECURITY = 0xc
+    HTTP_1_1_REQUIRED   = 0xd
 
-class h2_protocol:
-
-    frame_types = {
+class FRAME:
+    DATA          = 0
+    HEADERS       = 1
+    PRIORITY      = 2
+    RST_STREAM    = 3
+    SETTINGS      = 4
+    PUSH_PROMISE  = 5
+    PING          = 6
+    GOAWAY        = 7
+    WINDOW_UPDATE = 8
+    CONTINUATION  = 9
+    types = {
         0: 'data',
         1: 'headers',
         2: 'priority',
@@ -132,6 +152,26 @@ class h2_protocol:
         8: 'window_update',
         9: 'continuation',
     }
+
+class SETTINGS:
+    HEADER_TABLE_SIZE      = 0x01
+    ENABLE_PUSH            = 0x02
+    MAX_CONCURRENT_STREAMS = 0x03
+    INITIAL_WINDOW_SIZE    = 0x04
+    MAX_FRAME_SIZE         = 0x05
+    MAX_HEADER_LIST_SIZE   = 0x06
+
+class FLAGS:
+    END_STREAM   = 0x01
+    END_HEADERS  = 0x04
+    PADDED       = 0x08
+    PRIORITY     = 0x20
+    PING_ACK     = 0x01
+    SETTINGS_ACK = 0x01
+
+# this is a mixin class used for both server and client.
+
+class h2_protocol:
 
     protocol = 'h2'
     preface = 'PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n'
@@ -162,23 +202,28 @@ class h2_protocol:
             else:
                 LOG ('preface', preface)
                 assert (preface == self.preface)
-        while 1:
-            head = self.read_exact (9)
-            if not head:
-                self.close()
-                return
-            flen, ftype, flags, stream_id = unpack_frame_header (head)
-            if flen:
-                payload = self.read_exact (flen)
-            else:
-                payload = None
-            method_name = 'frame_%s' % (self.frame_types.get (ftype, ''))
-            if method_name == 'frame_':
-                self.log ('unknown h2 frame type: %d' % (ftype,))
-            else:
-                LOG ('frame', method_name, flags, stream_id, payload)
-                method = getattr (self, method_name)
-                method (flags, stream_id, payload)
+        try:
+            while 1:
+                head = self.read_exact (9)
+                if not head:
+                    self.close()
+                    return
+                flen, ftype, flags, stream_id = unpack_frame_header (head)
+                LOG ('frame header', flen, ftype, flags, stream_id)
+                if flen:
+                    payload = self.read_exact (flen)
+                else:
+                    payload = b''
+                method_name = 'frame_%s' % (FRAME.types.get (ftype, ''))
+                if method_name == 'frame_':
+                    self.log ('unknown h2 frame type: %d' % (ftype,))
+                else:
+                    LOG ('frame', method_name, flags, stream_id, payload)
+                    method = getattr (self, method_name)
+                    method (flags, stream_id, payload)
+        except OSError:
+            LOG ('OSError')
+            self.close()
 
     def unpack_http_header (self, data):
         hs = header_set()
@@ -205,6 +250,7 @@ class h2_connection (h2_protocol, connection):
 
     def run (self):
         self.streams = {}
+        self.priorities = {}
         self.encoder = Encoder()
         self.decoder = Decoder()
         self.ofifo = coro.fifo()
@@ -212,6 +258,8 @@ class h2_connection (h2_protocol, connection):
         coro.spawn (self.send_thread)
         try:
             self.read_frames()
+        except coro.oserrors.ECONNRESET:
+            LOG ('connection reset')
         finally:
             self.ofifo.push (None)
 
@@ -220,14 +268,19 @@ class h2_connection (h2_protocol, connection):
         self.conn.close()
 
     def send_thread (self):
-        while 1:
-            block = self.ofifo.pop()
-            if block is None:
-                break
-            else:
-                LOG ('send', block)
-                self.conn.send (block)
-                self.obuf.release (len(block))
+        try:
+            while 1:
+                block = self.ofifo.pop()
+                if block is None:
+                    break
+                else:
+                    LOG ('send', len(block))
+                    self.conn.send (block)
+                    self.obuf.release (len(block))
+        except OSError:
+            LOG ('OSError')
+        finally:
+            self.close()
 
     def push_frame (self, frame):
         self.obuf.acquire (len(frame))
@@ -237,16 +290,16 @@ class h2_connection (h2_protocol, connection):
     def send_frame (self, ftype, flags, stream_id, data):
         dlen = len(data)
         head = pack_frame_header (dlen, ftype, flags, stream_id)
+        LOG ('send_frame', FRAME.types[ftype], flags, stream_id)
         return self.push_frame (head + data)
 
     def push_headers (self, req, has_data):
         LOG ('push_headers', req, not not has_data)
-        flags = self.FLAGS_END_HEADERS
+        flags = FLAGS.END_HEADERS
         if not has_data:
-            flags |= self.FLAGS_END_STREAM
+            flags |= FLAGS.END_STREAM
         hdata = self.pack_http_header (req.reply_headers)
-        LOG ('reply_headers', req.reply_headers)
-        LOG ('push_headers', hdata)
+        LOG ('push_headers', req.stream_id)
         req.output.sent += self.send_frame (0x01, flags, req.stream_id, hdata)
 
     def push_ping (self, flags=0, data=None):
@@ -258,7 +311,7 @@ class h2_connection (h2_protocol, connection):
 
     def push_data (self, req, data, last):
         if last:
-            flags = self.FLAGS_END_STREAM
+            flags = FLAGS.END_STREAM
         else:
             flags = 0
         LOG ('push_data', len(data))
@@ -267,34 +320,39 @@ class h2_connection (h2_protocol, connection):
     def frame_settings (self, flags, stream_id, payload):
         plen = len(payload)
         n, check = divmod (plen, 6)
-        assert check == 0
-        self.h2_settings = {}
-        for i in range (0, 6, plen):
-            ident, value = struct.unpack ('>HL', payload[i:i+6])
-            self.h2_settings[ident] = value
-        LOG ('settings', self.h2_settings)
-        # ack it.
-        self.send_frame (0x04, 0x01, 0, '')
-        self.push_ping()
+        if flags & FLAGS.SETTINGS_ACK:
+            LOG ('settings', 'ack')
+        else:
+            assert check == 0
+            # XXX store these into ivars
+            self.h2_settings = {}
+            for i in range (0, 6, plen):
+                ident, value = struct.unpack ('>HL', payload[i:i+6])
+                self.h2_settings[ident] = value
+            LOG ('settings', self.h2_settings)
+            # ack it.
+            self.send_frame (0x04, FLAGS.SETTINGS_ACK, 0, '')
+            self.push_settings()
 
-    FLAGS_PING_ACK = 0x01
+    initial_window_size = 16 * 1024 * 1024
+    def push_settings (self):
+        # let's just set the initial window size
+        payload = struct.pack ('>HL', SETTINGS.INITIAL_WINDOW_SIZE, self.initial_window_size)
+        self.send_frame (FRAME.SETTINGS, 0, 0, payload)
+
     def frame_ping (self, flags, stream_id, payload):
         assert len(payload) == 8
-        if flags & self.FLAGS_PING_ACK:
+        LOG ('ping', flags, stream_id, payload)
+        if flags & FLAGS.PING_ACK:
             assert payload == self.last_ping
         else:
             assert len(payload) == 8
-            self.push_ping (0x01, payload)
+            self.send_frame (0x06, FLAGS.PING_ACK, 0, payload)
 
     def frame_window_update (self, flags, stream_id, payload):
         increment, = struct.unpack ('>l', payload)
         assert increment >= 0
         LOG ('window_update', increment)
-
-    FLAGS_END_STREAM  = 0x01
-    FLAGS_END_HEADERS = 0x04
-    FLAGS_PADDED      = 0x08
-    FLAGS_PRIORITY    = 0x20
 
     def frame_headers (self, flags, stream_id, payload):
         pos = 0
@@ -302,20 +360,23 @@ class h2_connection (h2_protocol, connection):
         stream_dep = 0
         weight = 0
         assert stream_id > 0
-        if flags & self.FLAGS_PADDED:
+        if flags & FLAGS.PADDED:
             pad_len, = struct.unpack ('>B', payload[pos:pos+1])
             pos += 1
-            LOG ('headers', 'padded', pad_len)
-        if flags & self.FLAGS_PRIORITY:
+            #LOG ('headers', 'padded', pad_len)
+        if flags & FLAGS.PRIORITY:
             stream_dep, weight = struct.unpack ('>lB', payload[:5])
             pos += 5
-            LOG ('headers', 'priority', stream_dep, weight)
-        if flags & self.FLAGS_END_STREAM:
-            LOG ('headers', 'end_stream')
-        if flags & self.FLAGS_END_HEADERS:
-            LOG ('headers', 'end_headers')
+            #LOG ('headers', 'priority', stream_dep, weight)
+        if flags & FLAGS.END_STREAM:
+            #LOG ('headers', 'end_stream')
+            pass
+        if flags & FLAGS.END_HEADERS:
+            #LOG ('headers', 'end_headers')
+            pass
         else:
             raise NotImplementedError
+        LOG ('headers', flags, stream_id, pad_len, stream_dep, weight)
         if pad_len:
             header_block = payload[pos:-pad_len]
         else:
@@ -337,17 +398,37 @@ class h2_connection (h2_protocol, connection):
     def pack_http_header (self, hset):
         return self.encoder (hset)
 
+    def send_goaway (self, last_stream_id, error_code, debug_data):
+        payload = struct.pack ('>lL', last_stream_id, error_code) + debug_data
+        self.send_frame (0x07, 0x00, 0x00, payload)
+
     def frame_rst_stream (self, flags, stream_id, payload):
         LOG ('frame_rst_stream', stream_id)
-        del self.streams[stream_id]
+        try:
+            del self.streams[stream_id]
+        except KeyError:
+            LOG ('bad rst_stream', stream_id)
+        try:
+            del self.priorities[stream_id]
+        except KeyError:
+            pass
+
+    def frame_priority (self, flags, stream_id, payload):
+        stream_dep, weight = struct.unpack ('<lB', payload)
+        LOG ('priority', stream_dep, weight)
+        if stream_id == 0:
+            self.send_goaway (0, ERROR.PROTOCOL_ERROR, "priority with stream_id 0")
+            self.close()
+        else:
+            self.priorities[stream_id] = weight
+
+    def frame_goaway (self, flags, stream_id, payload):
+        LOG ('frame_goaway', flags, stream_id, payload)
+        self.close()
 
     def frame_data (self, flags, stream_id, payload):
         import pdb; pdb.set_trace()
-    def frame_priority (self, flags, stream_id, payload):
-        import pdb; pdb.set_trace()
     def frame_push_promise (self, flags, stream_id, payload):
-        import pdb; pdb.set_trace()
-    def frame_goaway (self, flags, stream_id, payload):
         import pdb; pdb.set_trace()
     def frame_continuation (self, flags, stream_id, payload):
         import pdb; pdb.set_trace()
@@ -366,34 +447,6 @@ class h2_connection (h2_protocol, connection):
             req.error (500, tb)
             self.log ('error: %r request=%r tb=%r' % (self.peer, req, tb))
 
-    # def frame_rst_stream (self, flags, data):
-    #     stream_id, status_code = struct.unpack ('>LL', data)
-    #     LOG ('reset: %x status=%d %s' % (stream_id, status_code, self.status_codes.get (status_code, 'unknown')))
-    #     del self.streams[stream_id]
-
-    # def frame_goaway (self, flags, data):
-    #     last_stream_id, = struct.unpack ('>L', data)
-    #     LOG ('goaway last_stream_id=%d' % (last_stream_id,))
-    #     # XXX arrange for the connection to close
-    #     self.close()
-
-    # def frame_ping (self, flags, data):
-    #     ping_id, = struct.unpack ('>L', data)
-    #     LOG ('ping', flags, ping_id)
-    #     self.send_frame (self.pack_control_frame (6, 0, data))
-
-    # def frame_settings (self, flags, data):
-    #     self.log ('H2 settings frame received [ignored]')
-    #     pass
-
-    # def frame_headers (self, flags, data):
-    #     self.log ('H2 headers frame received [ignored]')
-    #     pass
-
-    # def frame_window_update (self, flags, data):
-    #     stream_id, delta_window_size = struct.unpack ('>LL', data)
-    #     self.log ('h2 window update', stream_id, delta_window_size)
-
 class h2_tlslite_server (tlslite_server):
 
     protocol = 'h2'
@@ -402,7 +455,7 @@ class h2_tlslite_server (tlslite_server):
         tlslite_server.__init__ (self, addr, cert_path, key_path, nextProtos=['h2', 'http/1.1'], settings=settings)
 
     def create_connection (self, conn, addr):
-        if conn.next_proto == b'h2/3':
+        if conn.next_proto == b'h2':
             return h2_connection (self, conn, addr)
         else:
             return connection (self, conn, addr)
