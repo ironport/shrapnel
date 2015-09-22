@@ -256,6 +256,7 @@ class h2_connection (h2_protocol, connection):
         self.ofifo = coro.fifo()
         self.obuf = coro.semaphore (self.output_buffer_size)
         coro.spawn (self.send_thread)
+        self.push_settings()
         try:
             self.read_frames()
         except coro.oserrors.ECONNRESET:
@@ -326,19 +327,22 @@ class h2_connection (h2_protocol, connection):
             assert check == 0
             # XXX store these into ivars
             self.h2_settings = {}
-            for i in range (0, 6, plen):
+            for i in range (0, plen, 6):
                 ident, value = struct.unpack ('>HL', payload[i:i+6])
                 self.h2_settings[ident] = value
             LOG ('settings', self.h2_settings)
             # ack it.
-            self.send_frame (0x04, FLAGS.SETTINGS_ACK, 0, '')
-            self.push_settings()
+            self.send_frame (FRAME.SETTINGS, FLAGS.SETTINGS_ACK, 0, '')
 
-    initial_window_size = 16 * 1024 * 1024
+    initial_window_size = 65535
+    initial_settings = [
+        (SETTINGS.INITIAL_WINDOW_SIZE, initial_window_size),
+    ]
     def push_settings (self):
-        # let's just set the initial window size
-        payload = struct.pack ('>HL', SETTINGS.INITIAL_WINDOW_SIZE, self.initial_window_size)
-        self.send_frame (FRAME.SETTINGS, 0, 0, payload)
+        payload = []
+        for key, val in self.initial_settings:
+            payload.append (struct.pack ('>HL', key, val))
+        self.send_frame (FRAME.SETTINGS, 0, 0, b''.join (payload))
 
     def frame_ping (self, flags, stream_id, payload):
         assert len(payload) == 8
