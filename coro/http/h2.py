@@ -8,8 +8,9 @@ import os
 # Note: not trying to share code with spdy, since the plan is to deprecate it completely.
 
 from coro.http import connection, tlslite_server, openssl_server, s2n_server, http_request
-from coro.http.protocol import header_set, http_file
+from coro.http.protocol import header_set, http_file, latch
 from coro.http.hpack import Encoder, Decoder
+from coro import read_stream
 
 from coro.log import Facility
 LOG = Facility ('h2')
@@ -23,7 +24,12 @@ class h2_file (http_file):
     # override http_file's content generator (which is a 'pull' generator)
     #   with this coro.fifo-based 'push' generator.
 
-    def get_content_gen (self, headers):
+    def __init__ (self, headers, stream):
+        self.streami = stream
+        self.streamo = read_stream.buffered_stream (self.get_content_gen().next)
+        self.done_cv = latch()
+
+    def get_content_gen (self):
         self.content_fifo = coro.fifo()
         return self._gen_h2()
 
@@ -58,11 +64,14 @@ class h2_server_request (http_request):
         request = '%s %s %s' % (method, url, version)
         # XXX consider removing method/url/version?
         http_request.__init__ (self, client, request, headers)
+        if self.has_body():
+            self.make_content_file()
 
     def can_deflate (self):
         return True
 
     def has_body (self):
+        LOG ('has_body', not (self.flags & FLAGS.END_STREAM))
         return not (self.flags & FLAGS.END_STREAM)
 
     def make_content_file (self):
@@ -431,7 +440,15 @@ class h2_connection (h2_protocol, connection):
         self.close()
 
     def frame_data (self, flags, stream_id, payload):
-        import pdb; pdb.set_trace()
+        probe = self.streams.get (stream_id, None)
+        if probe is not None:
+            probe.file.content_fifo.push (payload)
+            if flags & FLAGS.END_STREAM:
+                probe.file.content_fifo.push (None)
+                del self.streams[stream_id]
+        else:
+            self.log ('orphaned data frame [%d bytes] for stream %d\n' % (len(payload), stream_id))
+
     def frame_push_promise (self, flags, stream_id, payload):
         import pdb; pdb.set_trace()
     def frame_continuation (self, flags, stream_id, payload):
