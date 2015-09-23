@@ -144,7 +144,8 @@ class HuffmanEncoder:
             self.emit (code, bits)
 
     def done (self):
-        self.emit (0xffffffff, self.left)
+        if self.left < 8:
+            self.emit (0xffffffff, self.left)
         return ''.join (self.data)
 
 def huffman_encode (s):
