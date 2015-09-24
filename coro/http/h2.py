@@ -269,11 +269,13 @@ class h2_connection (h2_protocol, connection):
 
     def send_thread (self):
         try:
-            while 1:
+            done = False
+            while not done:
                 blocks = self.ofifo.pop_all()
-                if not blocks:
-                    break
-                else:
+                if None in blocks:
+                    done = True
+                    blocks = [x for x in blocks if x is not None]
+                if blocks:
                     total_size = sum ([len(x) for x in blocks])
                     LOG ('send', total_size)
                     self.conn.writev (blocks)
