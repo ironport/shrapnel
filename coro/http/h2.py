@@ -15,9 +15,7 @@ from coro import read_stream
 from coro.log import Facility
 LOG = Facility ('h2')
 
-# When a reply is large (say >1MB) we still get a form of head-blocking behavior
-#   unless we chop it up into bits.  Think about an architecture that would
-#   automatically do that.  [i.e., a configurable max size for data frames]
+# XXX address MAX_FRAME_SIZE here.
 
 class h2_file (http_file):
 
@@ -234,14 +232,6 @@ class h2_protocol:
             LOG ('OSError')
             self.close()
 
-    def unpack_http_header (self, data):
-        hs = header_set()
-        hs.headers = unpack_http_header (self.inflate (data))
-        return hs
-
-    def pack_http_header (self, hset):
-        return self.deflate (pack_http_header (hset.headers))
-
 # --------------------------------------------------------------------------------
 #                             h2 server
 # --------------------------------------------------------------------------------
@@ -280,13 +270,14 @@ class h2_connection (h2_protocol, connection):
     def send_thread (self):
         try:
             while 1:
-                block = self.ofifo.pop()
-                if block is None:
+                blocks = self.ofifo.pop_all()
+                if not blocks:
                     break
                 else:
-                    LOG ('send', len(block))
-                    self.conn.send (block)
-                    self.obuf.release (len(block))
+                    total_size = sum ([len(x) for x in blocks])
+                    LOG ('send', total_size)
+                    self.conn.writev (blocks)
+                    self.obuf.release (total_size)
         except OSError:
             LOG ('OSError')
         finally:
