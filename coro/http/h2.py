@@ -69,7 +69,7 @@ class h2_server_request (http_request):
         return True
 
     def has_body (self):
-        LOG ('has_body', not (self.flags & FLAGS.END_STREAM))
+        #LOG ('has_body', not (self.flags & FLAGS.END_STREAM))
         return not (self.flags & FLAGS.END_STREAM)
 
     def make_content_file (self):
@@ -207,7 +207,6 @@ class h2_protocol:
                 self.close()
                 return
             else:
-                LOG ('preface', preface)
                 assert (preface == self.preface)
         try:
             while 1:
@@ -216,7 +215,6 @@ class h2_protocol:
                     self.close()
                     return
                 flen, ftype, flags, stream_id = unpack_frame_header (head)
-                LOG ('frame header', flen, ftype, flags, stream_id)
                 if flen:
                     payload = self.read_exact (flen)
                 else:
@@ -225,7 +223,7 @@ class h2_protocol:
                 if method_name == 'frame_':
                     self.log ('unknown h2 frame type: %d' % (ftype,))
                 else:
-                    LOG ('frame', method_name, flags, stream_id, payload)
+                    #LOG ('frame', method_name, flags, stream_id, payload)
                     method = getattr (self, method_name)
                     method (flags, stream_id, payload)
         except OSError:
@@ -277,7 +275,7 @@ class h2_connection (h2_protocol, connection):
                     blocks = [x for x in blocks if x is not None]
                 if blocks:
                     total_size = sum ([len(x) for x in blocks])
-                    LOG ('send', total_size)
+                    #LOG ('send', total_size)
                     self.conn.writev (blocks)
                     self.obuf.release (total_size)
         except OSError:
@@ -293,16 +291,16 @@ class h2_connection (h2_protocol, connection):
     def send_frame (self, ftype, flags, stream_id, data):
         dlen = len(data)
         head = pack_frame_header (dlen, ftype, flags, stream_id)
-        LOG ('send_frame', FRAME.types[ftype], flags, stream_id)
+        #LOG ('send_frame', FRAME.types[ftype], flags, stream_id)
         return self.push_frame (head + data)
 
     def push_headers (self, req, has_data):
-        LOG ('push_headers', req, not not has_data)
+        #LOG ('push_headers', req, not not has_data)
         flags = FLAGS.END_HEADERS
         if not has_data:
             flags |= FLAGS.END_STREAM
         hdata = self.pack_http_header (req.reply_headers)
-        LOG ('push_headers', req.stream_id)
+        #LOG ('push_headers', req.stream_id)
         req.output.sent += self.send_frame (0x01, flags, req.stream_id, hdata)
 
     def push_ping (self, flags=0, data=None):
@@ -317,14 +315,15 @@ class h2_connection (h2_protocol, connection):
             flags = FLAGS.END_STREAM
         else:
             flags = 0
-        LOG ('push_data', len(data))
+        #LOG ('push_data', len(data))
         req.output.sent += self.send_frame (0x00, flags, req.stream_id, data)
 
     def frame_settings (self, flags, stream_id, payload):
         plen = len(payload)
         n, check = divmod (plen, 6)
         if flags & FLAGS.SETTINGS_ACK:
-            LOG ('settings', 'ack')
+            #LOG ('settings', 'ack')
+            pass
         else:
             assert check == 0
             # XXX store these into ivars
@@ -332,7 +331,7 @@ class h2_connection (h2_protocol, connection):
             for i in range (0, plen, 6):
                 ident, value = struct.unpack ('>HL', payload[i:i+6])
                 self.h2_settings[ident] = value
-            LOG ('settings', self.h2_settings)
+            #LOG ('settings', self.h2_settings)
             # ack it.
             self.send_frame (FRAME.SETTINGS, FLAGS.SETTINGS_ACK, 0, '')
 
@@ -348,7 +347,7 @@ class h2_connection (h2_protocol, connection):
 
     def frame_ping (self, flags, stream_id, payload):
         assert len(payload) == 8
-        LOG ('ping', flags, stream_id, payload)
+        #LOG ('ping', flags, stream_id, payload)
         if flags & FLAGS.PING_ACK:
             assert payload == self.last_ping
         else:
@@ -358,7 +357,7 @@ class h2_connection (h2_protocol, connection):
     def frame_window_update (self, flags, stream_id, payload):
         increment, = struct.unpack ('>l', payload)
         assert increment >= 0
-        LOG ('window_update', increment)
+        #LOG ('window_update', increment)
 
     def frame_headers (self, flags, stream_id, payload):
         pos = 0
@@ -382,7 +381,7 @@ class h2_connection (h2_protocol, connection):
             pass
         else:
             raise NotImplementedError
-        LOG ('headers', flags, stream_id, pad_len, stream_dep, weight)
+        #LOG ('headers', flags, stream_id, pad_len, stream_dep, weight)
         if pad_len:
             header_block = payload[pos:-pad_len]
         else:
@@ -398,7 +397,6 @@ class h2_connection (h2_protocol, connection):
         while not self.decoder.done:
             hname, hval = self.decoder.get_header()
             hs[hname] = hval
-        LOG ('headers', hs.headers)
         return hs
 
     def pack_http_header (self, hset):
@@ -409,7 +407,7 @@ class h2_connection (h2_protocol, connection):
         self.send_frame (0x07, 0x00, 0x00, payload)
 
     def frame_rst_stream (self, flags, stream_id, payload):
-        LOG ('frame_rst_stream', stream_id)
+        #LOG ('frame_rst_stream', stream_id)
         try:
             del self.streams[stream_id]
         except KeyError:
@@ -421,7 +419,7 @@ class h2_connection (h2_protocol, connection):
 
     def frame_priority (self, flags, stream_id, payload):
         stream_dep, weight = struct.unpack ('<lB', payload)
-        LOG ('priority', stream_dep, weight)
+        #LOG ('priority', stream_dep, weight)
         if stream_id == 0:
             self.send_goaway (0, ERROR.PROTOCOL_ERROR, "priority with stream_id 0")
             self.close()
@@ -429,7 +427,7 @@ class h2_connection (h2_protocol, connection):
             self.priorities[stream_id] = weight
 
     def frame_goaway (self, flags, stream_id, payload):
-        LOG ('frame_goaway', flags, stream_id, payload)
+        #LOG ('frame_goaway', flags, stream_id, payload)
         self.close()
 
     def frame_data (self, flags, stream_id, payload):
@@ -450,7 +448,7 @@ class h2_connection (h2_protocol, connection):
     def handle_request (self, req):
         try:
             handler = self.pick_handler (req)
-            LOG ('handler', repr(handler))
+            #LOG ('handler', repr(handler))
             if handler:
                 # XXX with_timeout()
                 handler.handle_request (req)
@@ -481,7 +479,6 @@ class h2_openssl_server (openssl_server):
     def create_connection (self, conn, addr):
         # ensure that negotiation finishes...
         selected = conn.ssl.get_alpn_selected()
-        LOG ('h2_openssl_server', 'selected', selected)
         if selected == b'h2':
             return h2_connection (self, conn, addr)
         else:
@@ -497,10 +494,10 @@ class h2_s2n_server (s2n_server):
             from coro.ssl.s2n import PROTOCOL
             return PROTOCOL.reverse_map.get (n, "unknown")
 
-        LOG ('h2_s2n_server', repr(conn))
+        #LOG ('h2_s2n_server', repr(conn))
         conn._check_negotiated()
         s2n = conn.s2n_conn
-        LOG ('ALPN', s2n.get_application_protocol())
+        #LOG ('ALPN', s2n.get_application_protocol())
         if conn.s2n_conn.get_application_protocol() == b'h2':
             return h2_connection (self, conn, addr)
         else:
@@ -529,6 +526,7 @@ class h2_client_request (http_client.request):
     def has_body (self):
         return self._has_body
 
+# Note: not yet implemented (this is a s/spdy/hd from spdy.py).
 class h2_client (h2_protocol, http_client.client):
 
     is_server = False
