@@ -297,3 +297,46 @@ class auth_handler:
             'nonce="%s"' % (nonce,),
         ])
         request.error (401)
+
+class listdir_handler (file_handler):
+
+    css = (
+        'body { font-family: monospace; }'
+        'tr:nth-child(odd) {'
+        '  background-color:#f0f0f0;'
+                '}'
+        'tr:nth-child(even) {'
+        '  background-color:#e0e0e0;'
+        '}'
+        '.ellipsis {'
+        '  text-overflow: ellipsis;'
+        '  overflow: hidden;'
+        '  width:20em;'
+        '  display:block;'
+        '}'
+    )
+
+    time_format = '%Y-%m-%d %H:%M:%S'
+
+    def handle_directory_listing (self, request, path):
+        try:
+            subs = os.listdir (path)
+        except OSError:
+            request.error (403)
+        else:
+            subs.sort()
+            stats = [os.stat(os.path.join(path, x)) for x in subs]
+            request.push ('<style type="text/css">%s</style>' % (self.css,))
+            request.push ('<table><tr><th>date</th><th>size</th><th>name</th></tr>')
+            for i, sub in enumerate (subs):
+                st = stats[i]
+                if stat.S_ISDIR(st.st_mode):
+                    sub += '/'
+                timestamp = time.strftime (self.time_format, time.localtime (st.st_mtime))
+                request.push (
+                    '<tr><td>%s</td><td align="right">%d</td><td><a href="%s">%s</a></td></tr>' % (
+                        timestamp, st.st_size, sub, sub
+                    )
+                )
+            request.push ('</table>')
+            request.done()
