@@ -113,7 +113,7 @@ def make_huffman_map (t):
 
 huffman_map = make_huffman_map (huffman_table)
 
-masks = {i : (1<<i)-1 for i in (1,2,3,4,5,6,7)}
+masks = {i : (1<<i)-1 for i in (1,2,3,4,5,6,7,8)}
 
 class HuffmanEncoder:
 
@@ -155,10 +155,12 @@ def huffman_encode (s):
 
 class DynamicTable:
 
-    def __init__ (self, max_size=1024):
+    def __init__ (self, max_size=4096):
         self.table = []
+        self.map = {}
         self.size = 0
         self.max_size = max_size
+        self.clock = 0
 
     def __getitem__ (self, index):
         if index < nstatic:
@@ -166,13 +168,46 @@ class DynamicTable:
         else:
             return self.table[index-nstatic]
 
+    def get_index (self, name, val):
+        probe = static_map.get ((name, val), None)
+        if probe is not None:
+            return probe, True
+        else:
+            probe = static_map.get ((name, None), None)
+            if probe is not None:
+                return probe, False
+            else:
+                probe = self.map.get (name, None)
+                if probe is not None:
+                    if not probe.has_key (val):
+                        index = probe.values()[0]
+                        both = False
+                    else:
+                        index = probe[val]
+                        both = True
+                    return nstatic + (self.clock - index) - 1, both
+                else:
+                    return None, False
+
     def entry_size (self, name, val):
         return len(name) + len(val) + 32
 
     def evict_one (self):
         (k, v) = self.table.pop()
         self.size -= self.entry_size (k, v)
-        print 'evicted', k, v, self.size
+        self.del_map (k, v)
+
+    def del_map (self, name, val):
+        vals = self.map[name]
+        del vals[val]
+        if not vals:
+            del self.map[name]
+
+    def add_map (self, name, val):
+        if self.map.has_key (name):
+            self.map[name][val] = self.clock
+        else:
+            self.map[name] = { val : self.clock }
 
     def __setitem__ (self, name, val):
         es = self.entry_size (name, val)
@@ -180,6 +215,8 @@ class DynamicTable:
             self.evict_one()
         self.table.insert (0, (name, val))
         self.size += es
+        self.add_map (name, val)
+        self.clock += 1
 
     def set_size (self, size):
         self.max_size = size
@@ -200,6 +237,13 @@ class Decoder:
     def feed (self, data):
         self.data = data
         self.pos = 0
+
+    def decode (self, data):
+        self.feed(data)
+        r = []
+        while not self.done:
+            r.append (self.get_header())
+        return r
 
     @property
     def done (self):
@@ -286,26 +330,24 @@ class Decoder:
     def get_huffman (self, nbytes):
         r = []
         stop = self.pos + nbytes
-        while 1:
+        while self.pos < stop:
             t = huffman_table
-            while 1:
+            while self.pos < stop:
                 b = self.get_bit()
                 t = t[b]
                 if isinstance (t, int):
                     r.append (chr (t))
                     break
-                if self.pos == stop:
-                    return ''.join (r)
         return ''.join (r)
 
 class Encoder:
 
     def __init__ (self, table=None):
-        # not used yet.
         if table is None:
             table = DynamicTable()
         self.table = table
         self.data = []
+        self.never = set()
 
     def emit (self, b):
         self.data.append (chr(b))
@@ -335,23 +377,33 @@ class Encoder:
             self.data.append (s0)
 
     def emit_header (self, name, val):
-        index = static_map.get ((name, val), None)
-        if index is not None:
-            # index name and value
-            self.emit_integer (1, 7, index)
+        if name in self.never:
+            # literal name, literal value, never index
+            self.emit_integer (0b0001, 4, 0)
+            self.emit_literal (name)
+            self.emit_literal (val)
         else:
-            index = static_map.get ((name, None), None)
-            # XXX no dyntable yet
-            index = None
+            index, both = self.table.get_index (name, val)
             if index is not None:
-                # index name, literal value
-                self.emit_integer (0b0000, 4, index)
-                self.emit_literal (val)
+                if both:
+                    # index name and value
+                    self.emit_integer (0b1, 7, index)
+                else:
+                    # index name, literal/new value
+                    self.table[name] = val
+                    self.emit_integer (0b01, 6, index)
+                    self.emit_literal (val)
             else:
-                # literal name, literal value
-                self.emit_integer (0b0000, 4, 0)
+                # literal name, literal value, new name
+                self.table[name] = val
+                self.emit_integer (0b01, 6, 0)
                 self.emit_literal (name)
                 self.emit_literal (val)
+
+    def flush (self):
+        r = b''.join (self.data)
+        self.data = []
+        return r
 
     def __call__ (self, hset):
         self.data = []
@@ -368,4 +420,4 @@ class Encoder:
         for name, vals in items:
             for val in vals:
                 self.emit_header (name, val)
-        return ''.join (self.data)
+        return self.flush()
