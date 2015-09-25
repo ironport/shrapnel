@@ -161,12 +161,12 @@ class header_set:
         else:
             return r[0]
 
-    def set_one (self, key, val):
+    def set_one (self, key, val, override=False):
         """Set the value of a header expected to have at most one value.
            If a value is already present, raise ValueError."""
         r = self.headers.get (key, None)
-        if r is None:
-            self.headers[key] = val
+        if override or r is None:
+            self.headers[key] = [val]
         else:
             raise ValueError ("header %r already has a value: %r" % (key, r))
 
