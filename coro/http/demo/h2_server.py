@@ -2,6 +2,7 @@ import coro
 import coro.ssl
 import coro.http.spdy
 import coro.backdoor
+from pygments_handler import pygments_handler
 
 # note: firefox will not connect to openssl h2 server unless you set
 #  'network.http.spdy.enforce-tls-profile' to false. [see about:config]
@@ -24,7 +25,9 @@ ctx = coro.ssl.new_ctx (
 server = coro.http.h2.h2_openssl_server (ctx)
 server.push_handler (coro.http.handlers.favicon_handler())
 server.push_handler (coro.http.handlers.coro_status_handler())
-server.push_handler (coro.http.handlers.file_handler ('.'))
+lh = coro.http.handlers.listdir_handler ('../../..')
+ph = pygments_handler (lh)
+server.push_handler (ph)
 coro.spawn (server.start, ('0.0.0.0', 8443))
 coro.spawn (coro.backdoor.serve, unix_path='/tmp/h2s.bd')
 coro.event_loop (30.0)
