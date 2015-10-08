@@ -153,6 +153,14 @@ def huffman_encode (s):
     h.encode (s)
     return h.done()
 
+# The DynamicTable is used for both encoding and decoding.
+#  In encoding mode, both the linear 'table' and reverse 'map' are
+#  used.  The map records the position in the table of an entry at a
+#  particular time.  The 'clock' is used to avoid having to adjust the
+#  indices in the map every time a new entry is added.  For example,
+#  if an entry for 'xxx' was added at clock=10, then its position at
+#  clock=15 will be 5.
+
 class DynamicTable:
 
     def __init__ (self, max_size=4096):
@@ -168,26 +176,53 @@ class DynamicTable:
         else:
             return self.table[index-nstatic]
 
-    def get_index (self, name, val):
-        probe = static_map.get ((name, val), None)
-        if probe is not None:
-            return probe, True
+    def get_static_index (self, name, val):
+        probe0 = static_map.get ((name, val), None)
+        if probe0 is not None:
+            return probe0, True
         else:
-            probe = static_map.get ((name, None), None)
-            if probe is not None:
-                return probe, False
+            probe1 = static_map.get ((name, None), None)
+            if probe1 is not None:
+                return probe1, False
             else:
-                probe = self.map.get (name, None)
-                if probe is not None:
-                    if not probe.has_key (val):
-                        index = probe.values()[0]
-                        both = False
-                    else:
-                        index = probe[val]
-                        both = True
-                    return nstatic + (self.clock - index) - 1, both
-                else:
-                    return None, False
+                return None, False
+
+    def get_dynamic_index (self, name, val):
+        vals = self.map.get (name, None)
+        if vals is None:
+            return None, False
+        else:
+            probe0 = vals.get (val, None)
+            if probe0 is None:
+                index, both = vals.values()[0], False
+            else:
+                index, both = probe0, True
+            return nstatic + (self.clock - index) - 1, both
+
+    def get_index (self, name, val):
+        # returns <index>, <both>
+        # index: integer or None
+        # both: bool to indicate if name *and* value were present.
+        probe0, both0 = self.get_static_index (name, val)
+        if both0:
+            return probe0, both0
+        else:
+            probe1, both1 = self.get_dynamic_index (name, val)
+            if both1:
+                return probe1, both1
+            elif probe1 is None:
+                # nothing in either table
+                return None, False
+            elif probe0 is not None:
+                # prefer the lower index of the static map.
+                return probe0, False
+            else:
+                return probe1, both1
+
+    def check (self):
+        for k, v in self.table:
+            assert (self.map.has_key (k))
+            assert v in self.map[k]
 
     def entry_size (self, name, val):
         return len(name) + len(val) + 32
@@ -209,6 +244,13 @@ class DynamicTable:
         else:
             self.map[name] = { val : self.clock }
 
+    def nvals (self, name):
+        probe = self.map.get (name, None)
+        if probe is None:
+            return 0
+        else:
+            return len(probe)
+
     def __setitem__ (self, name, val):
         es = self.entry_size (name, val)
         while self.size + es > self.max_size:
@@ -217,6 +259,7 @@ class DynamicTable:
         self.size += es
         self.add_map (name, val)
         self.clock += 1
+        self.check()
 
     def set_size (self, size):
         self.max_size = size
@@ -342,10 +385,11 @@ class Decoder:
 
 class Encoder:
 
-    def __init__ (self, table=None):
+    def __init__ (self, table=None, max_vals=5):
         if table is None:
             table = DynamicTable()
         self.table = table
+        self.max_vals = max_vals
         self.data = []
         self.never = set()
 
@@ -390,9 +434,14 @@ class Encoder:
                     self.emit_integer (0b1, 7, index)
                 else:
                     # index name, literal/new value
-                    self.table[name] = val
-                    self.emit_integer (0b01, 6, index)
-                    self.emit_literal (val)
+                    if self.table.nvals (name) >= self.max_vals:
+                        # a header like 'date', which varies.
+                        self.emit_integer (0b0000, 4, index)
+                        self.emit_literal (val)
+                    else:
+                        self.table[name] = val
+                        self.emit_integer (0b01, 6, index)
+                        self.emit_literal (val)
             else:
                 # literal name, literal value, new name
                 self.table[name] = val
