@@ -415,9 +415,9 @@ class h2_protocol:
             LOG ('orphaned data frame [%d bytes] for stream %d\n' % (len(payload), stream_id))
 
     def frame_push_promise (self, flags, stream_id, payload):
-        import pdb; pdb.set_trace()
+        raise NotImplementedError
     def frame_continuation (self, flags, stream_id, payload):
-        import pdb; pdb.set_trace()
+        raise NotImplementedError
 
 # --------------------------------------------------------------------------------
 #                             h2 server
