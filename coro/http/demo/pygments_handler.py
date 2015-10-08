@@ -33,6 +33,7 @@ class pygments_request_wrapper:
     def done (self):
         form = pygments.formatters.get_formatter_by_name ('html', full=True)
         self._req.reply_headers.set_one ('content-type', 'text/html', override=True)
+        self._req.set_deflate()
         code = b''.join (self._data)
         form.format (pygments.lex (code, self._lex), self)
         self._req.done()
