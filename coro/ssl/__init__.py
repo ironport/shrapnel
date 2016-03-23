@@ -15,7 +15,7 @@ ssl_op_map = {
 
 from openssl import x509, pkey, dh_param
 
-def new_ctx (cert=None, chain=(), key=None, proto=None, ciphers=None, dhparam=None, next_protos=None):
+def new_ctx (cert=None, chain=(), key=None, proto=None, ciphers=None, dhparam=None, next_protos=None, auto_ecdh=True):
     ctx = openssl.ssl_ctx()
     if cert:
         ctx.use_cert (cert, chain)
@@ -29,6 +29,8 @@ def new_ctx (cert=None, chain=(), key=None, proto=None, ciphers=None, dhparam=No
         ctx.set_tmp_dh (dhparam)
     if next_protos:
         ctx.set_next_protos (next_protos)
+    if auto_ecdh:
+        ctx.set_ecdh_auto (1)
     return ctx
 
 class sock (coro.sock):
