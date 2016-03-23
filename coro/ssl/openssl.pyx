@@ -921,6 +921,12 @@ cdef class ssl:
     def set_verify (self, int mode):
         SSL_set_verify (self.ssl, mode, NULL)
 
+    def set_ecdh_auto (self, int on_off):
+        if SSL_set_ecdh_auto (self.ssl, on_off) == 0:
+            raise_ssl_error()
+        else:
+            return True
+
     def check_key (self):
         if SSL_check_private_key (self.ssl) == 0:
             raise_ssl_error()
@@ -1113,6 +1119,12 @@ cdef class ssl_ctx:
 
     def set_verify (self, int mode):
         SSL_CTX_set_verify (self.ctx, mode, NULL)
+
+    def set_ecdh_auto (self, int on_off):
+        if SSL_CTX_set_ecdh_auto (self.ctx, on_off) == 0:
+            raise_ssl_error()
+        else:
+            return True
 
     def check_key (self):
         if SSL_CTX_check_private_key (self.ctx) == 0:

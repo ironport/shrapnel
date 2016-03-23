@@ -282,6 +282,8 @@ cdef extern from "openssl/ssl.h":
     int SSL_set_cipher_list             (SSL *, char *)
     long SSL_CTX_set_tmp_dh             (SSL_CTX *, DH *)
     long SSL_set_tmp_dh                 (SSL *, DH *)
+    long SSL_CTX_set_ecdh_auto          (SSL_CTX *, int on_off)
+    long SSL_set_ecdh_auto              (SSL *, int on_off)
     void SSL_CTX_set_verify             (SSL_CTX *, int, void *)
     void SSL_set_verify                 (SSL *, int, void *)
     int SSL_CTX_check_private_key       (SSL_CTX *)
