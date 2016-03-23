@@ -107,7 +107,7 @@ OpenSSL_Extension = Extension (
     # manual static link
     # extra_link_args = [O('libcrypto.a'), O('libssl.a')],
     # link to an absolute location
-    # extra_link_args = ['-L %s -lcrypto -lssl' % (ossl_base,)]
+    #extra_link_args = ['-L', '%s/lib' % (ossl_base), '-lcrypto', '-lssl', '-Wl,-rpath,%s/lib' % (ossl_base,)],
     # 'normal' link
     libraries=['crypto', 'ssl'],
     include_dirs=[O('include')],
