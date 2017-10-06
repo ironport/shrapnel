@@ -41,7 +41,7 @@ Shrapnel
 --------
 Finally, you can install Shrapnel, run:
 
-	pip install shrapnel
+	pip install coro
 
 Alternatively you can download it from https://github.com/ironport/shrapnel
 and do the usual ``python setup.py install`` procedure.
