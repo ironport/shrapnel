@@ -1200,7 +1200,7 @@ IF NPN:
 
 cdef class cipher:
 
-    cdef EVP_CIPHER_CTX ctx
+    cdef EVP_CIPHER_CTX * ctx
     cdef readonly int block_size
     cdef readonly int encrypt
     cdef readonly object key
@@ -1212,32 +1212,34 @@ cdef class cipher:
         cipher = EVP_get_cipherbyname (kind)
         if cipher is NULL:
             raise UnknownCipherType (kind)
-        EVP_CIPHER_CTX_init (&self.ctx)
-        if EVP_CipherInit_ex (&self.ctx, cipher, NULL, NULL, NULL, encrypt) == 0:
+        self.ctx = EVP_CIPHER_CTX_new()
+        if EVP_CipherInit_ex (self.ctx, cipher, NULL, NULL, NULL, encrypt) == 0:
             raise_ssl_error()
         if key is not None:
             self.set_key (key)
         if iv is not None:
             self.set_iv (iv)
-        self.block_size = EVP_CIPHER_CTX_block_size (&self.ctx)
+        self.block_size = EVP_CIPHER_CTX_block_size (self.ctx)
 
     def __dealloc__ (self):
-        EVP_CIPHER_CTX_cleanup (&self.ctx)
+        EVP_CIPHER_CTX_cleanup (self.ctx)
+        EVP_CIPHER_CTX_free (self.ctx)
+        self.ctx = NULL
 
     def get_key_length (self):
-        return EVP_CIPHER_CTX_key_length (&self.ctx)
+        return EVP_CIPHER_CTX_key_length (self.ctx)
 
     def get_iv_length (self):
-        return EVP_CIPHER_CTX_iv_length (&self.ctx)
+        return EVP_CIPHER_CTX_iv_length (self.ctx)
 
     cpdef set_key (self, bytes key):
-        if EVP_CipherInit_ex (&self.ctx, NULL, NULL, <char *> key, NULL, self.encrypt) == 0:
+        if EVP_CipherInit_ex (self.ctx, NULL, NULL, <char *> key, NULL, self.encrypt) == 0:
             raise_ssl_error()
         else:
             self.key = key
 
     cpdef set_iv (self, bytes iv):
-        if EVP_CipherInit_ex (&self.ctx, NULL, NULL, NULL, <char *> iv, self.encrypt) == 0:
+        if EVP_CipherInit_ex (self.ctx, NULL, NULL, NULL, <char *> iv, self.encrypt) == 0:
             raise_ssl_error()
         else:
             self.iv = iv
@@ -1247,7 +1249,7 @@ cdef class cipher:
         cdef int osize = self.block_size + isize
         out_string = PyBytes_FromStringAndSize (NULL, osize)
         if EVP_CipherUpdate (
-            &self.ctx, <char*>out_string, &osize, <char *>data, isize
+            self.ctx, <char*>out_string, &osize, <char *>data, isize
             ) == 0:
             raise_ssl_error()
         elif osize != len (out_string):
@@ -1258,7 +1260,7 @@ cdef class cipher:
     def final (self):
         cdef int osize = self.block_size
         ostring = PyBytes_FromStringAndSize (NULL, osize)
-        if EVP_CipherFinal_ex (&self.ctx, <char *>ostring, &osize) == 0:
+        if EVP_CipherFinal_ex (self.ctx, <char *>ostring, &osize) == 0:
             raise_ssl_error()
         elif osize != self.block_size:
             return ostring[:osize]
@@ -1282,29 +1284,30 @@ def get_all_ciphers():
 
 cdef class digest:
 
-    cdef EVP_MD_CTX ctx
+    cdef EVP_MD_CTX * ctx
 
     def __init__ (self, kind):
         cdef EVP_MD * digest
         digest = EVP_get_digestbyname (kind)
         if digest is NULL:
             raise UnknownDigestType (kind)
-        EVP_MD_CTX_init (&self.ctx)
-        if EVP_DigestInit_ex (&self.ctx, digest, NULL) == 0:
+        self.ctx = EVP_MD_CTX_new()
+        EVP_MD_CTX_init (self.ctx)
+        if EVP_DigestInit_ex (self.ctx, digest, NULL) == 0:
             raise_ssl_error()
 
     def __dealloc__ (self):
-        EVP_MD_CTX_cleanup (&self.ctx)
+        EVP_MD_CTX_free (self.ctx)
 
     def update (self, bytes data):
         cdef int isize
-        if EVP_DigestUpdate (&self.ctx, <char*>data, len(data)) == 0:
+        if EVP_DigestUpdate (self.ctx, <char*>data, len(data)) == 0:
             raise_ssl_error()
 
     def final (self):
         cdef int osize
         cdef bytes ostring = PyBytes_FromStringAndSize (NULL, EVP_MAX_MD_SIZE)
-        if EVP_DigestFinal_ex (&self.ctx, <char*>ostring, &osize) == 0:
+        if EVP_DigestFinal_ex (self.ctx, <char*>ostring, &osize) == 0:
             raise_ssl_error()
         elif osize != len(ostring):
             return ostring[:osize]
@@ -1315,7 +1318,7 @@ cdef class digest:
         cdef int osize
         cdef bytes sig = PyBytes_FromStringAndSize (NULL, key._size())
         # Finalize/sign the hash
-        if EVP_SignFinal (&self.ctx, <char*>sig, &osize, key.pkey) == 0:
+        if EVP_SignFinal (self.ctx, <char*>sig, &osize, key.pkey) == 0:
             raise_ssl_error()
         elif osize != len(sig):
             return sig[:osize]
@@ -1325,7 +1328,7 @@ cdef class digest:
     def verify (self, pkey key, sig):
         cdef int result
         # verify this signature
-        result = EVP_VerifyFinal (&self.ctx, sig, len(sig), key.pkey)
+        result = EVP_VerifyFinal (self.ctx, sig, len(sig), key.pkey)
         if result == 1:
             return True
         elif result == 0:
