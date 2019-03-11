@@ -29,7 +29,7 @@ handling.
 import errno
 import new
 import sys
-cimport libc
+from libc.string cimport strerror
 
 err_map = {}
 
@@ -51,7 +51,7 @@ def raise_oserror(int error_number):
     :Parameters:
         - `error_number`: The errno value to raise.
     """
-    map_exception(OSError(error_number, libc.strerror(error_number)))
+    map_exception(OSError(error_number, strerror(error_number)))
 
 __m = sys.modules['coro.oserrors']
 __g = __m.__dict__
