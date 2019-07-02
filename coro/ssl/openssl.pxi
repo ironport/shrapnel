@@ -115,17 +115,9 @@ cdef extern from "openssl/rsa.h":
 cdef extern from "openssl/evp.h":
     ctypedef struct EVP_PKEY
     ctypedef struct EVP_CIPHER
-    ctypedef struct EVP_CIPHER_CTX:
-        # for some reason pyrex won't just let me declare the struct's existence.
-        int nid
-        int block_size
-        int key_len
-        int iv_len
-        unsigned long flags
+    ctypedef struct EVP_CIPHER_CTX
     ctypedef struct EVP_MD
-    ctypedef struct EVP_MD_CTX:
-        # same as above
-        unsigned long flags
+    ctypedef struct EVP_MD_CTX
     EVP_MD *EVP_sha256()
     EVP_MD *EVP_sha512()
     EVP_PKEY * EVP_PKEY_new()
@@ -136,13 +128,16 @@ cdef extern from "openssl/evp.h":
     void EVP_CIPHER_free (EVP_CIPHER *)
     EVP_CIPHER * EVP_get_cipherbyname (char *)
     EVP_MD * EVP_get_digestbyname (char *)
+    EVP_CIPHER_CTX * EVP_CIPHER_CTX_new()
+    void EVP_CIPHER_CTX_free           (EVP_CIPHER_CTX *)
     void EVP_CIPHER_CTX_init           (EVP_CIPHER_CTX *)
+    EVP_MD_CTX * EVP_MD_CTX_new        ()
+    void EVP_MD_CTX_free               (EVP_MD_CTX *)
     void EVP_MD_CTX_init               (EVP_MD_CTX *)
     int  EVP_CIPHER_CTX_set_key_length (EVP_CIPHER_CTX *, int)
     int  EVP_CIPHER_CTX_key_length     (EVP_CIPHER_CTX *)
     int  EVP_CIPHER_CTX_iv_length      (EVP_CIPHER_CTX *)
     int  EVP_CIPHER_CTX_cleanup        (EVP_CIPHER_CTX *)
-    int  EVP_MD_CTX_cleanup            (EVP_MD_CTX *)
     int  EVP_CipherInit_ex             (EVP_CIPHER_CTX *, EVP_CIPHER *, void *, char *, char *, int)
     int  EVP_DigestInit_ex             (EVP_MD_CTX *, EVP_MD *, void *)
     int  EVP_CipherUpdate              (EVP_CIPHER_CTX *, char *, int *, char *, int)
