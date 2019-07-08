@@ -23,7 +23,7 @@
 #
 # Implements the hmac-md5 SSH MAC algorithm.
 
-from hmac import SSH_HMAC
+from .hmac import SSH_HMAC
 import hashlib
 
 class HMAC_MD5(SSH_HMAC):

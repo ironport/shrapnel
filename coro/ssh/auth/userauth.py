@@ -214,13 +214,13 @@ class Password(Userauth_Authentication_Method):
     def msg_userauth_passwd_changereq(self, packet, username, service_name):
         # User's password has expired.  Allow the user to enter a new password.
         msg, prompt, language = unpack_payload(PAYLOAD_MSG_USERAUTH_PASSWD_CHANGEREQ, packet)
-        print safe_string(prompt)
+        print (safe_string(prompt))
         old_password = self.get_password('%s\'s old password> ' % username)
         while 1:
             new_password = self.get_password('%s\'s new password> ' % username)
             new_password2 = self.get_password('Retype new password> ')
             if new_password != new_password2:
-                print 'Passwords did not match!  Try again.'
+                print ('Passwords did not match!  Try again.')
             else:
                 break
         packet = pack_payload(PAYLOAD_MSG_USERAUTH_REQUEST_CHANGE_PASSWD,
@@ -282,7 +282,7 @@ class Userauth(Authentication_System):
                     except Authentication_Error:
                         self.transport.debug.write(
                             ssh_debug.DEBUG_1, 'Authentication method "%s" failed.', (method.name,))
-                    except Userauth_Method_Not_Allowed_Error, why:
+                    except Userauth_Method_Not_Allowed_Error as why:
                         auths_that_can_continue = why.auths_that_can_continue
                     else:
                         # Authentication success.
@@ -294,7 +294,7 @@ class Userauth(Authentication_System):
 
     def msg_userauth_banner(self, packet):
         msg, message, language = unpack_payload(PAYLOAD_MSG_USERAUTH_BANNER, packet)
-        print safe_string(message)
+        print (safe_string(message))
 
 # ----------------------------------------------------------------------------------------------------
 # server side authentication

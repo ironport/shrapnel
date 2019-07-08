@@ -1,7 +1,7 @@
 # -*- Mode: Python -*-
 
 import json
-import urlparse
+import urllib.parse
 import coro
 import base64
 from coro.http.client import client as http_client
@@ -18,7 +18,7 @@ class json_rpc_handler:
     def handle_request (self, request):
         data = request.file.read()
         qd = json.loads (data)
-        v2 = qd.has_key ('jsonrpc')
+        v2 = 'jsonrpc' in qd
         result = self.root.handle_json_rpc (qd['method'], qd['params'])
         request['content-type'] = 'application/json'
         if v2:
@@ -44,7 +44,7 @@ class json_rpc_remote:
 
     def __init__ (self, url, auth_info=None):
         self.url = url
-        self.url_ob = urlparse.urlparse (url)
+        self.url_ob = urllib.parse.urlparse (url)
         assert (self.url_ob.scheme == 'http')
         self.counter = 0
         if auth_info:

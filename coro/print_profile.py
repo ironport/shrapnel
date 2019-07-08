@@ -31,11 +31,11 @@ TODO
 
 """
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import cgi
 import sys
 import coro.profiler
-import cPickle
+import pickle
 import time
 
 PER_COLUMNS = ('ticks', 'utime', 'stime')
@@ -113,7 +113,7 @@ function ts_resortTable(lnk,clid) {
     //sortfn = ts_sort_caseinsensitive;
     //if (itm.match(/^\d\d[\/-]\d\d[\/-]\d\d\d\d$/)) sortfn = ts_sort_date;
     //if (itm.match(/^\d\d[\/-]\d\d[\/-]\d\d$/)) sortfn = ts_sort_date;
-    //if (itm.match(/^[\ufffd$]/)) sortfn = ts_sort_currency;
+    //if (itm.match(/^[\\ufffd$]/)) sortfn = ts_sort_currency;
     //if (itm.match(/^[\d\.]+$/)) sortfn = ts_sort_numeric;
     sortfn = ts_sort_numeric;
     SORT_COLUMN_INDEX = column;
@@ -280,23 +280,23 @@ class profile_data:
         header = f.read(len(coro.profiler.MAGIC))
         if header != coro.profiler.MAGIC:
             err('Header not valid.')
-        self.bench_type, self.headings, self.time = cPickle.load(f)
-        self.profile_data = cPickle.load(f)
-        self.call_data = cPickle.load(f)
+        self.bench_type, self.headings, self.time = pickle.load(f)
+        self.profile_data = pickle.load(f)
+        self.call_data = pickle.load(f)
 
     def process(self, other_profile):
         self._print_header()
         self._print_timings(False, other_profile)
-        print '<hr>'
+        print('<hr>')
         self._print_timings(True, other_profile)
         self._print_call_graph()
         self._print_footer()
 
     def _print_timings(self, aggregate, other_profile):
         if aggregate:
-            print '<h2>Aggregate Timings</h2>'
+            print('<h2>Aggregate Timings</h2>')
         else:
-            print '<h2>Non-Aggregate Timings</h2>'
+            print('<h2>Non-Aggregate Timings</h2>')
 
         # Find any columns that have all zeros and skip them.
         has_nonzero = {}
@@ -306,7 +306,7 @@ class profile_data:
 
         for heading in self.headings:
             has_nonzero[heading] = False
-        for function_string, (calls, data_tuple, aggregate_data_tuple) in self.profile_data.iteritems():
+        for function_string, (calls, data_tuple, aggregate_data_tuple) in self.profile_data.items():
             if function_string != '<wait>':
                 for i, heading in enumerate(self.headings):
                     if aggregate:
@@ -317,29 +317,29 @@ class profile_data:
                         has_nonzero[heading] = True
                         column_sums[i] += data_item
         skip_headings = []
-        for heading, nonzero in has_nonzero.items():
+        for heading, nonzero in list(has_nonzero.items()):
             if not nonzero:
                 skip_headings.append(heading)
 
-        print '<table id="t1" class="sortable" border=1 cellpadding=2 cellspacing=0>'
-        print '  <tr>'
-        print '    <th>calls</th>'
+        print('<table id="t1" class="sortable" border=1 cellpadding=2 cellspacing=0>')
+        print('  <tr>')
+        print('    <th>calls</th>')
         for heading in self.headings:
             if heading not in skip_headings:
-                print '    <th>%s</th>' % (heading,)
+                print('    <th>%s</th>' % (heading,))
                 if heading in PER_COLUMNS:
-                    print '    <th>%s/call</th>' % (heading,)
-        print '    <th>Function</th>'
-        print '  </tr>'
+                    print('    <th>%s/call</th>' % (heading,))
+        print('    <th>Function</th>')
+        print('  </tr>')
 
         m = _mapfuns(self.profile_data, other_profile)
-        for function_string, (calls, data_tuple, aggregate_data_tuple) in self.profile_data.iteritems():
+        for function_string, (calls, data_tuple, aggregate_data_tuple) in self.profile_data.items():
             try:
                 calls2, data_tuple2, aggregate_data_tuple2 = other_profile[m[function_string]]
             except KeyError:
                 calls2, data_tuple2, aggregate_data_tuple2 = 0, empty_cols, empty_cols
-            print '  <tr align=right>'
-            print '    <td>%s</td>' % (calls - calls2, )
+            print('  <tr align=right>')
+            print('    <td>%s</td>' % (calls - calls2, ))
             for i, heading in enumerate(self.headings):
                 if heading not in skip_headings:
                     if aggregate:
@@ -354,7 +354,7 @@ class profile_data:
                         pct = ' (%.2f%%)' % ((float(data_item) / column_sums[i]) * 100,)
                     else:
                         pct = ''
-                    print '    <td>%s%s</td>' % (value, pct)
+                    print('    <td>%s%s</td>' % (value, pct))
                     if heading in PER_COLUMNS:
                         if calls == 0:
                             per = data_item
@@ -363,41 +363,41 @@ class profile_data:
                                 per = '%.6f' % (data_item / calls,)
                             else:
                                 per = data_item / calls
-                        print '    <td>%s</td>' % (per, )
-            print '    <td align=left><a name="tt_%s"></a><a href="#cg_%s">%s</a></td>' % (
-                urllib.quote_plus(function_string),
-                urllib.quote_plus(function_string),
+                        print('    <td>%s</td>' % (per, ))
+            print('    <td align=left><a name="tt_%s"></a><a href="#cg_%s">%s</a></td>' % (
+                urllib.parse.quote_plus(function_string),
+                urllib.parse.quote_plus(function_string),
                 cgi.escape(function_string, quote=True)
-            )
-            print '  </tr>'
-        print '</table>'
-        print '<p><tt>/call</tt> columns represent the time spent in that function per call <b>on average</b>.'
-        print '<p>Columns with all zeros are not displayed.'
+            ))
+            print('  </tr>')
+        print('</table>')
+        print('<p><tt>/call</tt> columns represent the time spent in that function per call <b>on average</b>.')
+        print('<p>Columns with all zeros are not displayed.')
 
     def _print_call_graph(self):
         # self.call_data is caller->callee, make a reverse graph of callee->caller
         rg = {}
-        for caller_string, callees in self.call_data.iteritems():
+        for caller_string, callees in self.call_data.items():
             for callee_string, call_count in callees:
                 if callee_string in rg:
                     rg[callee_string].append((caller_string, call_count))
                 else:
                     rg[callee_string] = [(caller_string, call_count)]
 
-        functions = self.profile_data.items()
+        functions = list(self.profile_data.items())
         functions.sort()
 
         for function_string, (calls, data_tuple, aggregate_data_tuple) in functions:
-            print '<hr>'
-            print '<tt><a name="cg_%s">%s</a> -- ' % (
-                urllib.quote_plus(function_string),
+            print('<hr>')
+            print('<tt><a name="cg_%s">%s</a> -- ' % (
+                urllib.parse.quote_plus(function_string),
                 cgi.escape(function_string, quote=True)
-            )
+            ))
             for (data_item, heading) in zip(data_tuple, self.headings):
                 if data_item != 0:
-                    print '%s=%s' % (heading, data_item)
-            print '</tt>'
-            print '<pre>'
+                    print('%s=%s' % (heading, data_item))
+            print('</tt>')
+            print('<pre>')
             # Print callers.
             if function_string in rg:
                 l = []
@@ -405,15 +405,15 @@ class profile_data:
                     l.append((caller, count))
                 l.sort(lambda a, b: cmp(a[1], b[1]))
                 for caller, count in l:
-                    print '%10i/%-10i (%04.1f%%) <a href="#tt_%s">%s</a>' % (
+                    print('%10i/%-10i (%04.1f%%) <a href="#tt_%s">%s</a>' % (
                         count,
                         calls,
                         (float(count) / calls) * 100,
-                        urllib.quote_plus(caller),
+                        urllib.parse.quote_plus(caller),
                         cgi.escape(caller, quote=True)
-                    )
+                    ))
 
-            print '%15i           <b>%s</b>' % (calls, function_string)
+            print('%15i           <b>%s</b>' % (calls, function_string))
 
             # Print callees.
             callees2 = []
@@ -423,58 +423,58 @@ class profile_data:
                 callees2.append((callee_string, call_count, callee_calls))
             callees2.sort(lambda a, b: cmp(a[1], b[1]))
             for callee_string, call_count, callee_calls in callees2:
-                print '%10i/%-10i (%04.1f%%) <a href="#tt_%s">%s</a>' % (
+                print('%10i/%-10i (%04.1f%%) <a href="#tt_%s">%s</a>' % (
                     call_count,
                     callee_calls,
                     (float(call_count) / callee_calls) * 100,
-                    urllib.quote_plus(callee_string),
+                    urllib.parse.quote_plus(callee_string),
                     cgi.escape(callee_string, quote=True)
-                )
-            print '</pre>'
+                ))
+            print('</pre>')
 
-        print '<hr>'
-        print 'Description of output:'
-        print '<pre>'
-        print 'filename:funcname:lineno -- prof_data'
-        print
-        print '   caller_x/caller_y   (%) caller'
-        print '    total_calls           <b>function</b>'
-        print '   callee_x/callee_y   (%) callee'
-        print
-        print 'caller_x is the number of times caller made a call to this function.'
-        print 'caller_y is the total number of calls to the function from all callers combined.'
-        print
-        print 'callee_x is the total number of times the function called this callee.'
-        print 'callee_y is the total number of calls to this callee from all functions in the program.'
-        print
-        print 'Profile data values of 0 are not displayed.'
+        print('<hr>')
+        print('Description of output:')
+        print('<pre>')
+        print('filename:funcname:lineno -- prof_data')
+        print()
+        print('   caller_x/caller_y   (%) caller')
+        print('    total_calls           <b>function</b>')
+        print('   callee_x/callee_y   (%) callee')
+        print()
+        print('caller_x is the number of times caller made a call to this function.')
+        print('caller_y is the total number of calls to the function from all callers combined.')
+        print()
+        print('callee_x is the total number of times the function called this callee.')
+        print('callee_y is the total number of calls to this callee from all functions in the program.')
+        print()
+        print('Profile data values of 0 are not displayed.')
 
     def _print_header(self):
-        print '<html><head><title>Shrapnel Profile</title></head><body bgcolor="#ffffff">'
-        print '<script type="text/javascript"><!--'
-        print sortable_js
-        print '// -->'
-        print '</script>'
-        print '<h1>Shrapnel Profile Results</h1>'
-        print '<hr>'
+        print('<html><head><title>Shrapnel Profile</title></head><body bgcolor="#ffffff">')
+        print('<script type="text/javascript"><!--')
+        print(sortable_js)
+        print('// -->')
+        print('</script>')
+        print('<h1>Shrapnel Profile Results</h1>')
+        print('<hr>')
 
     def _print_footer(self):
-        print '<hr>'
-        print 'Profile data collected at %s<br>' % (time.ctime(self.time),)
-        print 'Output generated at %s<br>' % (time.ctime(),)
-        print '</body></html>'
+        print('<hr>')
+        print('Profile data collected at %s<br>' % (time.ctime(self.time),))
+        print('Output generated at %s<br>' % (time.ctime(),))
+        print('</body></html>')
 
 def err(msg):
     sys.stderr.write(msg + '\n')
     sys.exit(1)
 
 def usage():
-    print 'Usage: print_profile.py profile_filename [other_profile]'
-    print
-    print ' print_profile.py filename             -> Convert Profile data to HTML'
-    print ' print_profile.py filename1, filename2 -> Compare timings between profile results in file1 and file2'
-    print
-    print 'Output HTML is sent to stdout'
+    print('Usage: print_profile.py profile_filename [other_profile]')
+    print()
+    print(' print_profile.py filename             -> Convert Profile data to HTML')
+    print(' print_profile.py filename1, filename2 -> Compare timings between profile results in file1 and file2')
+    print()
+    print('Output HTML is sent to stdout')
 
 def main(baseline, otherfile=None):
     data = profile_data(baseline)
@@ -482,7 +482,7 @@ def main(baseline, otherfile=None):
     if otherfile:
         data2 = profile_data(otherfile)
         if data.bench_type != data2.bench_type:
-            print 'Cannot Compare. Bench types are different.'
+            print('Cannot Compare. Bench types are different.')
             return
         other_profile = data2.profile_data
     data.process(other_profile)

@@ -49,14 +49,14 @@ def pick_from_list(name, algorithms):
 
 nonprintable = ''.join ([x for x in map (chr, range(256)) if x not in string.printable])
 nonprintable_replacement = '$' * len(nonprintable)
-nonprintable_table = string.maketrans(nonprintable, nonprintable_replacement)
+nonprintable_table = str.maketrans(nonprintable, nonprintable_replacement)
 
 def safe_string(s):
     """safe_string(s) -> new_s
     Escapes control characters in s such that it is suitably
     safe for printing to a terminal.
     """
-    return string.translate(s, nonprintable_table)
+    return str.translate(s, nonprintable_table)
 
 def str_xor(a, b):
     """str_xor(a, b) -> str

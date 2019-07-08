@@ -1,12 +1,16 @@
 # -*- Mode: Python -*-
 
+import sys
+W = sys.stderr.write
+
 class socket_producer:
     def __init__ (self, conn, buffer_size=8000):
         self.conn = conn
         self.buffer_size = buffer_size
 
     def next (self):
-        return self.conn.recv (self.buffer_size)
+        data = self.conn.recv (self.buffer_size)
+        return data
 
 def sock_stream (sock):
     return buffered_stream (socket_producer (sock).next)
@@ -15,7 +19,7 @@ class buffered_stream:
 
     def __init__ (self, producer):
         self.producer = producer
-        self.buffer = ''
+        self.buffer = b''
 
     def gen_read_until (self, delim):
         "generate pieces of input up to and including <delim>, then StopIteration"
@@ -26,7 +30,7 @@ class buffered_stream:
                 self.buffer = self.producer()
                 if not self.buffer:
                     # eof
-                    yield ''
+                    yield b''
                     return
             i = 0
             while i < len (self.buffer):
@@ -39,7 +43,7 @@ class buffered_stream:
                 else:
                     m = 0
                 i += 1
-            block, self.buffer = self.buffer, ''
+            block, self.buffer = self.buffer, b''
             yield block
 
     def gen_read_until_dfa (self, dfa):
@@ -50,7 +54,7 @@ class buffered_stream:
                 self.buffer = self.producer()
                 if not self.buffer:
                     # eof
-                    yield ''
+                    yield b''
                     return
             i = 0
             while i < len (self.buffer):
@@ -59,7 +63,7 @@ class buffered_stream:
                     yield result
                     return
                 i += 1
-            block, self.buffer = self.buffer, ''
+            block, self.buffer = self.buffer, b''
             yield block
 
     def gen_read_exact (self, size):
@@ -76,14 +80,14 @@ class buffered_stream:
                 yield piece
                 if not self.buffer:
                     # eof
-                    yield ''
+                    yield b''
                     return
 
     def read_until (self, delim, join=True):
         "read until <delim>.  return a list of parts unless <join> is True"
         result = (x for x in self.gen_read_until (delim))
         if join:
-            return ''.join (result)
+            return b''.join (result)
         else:
             return result
 
@@ -91,16 +95,16 @@ class buffered_stream:
         "read exactly <size> bytes.  return a list of parts unless <join> is True"
         result = (x for x in self.gen_read_exact (size))
         if join:
-            return ''.join (result)
+            return b''.join (result)
         else:
             return result
 
     def flush (self):
         "flush this stream's buffer"
-        result, self.buffer = self.buffer, ''
+        result, self.buffer = self.buffer, b''
         return result
 
-    def read_line (self, delim='\r\n'):
+    def read_line (self, delim=b'\r\n'):
         "read a CRLF-delimited line from this stream"
         return self.read_until (delim)
 

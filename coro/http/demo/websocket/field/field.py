@@ -26,7 +26,8 @@ colors = ['red', 'green', 'blue', 'magenta', 'purple', 'plum', 'orange']
 
 # sample 'box' object.
 class box (quadtree.ob):
-    def __init__ (self, color, (l, t, r, b)):
+    def __init__ (self, color, rect):
+        (l, t, r, b) = rect
         self.color = color
         self.set_rect (l, t, r, b)
 
@@ -200,17 +201,17 @@ class field_conn (websocket, quadtree.ob):
 
     def handle_packet (self, p):
         data = p.unpack()
-        event = p.unpack().split (',')
+        event = p.unpack().decode().split (',')
         # W ('packet = %r event=%r\n' % (p, event))
         if event[0] == 'KD':
             ascii = int (event[1])
-            if ascii == 87:  # W
+            if ascii in (87, 38):  # W | up
                 self.move_window (0, -10)
-            elif ascii == 65:  # A
+            elif ascii in (65, 37):  # A | left
                 self.move_window (-10, 0)
-            elif ascii == 83:  # S
+            elif ascii in (83, 40):  # S | down
                 self.move_window (0, 10)
-            elif ascii == 68:  # D
+            elif ascii in (68, 39):  # D | right
                 self.move_window (10, 0)
             elif ascii == 82:  # R
                 x0, y0 = self.get_rect()[:2]
@@ -275,11 +276,10 @@ if __name__ == '__main__':
     mimetypes.init()
     mimetypes.add_type ('text/plain', '.py')
     handlers = [th, ih, sh, fh]
-    # server = coro.http.server (('0.0.0.0', 9001))
     server = coro.http.server()
     for h in handlers:
         server.push_handler (h)
     # coro.spawn (server.start)
-    coro.spawn (server.start, ('0.0.0.0', 9001))
-    coro.spawn (coro.backdoor.serve, unix_path='/tmp/ws.bd')
+    coro.spawn (server.start, (b'0.0.0.0', 9001))
+    coro.spawn (coro.backdoor.serve, unix_path=b'/tmp/ws.bd')
     coro.event_loop (30.0)

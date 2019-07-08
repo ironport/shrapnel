@@ -61,6 +61,8 @@ PySequence_Fast_GET_ITEM_SAFE (PyObject * o, int i)
     return x;
 }
 
+// XPY3: PyObject_Cmp() is gone.
+#if 0
 PyINLINE_FUNC(int)
 cmp (PyObject * o1, PyObject * o2)
 {
@@ -72,6 +74,7 @@ cmp (PyObject * o1, PyObject * o2)
         return result;
     }
 }
+#endif
 
 /* List functions. */
 
@@ -197,6 +200,8 @@ Pyrex_Free_SAFE(void * ptr)
 }
 
 
+// XPY3: these appear unused, and PyInt_GetMax() is gone.
+#if 0
 /* Number functions. */
 PyINLINE_FUNC(PyObject *)
 minimal_ulonglong(unsigned long long value)
@@ -227,6 +232,7 @@ minimal_ulong(unsigned long value)
         return PyInt_FromLong(value);
     }
 }
+#endif
 
 #endif
 

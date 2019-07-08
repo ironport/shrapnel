@@ -110,13 +110,16 @@ monthname = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 
 def build_http_date(when):
     year, month, day, hh, mm, ss, wd, y, z = time.gmtime(when)
-    return "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (
-        weekdayname[wd],
-        day, monthname[month], year,
-        hh, mm, ss)
+    return (
+        "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (
+            weekdayname[wd],
+            day, monthname[month], year,
+            hh, mm, ss
+        )
+    )
 
 def parse_http_date (d):
-    d = string.lower (d)
+    d = d.lower()
     tz = time.timezone
     m = rfc850_reg.match (d)
     try:

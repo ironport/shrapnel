@@ -42,14 +42,14 @@ class http_file:
         self.streami = stream
         self.done_cv = latch()
         if headers.get_one ('transfer-encoding') == 'chunked':
-            self.streamo = read_stream.buffered_stream (self._gen_read_chunked().next)
+            self.streamo = read_stream.buffered_stream (self._gen_read_chunked().__next__)
         else:
             content_length = headers.get_one ('content-length')
             if content_length:
                 self.content_length = int (content_length)
-                self.streamo = read_stream.buffered_stream (self._gen_read_fixed().next)
+                self.streamo = read_stream.buffered_stream (self._gen_read_fixed().__next__)
             elif headers.test ('connection', 'close'):
-                self.streamo = read_stream.buffered_stream (self._gen_read_all().next)
+                self.streamo = read_stream.buffered_stream (self._gen_read_all().__next__)
             else:
                 raise HTTP_Protocol_Error ("no way to determine length of HTTP data")
 
@@ -59,7 +59,7 @@ class http_file:
         while 1:
             chunk_size = int (s.read_line()[:-2], 16)
             if chunk_size == 0:
-                assert (s.read_exact (2) == '\r\n')
+                assert (s.read_exact (2) == b'\r\n')
                 self.done_cv.wake_all()
                 return
             else:
@@ -68,7 +68,7 @@ class http_file:
                     ask = min (remain, self.buffer_size)
                     yield s.read_exact (ask)
                     remain -= ask
-                assert (s.read_exact (2) == '\r\n')
+                assert (s.read_exact (2) == b'\r\n')
 
     def _gen_read_fixed (self):
         "generate fixed-size blocks of content."
@@ -98,7 +98,7 @@ class http_file:
         if size == 0:
             r = (x for x in self.streamo.read_all())
             if join:
-                return ''.join (r)
+                return b''.join (r)
             else:
                 return r
         else:
@@ -108,9 +108,9 @@ class http_file:
     def readline (self):
         "read a newline-delimited line."
         if self.done_cv.done:
-            return ''
+            return b''
         else:
-            return self.streamo.read_until ('\n')
+            return self.streamo.read_until (b'\n')
 
     def wait (self):
         "wait until all the content has been read."
@@ -138,6 +138,7 @@ class header_set:
     def crack (self, h):
         "Crack one header line."
         # deliberately ignoring 822 crap like continuation lines.
+        h = h.decode()
         try:
             i = h.index (': ')
             name, value = h[:i], h[i + 2:]
@@ -159,7 +160,7 @@ class header_set:
 
     def has_key (self, key):
         "Is this header present?"
-        return self.headers.has_key (key.lower())
+        return key.lower() in self.headers
 
     def test (self, key, value):
         "Is this header present with this value?"
@@ -188,15 +189,19 @@ class header_set:
 
     def remove (self, name):
         "remove a header [if present]"
-        if self.headers.has_key (name):
+        if name in self.headers:
             del self.headers[name]
 
     def __str__ (self):
         "Render the set of headers."
         r = []
-        for k, vl in self.headers.iteritems():
+        for k, vl in self.headers.items():
             for v in vl:
-                r.append ('%s: %s\r\n' % (k, v))
+                try:
+                    r.append ('%s: %s\r\n' % (k, v))
+                except TypeError:
+                    W ('k=%r v=%r\n' % (k,v))
+                    raise
         return ''.join (r)
 
     def copy (self):

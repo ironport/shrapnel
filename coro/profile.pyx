@@ -135,22 +135,23 @@ cdef class internal_function(function):
     def __hash__(self):
         return hash (self.name)
 
-    def __cmp__(x, y):
-        if not isinstance(x, function) or not isinstance(y, function):
-            raise NotImplementedError
+    # XPY3: __cmp__ is gone.
+    # def __cmp__(x, y):
+    #     if not isinstance(x, function) or not isinstance(y, function):
+    #         raise NotImplementedError
 
-        if (isinstance(x, internal_function) and
-            isinstance(y, internal_function)
-           ):
-            return cmp((<internal_function>x).name,
-                       (<internal_function>y).name)
+    #     if (isinstance(x, internal_function) and
+    #         isinstance(y, internal_function)
+    #        ):
+    #         return cmp((<internal_function>x).name,
+    #                    (<internal_function>y).name)
 
-        if <void *>x < <void *>y:
-            return -1
-        elif <void *>x == <void *>y:
-            assert False
-        else:
-            return 1
+    #     if <void *>x < <void *>y:
+    #         return -1
+    #     elif <void *>x == <void *>y:
+    #         assert False
+    #     else:
+    #         return 1
 
     def as_str(self):
         return self.name
@@ -171,22 +172,22 @@ cdef class python_function(function):
     def __hash__(self):
         return hash (self.code)
 
-    def __cmp__(x, y):
-        if not isinstance(x, function) or not isinstance(y, function):
-            raise NotImplementedError
+    # def __cmp__(x, y):
+    #     if not isinstance(x, function) or not isinstance(y, function):
+    #         raise NotImplementedError
 
-        if (isinstance(x, python_function) and
-            isinstance(y, python_function)
-           ):
-            return cmp((<python_function>x).code,
-                       (<python_function>y).code)
+    #     if (isinstance(x, python_function) and
+    #         isinstance(y, python_function)
+    #        ):
+    #         return cmp((<python_function>x).code,
+    #                    (<python_function>y).code)
 
-        if <void *>x < <void *>y:
-            return -1
-        elif <void *>x == <void *>y:
-            assert False
-        else:
-            return 1
+    #     if <void *>x < <void *>y:
+    #         return -1
+    #     elif <void *>x == <void *>y:
+    #         assert False
+    #     else:
+    #         return 1
 
     def as_str(self):
         path, filename = os.path.split(self.code.co_filename)

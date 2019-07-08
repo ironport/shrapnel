@@ -16,7 +16,7 @@ class grid_handler:
         self.w = w
         self.h = h
         self.grid = [['.' for x in range (w)] for y in range (h)]
-        self.pos = [w / 2, h / 2]
+        self.pos = [w // 2, h // 2]
         self.grid[self.pos[1]][self.pos[0]] = 'X'
 
     def match (self, request):
@@ -24,15 +24,18 @@ class grid_handler:
 
     def handle_request (self, request):
         if request.path == '/grid/source':
+            W ('got source request\n')
             request['content-type'] = 'text/plain'
             request.set_deflate()
             request.push (open ('grid.py', 'rb').read())
             request.done()
+            W ('request.done()\n')
             return
         request['content-type'] = 'text/html'
         request.set_deflate()
         if request.file:
-            data = request.file.read()
+            data = request.file.read().decode()
+            W ('grid_handler file data = %r\n' % (data,))
             pairs = [x.split('=') for x in data.split ('&')]
             for k, v in pairs:
                 if k == 'dir':
@@ -75,5 +78,5 @@ server.push_handler (grid_handler (50, 30))
 server.push_handler (coro.http.handlers.coro_status_handler())
 server.push_handler (coro.http.handlers.favicon_handler())
 coro.spawn (server.start, ('0.0.0.0', 9001))
-coro.spawn (coro.backdoor.serve, unix_path='/tmp/httpd.bd')
+coro.spawn (coro.backdoor.serve, unix_path=b'/tmp/httpd.bd')
 coro.event_loop (30.0)

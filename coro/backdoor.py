@@ -32,7 +32,7 @@ Simply spawn a thread running the `serve` function to start a backdoor server.
 VERSION_STRING = '$Id: //prod/main/ap/shrapnel/coro/backdoor.py#6 $'
 
 import coro
-import cStringIO
+import io
 import fcntl
 import sys
 import traceback
@@ -69,7 +69,7 @@ class backdoor:
 
     def send (self, data):
         try:
-            self.sock.send (data)
+            self.sock.send (data.encode())
         except:
             pass
 
@@ -86,7 +86,7 @@ class backdoor:
             return l
         else:
             while not self.lines:
-                block = self.sock.recv (8100)
+                block = self.sock.recv (8100).decode()
                 if not block:
                     return None
                 elif block == '\004':
@@ -146,11 +146,11 @@ class backdoor:
 
     def print_result (self, result):
         "override to process the result (e.g., pprint)"
-        print result
+        print (result)
 
     def parse (self, line, env):
         save = sys.stdout, sys.stderr
-        output = cStringIO.StringIO()
+        output = io.StringIO()
         try:
             try:
                 sys.stdout = sys.stderr = output
@@ -162,10 +162,10 @@ class backdoor:
             except SyntaxError:
                 try:
                     co = compile (line, repr(self), 'exec')
-                    exec co in env
-                except SyntaxError, msg:
+                    exec (co, env)
+                except SyntaxError as err:
                     # this is a hack, but it is a righteous hack:
-                    if not self.multilines and msg[0] == 'unexpected EOF while parsing':
+                    if not self.multilines and err.msg == 'unexpected EOF while parsing':
                         self.multilines.append(line)
                     else:
                         traceback.print_exc()
@@ -182,7 +182,7 @@ def client (conn, addr, welcome_message=None, global_dict=None):
     b = backdoor (conn, welcome_message=welcome_message, global_dict=global_dict)
     b.read_eval_print_loop()
 
-def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=None, client_class=None):
+def serve (port=None, ip=b'', unix_path=None, welcome_message=None, global_dict=None, client_class=None):
     """Backdoor server function.
 
     This function will listen on the backdoor socket and spawn new threads for
@@ -201,8 +201,8 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
     if unix_path:
         try:
             os.remove (unix_path)
-        except OSError, why:
-            if why[0] == errno.ENOENT:
+        except OSError as why:
+            if why.errno == errno.ENOENT:
                 pass
             else:
                 raise
@@ -224,9 +224,9 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
                 s.bind ((ip, i))
                 LOG ('started', (ip, i))
                 break
-            except OSError, why:
-                if why[0] != errno.EADDRINUSE:
-                    raise OSError(why)
+            except OSError as why:
+                if why.errno != errno.EADDRINUSE:
+                    raise
         else:
             raise Exception("couldn't bind a port (try not specifying a port)")
 
@@ -241,7 +241,7 @@ def serve (port=None, ip='', unix_path=None, welcome_message=None, global_dict=N
         conn, addr = s.accept()
         LOG ('incoming backdoor connection from %r' % (conn.getpeername(),))
         thread = coro.spawn (client_class, conn, addr, welcome_message, global_dict)
-        thread.set_name('backdoor session')
+        thread.set_name(b'backdoor session')
 
 import coro.ssh.transport.server
 import coro.ssh.connection.connect

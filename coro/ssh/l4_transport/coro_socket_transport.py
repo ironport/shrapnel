@@ -73,7 +73,7 @@ class coro_socket_transport(l4_transport.Transport):
         while count > 0:
             try:
                 chunk = self.s.recv(count)
-            except OSError, why:
+            except OSError as why:
                 if why.errno == errno.EBADF:
                     raise EOFError
                 else:
@@ -89,7 +89,7 @@ class coro_socket_transport(l4_transport.Transport):
     def write(self, bytes):
         try:
             return self.s.send(bytes)
-        except OSError, why:
+        except OSError as why:
             if why.errno == errno.EBADF:
                 raise_oserror(errno.EPIPE)
             else:
@@ -106,7 +106,7 @@ class coro_socket_transport(l4_transport.Transport):
         while 1:
             try:
                 it = self.s.recv(1)
-            except OSError, why:
+            except OSError as why:
                 if why.errno == errno.EBADF:
                     raise EOFError
                 else:

@@ -34,7 +34,7 @@ NAME_LIST = 'name-list'
 FIXED_STRING = 'fixed-string'
 
 import struct
-import mpint
+from . import mpint
 import types
 
 def unpack_payload(format, payload, offset=0):

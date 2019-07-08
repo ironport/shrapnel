@@ -104,7 +104,7 @@ class OpenSSH_Known_Hosts:
                 try:
                     if self._check_for_host(filename, host_id, host, port, key):
                         return 1
-                except Host_Key_Changed_Error, e:
+                except Host_Key_Changed_Error as e:
                     changed = e
 
         if changed is None:
@@ -221,7 +221,7 @@ class OpenSSH_Known_Hosts:
         tmp_filename = filename + '.tmp'
         try:
             f = open(filename)
-        except IOError, why:
+        except IOError as why:
             if why.errno == errno.ENOENT:
                 f = None
             else:

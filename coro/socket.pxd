@@ -56,10 +56,6 @@ cdef extern from "sys/socket.h":
     IF UNAME_SYSNAME == "FreeBSD":
         int SO_REUSEPORT, SO_ACCEPTFILTER
 
-    int SO_DONTROUTE, SO_LINGER, SO_BROADCAST, SO_OOBINLINE, SO_SNDBUF
-    int SO_REUSEADDR, SO_DEBUG, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT
-    int SO_SNDTIMEO, SO_RCVTIMEO, SO_KEEPALIVE, SO_TYPE, SO_ERROR
-
     ctypedef unsigned int sa_family_t
     ctypedef unsigned int in_port_t
     ctypedef unsigned int in_addr_t
@@ -173,7 +169,7 @@ cdef public class sock [ object sock_object, type sock_type ]:
     cdef parse_address (self, object address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve=?)
     cdef parse_address_inet (self, tuple address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve)
     cdef parse_address_inet6 (self, tuple address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve)
-    cdef parse_address_unix (self, bytes address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve)
+    cdef parse_address_unix (self, address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve)
     cdef object unparse_address (self, sockaddr_storage *sa, socklen_t addr_len)
     cdef _wait_for_read (self)
     cdef _wait_for_write (self)

@@ -34,12 +34,6 @@ cdef raise_oserror():
 cdef raise_oserror_with_errno (int e):
     oserrors.map_exception (OSError (e, string.strerror (e)))
 
-cdef object __builtin__
-import __builtin__
-
-cdef object bool
-bool = __builtin__.bool
-
 cdef extern from "pyrex_helpers.h":
 
     object  PySequence_Fast_GET_ITEM_SAFE   (object, int)
@@ -65,7 +59,8 @@ cdef extern from "pyrex_helpers.h":
     object  minimal_ulong           (unsigned long)
 
     int     callable                (object)         # Cannot fail.
-    int     cmp                     (object, object) except? -1
+    #XPY3: __cmp__ is gone.
+    #int     cmp                     (object, object) except? -1
     object  type                    (object)
 
     int     IMAX                    (int, int)

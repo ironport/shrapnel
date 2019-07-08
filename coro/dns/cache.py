@@ -36,6 +36,9 @@
 from coro.log import Facility
 LOG = Facility ('dns')
 
+import sys
+W = sys.stderr.write
+
 # Two kinds of negatively-cached data
 CACHE_NXDOMAIN = "NXDOMAIN"
 CACHE_NODATA   = "NODATA"
@@ -265,7 +268,7 @@ class dns_cache:
             else:
                 stype = coro.SOCK.DGRAM
             s = coro.make_socket (sfamily, stype)
-        except OSError, why:
+        except OSError as why:
             LOG.exc()
             raise DNS_Soft_Error(qname, qtype, ip, str(why))
 
@@ -310,7 +313,7 @@ class dns_cache:
                         raise DNS_Soft_Error(qname, qtype, ip, rcode)
                     else:
                         return reply
-            except OSError, why:
+            except OSError as why:
                 LOG ('error', 'OSError', str(why), ip, qname)
                 raise DNS_Soft_Error(qname, qtype, ip, str(why))
             except EOFError:
@@ -394,7 +397,7 @@ class dns_cache:
                     d[data] = ttl
                 records_with_matching_glue = []
                 for kind, rname, ttl, data in result.ar:
-                    if d.has_key (rname) and kind in ('A', 'AAAA'):
+                    if rname in d and kind in ('A', 'AAAA'):
                         # record glue with TTL=0 (never expires)
                         self.encache (rname, kind, [(0, data)], permanent=1)
                         records_with_matching_glue.append(rname)
@@ -577,7 +580,7 @@ class dns_cache:
             work = Work()
         if self.debug:
             LOG ('query', work.work, (qname, qtype))
-        if not packet.dot_sane (qname):
+        if not packet.dot_sane (qname.encode()):
             raise DNS_Malformed_Qname_Error(qname, qtype, (packet.RCODE.ServFail, ''))
         if not no_cache:
             results = self.cache_get (qname, qtype, None)
@@ -616,7 +619,7 @@ class dns_cache:
                 try:
                     r = self.query_by_name (qname, qtype, ns_name, to, work)
 
-                except DNS_Soft_Error, why:
+                except DNS_Soft_Error as why:
                     # try the next nameserver...
                     last_dns_soft_error = why
 

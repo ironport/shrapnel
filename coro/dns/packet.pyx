@@ -7,7 +7,10 @@ import socket
 
 from libc.stdint cimport uint32_t, uint16_t, uint8_t
 from libc.string cimport memcpy
-from cpython.string cimport PyString_FromStringAndSize
+from cpython.bytes cimport PyBytes_FromStringAndSize
+
+import sys
+W = sys.stderr.write
 
 # updated from a document at the IANA
 # TYPE values (section 3.2.2)
@@ -172,13 +175,13 @@ cdef class buffer:
     cdef uint32_t offset, size
     cdef bytes data
     def __init__ (self, size=500):
-        self.data = PyString_FromStringAndSize (NULL, size)
+        self.data = PyBytes_FromStringAndSize (NULL, size)
         self.size = size
         self.offset = 0
     cdef ensure (self, int n):
         cdef int new_size = self.size + (self.size // 2)
         if self.offset + n > self.size:
-            self.data = PyString_FromStringAndSize (self.data, new_size)
+            self.data = PyBytes_FromStringAndSize (self.data, new_size)
     def add (self, bytes d):
         cdef char * buf = self.data
         cdef char * dp = d
@@ -250,7 +253,9 @@ cdef class Packer:
     cpdef addaddr (self, bytes addr):
         n = addr2bin (addr)
         self.add (pack32bit (n))
-    cpdef addstring (self, bytes s):
+    cpdef addstring (self, s):
+        if type(s) is str:
+            s = s.encode()
         self.addbyte (len(s))
         self.addbytes (s)
     cpdef compressed_addname (self, bytes name):
@@ -258,13 +263,13 @@ cdef class Packer:
         # Add a domain name to the buffer, possibly using pointers.
         # The case of the first occurrence of a name is preserved.
         # Redundant dots are ignored.
-        parts = [p for p in name.split ('.') if p]
+        parts = [p for p in name.split (b'.') if p]
         for part in parts:
             if len (part) > 63:
                 raise PackError ('label too long')
         keys = []
         for i in range (len (parts)):
-            key = ('.'.join (parts[i:])).lower()
+            key = (b'.'.join (parts[i:])).lower()
             keys.append (key)
             if self.index.has_key (key):
                 pointer = self.index[key]
@@ -291,6 +296,8 @@ cdef class Packer:
         for key, value in new_keys:
             self.index[key] = value
     cpdef addname (self, name):
+        if type(name) is str:
+            name = name.encode()
         self.compressed_addname (name)
     # Question (section 4.1.2)
     cpdef addQuestion (self, qname, qtype, qclass):
@@ -309,7 +316,7 @@ cdef class Packer:
         self.add16bit (h.nscount)
         self.add16bit (h.arcount)
     # RR toplevel format (section 3.2.1)
-    cpdef addRRheader (self, bytes name, int type, int klass, int ttl):
+    cpdef addRRheader (self, name, int type, int klass, int ttl):
         self.addname(name)
         self.add16bit(type)
         self.add16bit(klass)
@@ -407,7 +414,7 @@ cdef class Unpacker:
     cpdef getaddr (self):
         return bin2addr (self.get32bit())
     cpdef getstring (self):
-        return self.getbytes (self.getbyte())
+        return self.getbytes (self.getbyte()).decode()
     cpdef getname (self):
         # Domain name unpacking (section 4.1.4)
         cdef uint32_t i = self.getbyte()
@@ -426,7 +433,7 @@ cdef class Unpacker:
         if i == 0:
             return ''
         else:
-            domain = self.getbytes(i)
+            domain = self.getbytes(i).decode()
             remains = self.getname()
             if not remains:
                 return domain.lower()

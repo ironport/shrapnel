@@ -2,7 +2,7 @@
 
 __all__ = ['asn1']
 
-import asn1
+from . import asn1
 import coro
 import time
 

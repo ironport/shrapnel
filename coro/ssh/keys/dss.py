@@ -23,7 +23,7 @@
 #
 # Encapsulates the DSS key.
 
-import public_private_key
+from . import public_private_key
 import hashlib
 from coro.ssh.util import packet, random
 from Crypto.PublicKey import DSA
@@ -37,9 +37,9 @@ class SSH_DSS(public_private_key.SSH_Public_Private_Key):
     name = 'ssh-dss'
     # why not store these as attributes?
     # p, q, g, y
-    private_key = (0L, 0L, 0L, 0L, 0L)
+    private_key = (0, 0, 0, 0, 0)
     # p, q, g, y, x
-    public_key = (0L, 0L, 0L, 0L)
+    public_key = (0, 0, 0, 0)
 
     def set_public_key(self, public_key):
         dss, p, q, g, y = packet.unpack_payload(DSS_PUBLIC_KEY_PAYLOAD, public_key)

@@ -34,8 +34,7 @@ class terminal (websocket):
             websocket.send_text (self, payload)
 
     def handle_packet (self, p):
-        data = p.unpack()
-        event = p.unpack().split (',')
+        event = p.unpack().decode().split (',')
         # W ('packet = %r event=%r\n' % (p, event))
         if event[0] == 'K':
             ascii = int (event[1])
@@ -128,13 +127,13 @@ if __name__ == '__main__':
     import coro.ssl
     from coro.ssl import openssl
     ctx = coro.ssl.new_ctx (
-        cert=openssl.x509 (open('../../../cert/server.crt').read()),
-        key=openssl.pkey (open('../../../cert/server.key').read(), private=True),
+        cert=openssl.x509 (open('../../../cert/server.crt', 'rb').read()),
+        key=openssl.pkey (open('../../../cert/server.key', 'rb').read(), private=True),
     )
     server = coro.http.openssl_server (ctx)
     for h in handlers:
         server.push_handler (h)
     # coro.spawn (server.start)
-    coro.spawn (server.start, ('0.0.0.0', 9001))
-    coro.spawn (coro.backdoor.serve, unix_path='/tmp/ws.bd')
+    coro.spawn (server.start, (b'0.0.0.0', 9001))
+    coro.spawn (coro.backdoor.serve, unix_path=b'/tmp/ws.bd')
     coro.event_loop (30.0)

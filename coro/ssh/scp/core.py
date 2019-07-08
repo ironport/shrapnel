@@ -250,14 +250,14 @@ class SCP:
                         if preserve:
                             try:
                                 os.chmod(absolute_pathname, mode)
-                            except OSError, e:
+                            except OSError as e:
                                 self.debug(
                                     DEBUG_NORMAL, 'Failed to chmod %r to %o: %s', relative_pathname, mode, e.strerror)
                                 # Continue, this is not critical.
                     else:
                         try:
                             os.mkdir(absolute_pathname, mode)
-                        except OSError, e:
+                        except OSError as e:
                             self.soft_error('Unable to make directory (%r): %s' % (relative_pathname, e.strerror))
                             continue
                     self.receive(preserve, recursive, target_should_be_dir, relative_pathname)
@@ -266,7 +266,7 @@ class SCP:
                         timestamp = (mtime_sec, atime_sec)
                         try:
                             os.utime(absolute_pathname, timestamp)
-                        except OSError, e:
+                        except OSError as e:
                             self.soft_error('Failed to set timestamp (%r) on %r: %s' %
                                             (timestamp, relative_pathname, e.strerror))
                             continue
@@ -275,7 +275,7 @@ class SCP:
                     # Creating a file.
                     try:
                         fd = os.open(absolute_pathname, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
-                    except OSError, e:
+                    except OSError as e:
                         self.soft_error('Failed to create %r: %s' % (relative_pathname, e.strerror))
                         continue
                     try:
@@ -292,7 +292,7 @@ class SCP:
                             if not error:
                                 try:
                                     os.write(fd, block)
-                                except OSError, e:
+                                except OSError as e:
                                     error = e
                     finally:
                         os.close(fd)
@@ -303,7 +303,7 @@ class SCP:
                         self.debug(DEBUG_EXTRA, 'Setting timestamp of %r to %r.', relative_pathname, timestamp)
                         try:
                             os.utime(absolute_pathname, timestamp)
-                        except OSError, e:
+                        except OSError as e:
                             self.soft_error('Failed to set timestamp (%r) on %r: %s' %
                                             (timestamp, relative_pathname, e.strerror))
                             continue
@@ -369,7 +369,7 @@ class SCP:
 
         try:
             st = os.stat(absolute_pathname)
-        except OSError, e:
+        except OSError as e:
             self.soft_error('%s: %s' % (relative_pathname, e.strerror))
             return
         if stat.S_ISDIR(st.st_mode):
@@ -403,7 +403,7 @@ class SCP:
             return
         try:
             fd = os.open(absolute_pathname, os.O_RDONLY)
-        except OSError, e:
+        except OSError as e:
             self.soft_error('%s: %s' % (relative_pathname, e.strerror))
             return
         try:
@@ -441,7 +441,7 @@ class SCP:
         self.debug(DEBUG_EXTRA, 'Send recursive %r', relative_pathname)
         try:
             files = os.listdir(absolute_pathname)
-        except OSError, e:
+        except OSError as e:
             self.soft_error('%s: %s' % (relative_pathname, e.strerror))
             return
         if preserve:

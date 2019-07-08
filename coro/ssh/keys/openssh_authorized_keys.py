@@ -212,7 +212,7 @@ class OpenSSH_Authorized_Keys:
         """
         # Avoid concurrent races here?
         tmp_filename = self.filename + '.tmp'
-        fd = os.open(tmp_filename, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0644)
+        fd = os.open(tmp_filename, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
         write = lambda x, y=fd: os.write(y, x)
         map(write, map(self.keydict_to_string, self.keys))
         os.close(fd)

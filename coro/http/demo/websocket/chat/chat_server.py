@@ -29,7 +29,7 @@ class server:
         for client in self.clients:
             try:
                 client.send_message (name, color, payload)
-            except:
+            except OSError:
                 to_remove.add (client)
         self.clients.difference_update (to_remove)
 
@@ -59,8 +59,8 @@ class connection (websocket):
                 'type': 'message',
                 'data': {
                     'time': int (coro.now_usec / 1000000),
-                    'text': message,
-                    'author': name,
+                    'text': message.decode(),
+                    'author': name.decode(),
                     'color': color
                 }
             })
@@ -79,10 +79,9 @@ if __name__ == '__main__':
     fh = coro.http.handlers.file_handler (cwd)
     wh = handler ('/chat', chat_server.new_session)
     handlers = [ih, sh, fh, wh]
-    # http_server = coro.http.server (('0.0.0.0', 9001))
     http_server = coro.http.server ()
     for h in handlers:
         http_server.push_handler (h)
-    coro.spawn (http_server.start, ('0.0.0.0', 9001))
-    coro.spawn (coro.backdoor.serve, unix_path='/tmp/ws_chat.bd')
+    coro.spawn (http_server.start, (b'0.0.0.0', 9001))
+    coro.spawn (coro.backdoor.serve, unix_path=b'/tmp/ws_chat.bd')
     coro.event_loop (30.0)

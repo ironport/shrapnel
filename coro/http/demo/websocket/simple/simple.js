@@ -26,7 +26,7 @@ if (window["WebSocket"]) {
     connection.onclose = function (event) {
 	message ('disconnected')
     }
-    
+
     connection.onmessage = function (event) {
 	message ('websocket event: ' + event.data)
 	var data = event.data.split (',')
@@ -76,18 +76,24 @@ document.addEventListener ('keyup', on_key_up, false)
 function clear_drawing() {
     connection.send ('CD')
 }
+
+function get_mouse_pos (event) {
+  var rect = canvas.getBoundingClientRect()
+  return (event.clientX - rect.left) + ',' + (event.clientY - rect.top)
+}
+
 function on_mouse_down (event) {
-    connection.send ('MD,' + event.clientX + ',' + event.clientY)
+  connection.send ('MD,' + get_mouse_pos (event))
 }
 function on_mouse_up (event) {
-    connection.send ('MU,' + event.clientX + ',' + event.clientY)
+  connection.send ('MU,' + get_mouse_pos (event))
 }
 function on_mouse_move (event) {
-    connection.send ('MM,' + event.clientX + ',' + event.clientY)
+  connection.send ('MM,' + get_mouse_pos (event))
 }
 function on_key_down (event) {
-    connection.send ('KD,' + event.keyCode)
+  connection.send ('KD,' + event.keyCode)
 }
 function on_key_up (event) {
-    connection.send ('KU,' + event.keyCode)
+  connection.send ('KU,' + event.keyCode)
 }

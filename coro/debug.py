@@ -85,8 +85,8 @@ def serve (address='/tmp/debug.sock', global_dict=None):
     if isinstance(address, basestring):
         try:
             os.remove (address)
-        except OSError, why:
-            if why[0] == errno.ENOENT:
+        except OSError as why:
+            if why.errno == errno.ENOENT:
                 pass
             else:
                 raise

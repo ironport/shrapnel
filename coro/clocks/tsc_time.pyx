@@ -209,7 +209,7 @@ from cpython.int cimport *
 from cpython.long cimport *
 from cpython.number cimport *
 from cpython.string cimport *
-from cpython.cobject cimport PyCObject_FromVoidPtr
+from cpython.pycapsule cimport PyCapsule_New
 from cpython.tuple cimport *
 
 cdef extern from "rdtsc.h":
@@ -396,7 +396,8 @@ cdef _strftime(char * format, time.tm * t):
                 # greater than the format len, then it's probably not
                 # failing for lack of room.  It's probably just an empty
                 # result.
-                return PyString_FromStringAndSize(buffer, buflen)
+                #return PyBytes_FromStringAndSize(buffer, buflen)
+                return buffer[:buflen]
         finally:
             stdlib.free(buffer)
         # Double the buffer size and try again.
@@ -1501,4 +1502,4 @@ __ptr_array[9] = &c_now_posix_usec
 __ptr_array[10] = &c_now_posix_fsec
 __ptr_array[11] = c_rdtsc
 
-_extern_pointers = PyCObject_FromVoidPtr(<void *>__ptr_array, NULL)
+_extern_pointers = PyCapsule_New(<void *>__ptr_array, "coro.tsc_time.pointers", NULL)

@@ -168,4 +168,4 @@ def tak2 (x, y, z):
 
 if __name__ == '__main__':
     go (tak2, 18, 12, 6)
-    print 'now run print_profile.py ...'
+    print ('now run print_profile.py ...')

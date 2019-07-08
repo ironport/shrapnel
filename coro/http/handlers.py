@@ -8,11 +8,12 @@ import stat
 import sys
 import time
 import zlib
+import base64
 
 from coro.http.http_date import build_http_date, parse_http_date
 
 from coro.log import Facility
-from urllib import unquote
+from urllib.parse import unquote
 
 LOG = Facility ('http handlers')
 
@@ -65,7 +66,7 @@ class coro_status_handler:
         )
         request.push ('<head><title>status</title></head><body>\r\n')
         request.push ('<p>Listening on\r\n')
-        request.push (repr (request.server.addr))
+        request.push (repr (request.server.addr).encode())
         request.push ('</p>\r\n')
         request.push ('<table border="1">\r\n')
         all_threads = ((x, coro.where(x)) for x in coro.all_threads.values())
@@ -82,6 +83,8 @@ class coro_status_handler:
         request.push ('<p><a href="status">Update</a></p>')
         request.push ('</body></html>')
         request.done()
+
+W = sys.stderr.write
 
 class file_handler:
 
@@ -101,6 +104,7 @@ class file_handler:
     crack_if_modified_since = re.compile ('([^;]+)(; length=([0-9]+))?$', re.IGNORECASE)
 
     def handle_request (self, request):
+        W ('file handler request.path = %r\n' % (request.path,))
         path = unquote (request.path)
         filename = os.path.join (self.doc_root, path[1:])
 
@@ -163,24 +167,13 @@ class file_handler:
                 # should be impossible
                 request.error (405)
 
-sample = (
-    'AAABAAEAICAQAAEABADoAgAAFgAAACgAAAAgAAAAQAAAAAEABAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-    'AAAAAAAAAAAAAAD/+K///8AH//+iI///QAH//r4g//x3AH//Z6J//UABP/ovgD/458Ef+u+wv/Tn'
-    '0R/+79if9OXZH/6gCJ/2BwAf/u/8n/h33R/7Z7kf/ReQH/+qu7//BUW//7vrv//RR3//7r///80d'
-    '///pq///8EP//+rH///d9///6j///9Af/w=='
-).decode ('base64')
-
-zsample = zlib.compress (sample, 9)
+# zlib compressed sample favicon.
+zsample = base64.b64decode (
+    b'eNrtiD0KwlAQhDeixNJKK9kHNnYeIQERj5IjpIxH8AaRlFpoKwGfVlaC6bRIKfEHjEXQEGPG5yHs\n8g'
+    b'3fDLtEmooQDdVVOleImkTUVQqlqfz9S0r+AdI5sNYBrwOYGoqVQG6TA8tzPqZmZL2RkUYbzuKF\nTKKA'
+    b'i/jgJqcjF5O6+9RJ3bmb2iG/rSV/WmPG1JeoDST8m0QwdHCXwK4NXGbAow9ct0D4UmsAe8YX\n5aNagg'
+    b'==\n'
+    )
 
 last_modified = build_http_date (time.time())
 

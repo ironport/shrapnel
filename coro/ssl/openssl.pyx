@@ -103,7 +103,7 @@ cdef class rsa:
                 raise ValueError, "exponent must be an odd number greater than 1"
             else:
                 self.rsa = RSA_generate_key (bits, e, NULL, NULL)
-        elif type(value) is str:
+        elif type(value) is bytes:
             pem = value
             mb = mem_bio (pem)
             self.rsa = PEM_read_bio_RSAPrivateKey (mb.bio, NULL, NULL, password)
@@ -140,7 +140,7 @@ cdef class pkey:
         if self.pkey is not NULL:
             EVP_PKEY_free (self.pkey)
 
-    def __init__ (self, ob=None, password='', private=False):
+    def __init__ (self, ob=None, password=b'', private=False):
         cdef mem_bio mb
         cdef rsa r
         if type(ob) is rsa:
@@ -541,7 +541,7 @@ cdef class x509_req:
     def __init__ (self, value=None, fields={}):
         cdef mem_bio mb
 
-        if type(value) is str:
+        if type(value) is bytes:
             mb = mem_bio(value)
             self.delegate = PEM_read_bio_X509_REQ (mb.bio, NULL, NULL, NULL)
             if self.delegate is NULL:
@@ -595,7 +595,7 @@ cdef class x509:
 
     def __init__ (self, pem=None):
         cdef mem_bio mb
-        if type(pem) is str:
+        if type(pem) is bytes:
             if len(pem) > 0:
                 mb = mem_bio (pem)
                 self.x509 = PEM_read_bio_X509 (mb.bio, NULL, NULL, NULL)

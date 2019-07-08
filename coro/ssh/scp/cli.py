@@ -80,7 +80,7 @@ class CLI:
             args = sys.argv[1:]
         options, arguments = parser.parse_args(args)
         if options.help:
-            print usage
+            print (usage)
             sys.exit(0)
 
         if options.action_from:
@@ -107,7 +107,7 @@ class CLI:
                         )
             sys.exit(int(scp.had_errors))
         else:
-            print 'Function unavailable.'
+            print ('Function unavailable.')
             sys.exit(1)
             client = self._get_client()
             client.main(options.preserve,

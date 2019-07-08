@@ -78,6 +78,7 @@ cdef extern from "Python.h":
         void * exc_value
         void * exc_traceback
     PyThreadState * _PyThreadState_Current
+    PyThreadState * PyThreadState_Get()
 
 # ================================================================================
 #                             global variables
@@ -321,6 +322,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
 
     cdef __yield (self):
         # -- always runs outside of main --
+        cdef PyThreadState * current
         # save exception data
         self.save_exception_data()
         if not self.dead:
@@ -343,13 +345,14 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
             ZAP(&self.saved_exception_data[5])
 
         # save/restore tstate->frame
-        self.frame = _PyThreadState_Current.frame
+        current = PyThreadState_Get()
+        self.frame = current.frame
         if the_scheduler.profiling and self.top:
             the_profiler.charge_yield (self.top)
-        _PyThreadState_Current.frame = NULL
-        self.saved_recursion_depth = _PyThreadState_Current.recursion_depth
+        current.frame = NULL
+        self.saved_recursion_depth = current.recursion_depth
         __swap (<void*>&(the_scheduler.state), <void*>&(self.state))
-        _PyThreadState_Current.frame = self.frame
+        current.frame = self.frame
         self.frame = NULL
         v = self.value
         # Clear out the reference so we don't hang on to it for a potentially
@@ -364,6 +367,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
 
     cdef __resume (self, value):
         cdef PyFrameObject * main_frame
+        cdef PyThreadState * current
         cdef uint64_t t0, t1
         # -- always runs in main --
         if not self.started:
@@ -377,15 +381,16 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
             # restore exception data
             self.restore_exception_data()
             # restore frame
-            main_frame = _PyThreadState_Current.frame
-            _PyThreadState_Current.recursion_depth = self.saved_recursion_depth
-            _PyThreadState_Current.frame = NULL
+            current = PyThreadState_Get()
+            main_frame = current.frame
+            current.recursion_depth = self.saved_recursion_depth
+            current.frame = NULL
             if the_scheduler.profiling and self.top:
                 the_profiler.charge_main()
             t0 = c_rdtsc()
             __swap (<void*>&(self.state), <void*>&(the_scheduler.state))
             t1 = c_rdtsc()
-            _PyThreadState_Current.frame = main_frame
+            current.frame = main_frame
             the_scheduler._current = None
             if self.dead:
                 the_scheduler._last = None
@@ -399,19 +404,20 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
             raise DeadCoroutine, self
 
     cdef save_exception_data (self):
-        self.saved_exception_data[0] = _PyThreadState_Current.curexc_type
-        self.saved_exception_data[1] = _PyThreadState_Current.curexc_value
-        self.saved_exception_data[2] = _PyThreadState_Current.curexc_traceback
-        self.saved_exception_data[3] = _PyThreadState_Current.exc_type
-        self.saved_exception_data[4] = _PyThreadState_Current.exc_value
-        self.saved_exception_data[5] = _PyThreadState_Current.exc_traceback
+        cdef PyThreadState * current = PyThreadState_Get()
+        self.saved_exception_data[0] = current.curexc_type
+        self.saved_exception_data[1] = current.curexc_value
+        self.saved_exception_data[2] = current.curexc_traceback
+        self.saved_exception_data[3] = current.exc_type
+        self.saved_exception_data[4] = current.exc_value
+        self.saved_exception_data[5] = current.exc_traceback
 
-        _PyThreadState_Current.curexc_type      = NULL
-        _PyThreadState_Current.curexc_value     = NULL
-        _PyThreadState_Current.curexc_traceback = NULL
-        _PyThreadState_Current.exc_type         = NULL
-        _PyThreadState_Current.exc_value        = NULL
-        _PyThreadState_Current.exc_traceback    = NULL
+        current.curexc_type      = NULL
+        current.curexc_value     = NULL
+        current.curexc_traceback = NULL
+        current.exc_type         = NULL
+        current.exc_value        = NULL
+        current.exc_traceback    = NULL
 
     cdef restore_exception_data (self):
         cdef void * curexc_type
@@ -420,6 +426,7 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         cdef void * exc_type
         cdef void * exc_value
         cdef void * exc_traceback
+        cdef PyThreadState * current
 
         # Clear out the current tstate exception.  This is necessary
         # because main may have a previous exception set (such as
@@ -428,19 +435,20 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         # main thread doesn't need that level of exception safety.
         #
         # Store locally because DECREF can cause code to execute.
-        curexc_type = _PyThreadState_Current.curexc_type
-        curexc_value = _PyThreadState_Current.curexc_value
-        curexc_traceback = _PyThreadState_Current.curexc_traceback
-        exc_type = _PyThreadState_Current.exc_type
-        exc_value = _PyThreadState_Current.exc_value
-        exc_traceback = _PyThreadState_Current.exc_traceback
+        current = PyThreadState_Get()
+        curexc_type = current.curexc_type
+        curexc_value = current.curexc_value
+        curexc_traceback = current.curexc_traceback
+        exc_type = current.exc_type
+        exc_value = current.exc_value
+        exc_traceback = current.exc_traceback
 
-        _PyThreadState_Current.curexc_type = NULL
-        _PyThreadState_Current.curexc_value = NULL
-        _PyThreadState_Current.curexc_traceback = NULL
-        _PyThreadState_Current.exc_type = NULL
-        _PyThreadState_Current.exc_value = NULL
-        _PyThreadState_Current.exc_traceback = NULL
+        current.curexc_type = NULL
+        current.curexc_value = NULL
+        current.curexc_traceback = NULL
+        current.exc_type = NULL
+        current.exc_value = NULL
+        current.exc_traceback = NULL
 
         # Can't use XDECREF when casting a void in Pyrex.
         if curexc_type != NULL:
@@ -456,12 +464,12 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         if exc_traceback != NULL:
             Py_DECREF(<object>exc_traceback)
 
-        _PyThreadState_Current.curexc_type      = self.saved_exception_data[0]
-        _PyThreadState_Current.curexc_value     = self.saved_exception_data[1]
-        _PyThreadState_Current.curexc_traceback = self.saved_exception_data[2]
-        _PyThreadState_Current.exc_type         = self.saved_exception_data[3]
-        _PyThreadState_Current.exc_value        = self.saved_exception_data[4]
-        _PyThreadState_Current.exc_traceback    = self.saved_exception_data[5]
+        current.curexc_type      = self.saved_exception_data[0]
+        current.curexc_value     = self.saved_exception_data[1]
+        current.curexc_traceback = self.saved_exception_data[2]
+        current.exc_type         = self.saved_exception_data[3]
+        current.exc_value        = self.saved_exception_data[4]
+        current.exc_traceback    = self.saved_exception_data[5]
 
         self.saved_exception_data[0] = NULL
         self.saved_exception_data[1] = NULL
@@ -604,9 +612,10 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
                 self.__interrupt (exc_type(exc_value))
 
     def get_frame (self):
+        cdef PyThreadState * current = PyThreadState_Get()
         if self.frame is NULL:
             # we're the current thread
-            f = void_as_object (_PyThreadState_Current.frame)
+            f = void_as_object (current.frame)
             # I get bogus info unless I do this.  A Pyrex effect?
             return f.f_back
         else:
@@ -1446,9 +1455,10 @@ cdef void info(int sig):
     """Function to print current coroutine when SIGINFO (CTRL-T) is received."""
     cdef coro co
     cdef PyFrameObject * frame
+    cdef PyThreadState * current = PyThreadState_Get()
 
     co = the_scheduler._current
-    frame = _PyThreadState_Current.frame
+    frame = current.frame
     if co is not the_main_coro:
         stdio.fprintf(stdio.stderr, 'coro %i "%s" at %s: %s %i\n',
             co.id,

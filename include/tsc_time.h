@@ -131,7 +131,7 @@ init_tsc_time_pointers(void)
         goto fail;
     }
 
-    c_ptr = (void **) PyCObject_AsVoidPtr(c_obj);
+    c_ptr = (void **) PyCapsule_GetPointer(c_obj, "coro.tsc_time.pointers");
     if (c_ptr == NULL) {
         goto fail;
     }

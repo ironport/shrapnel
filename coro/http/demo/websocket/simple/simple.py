@@ -78,7 +78,7 @@ class server:
     def set_drawing (self, stamp):
         self.save_drawing()
         self.timestamp = stamp
-        self.drawing = pickle.load (open (self.get_path (stamp)))
+        self.drawing = pickle.load (open (self.get_path (stamp), 'rb'))
         self.broadcast ('CD', False)
         W ('set drawing %d [%d lines]\n' % (stamp, len(self.drawing)))
         for payload in self.drawing:
@@ -123,7 +123,7 @@ class sketch_conn (websocket):
             websocket.send_text (self, payload)
 
     def handle_packet (self, p):
-        event = p.unpack().split (',')
+        event = p.unpack().decode().split (',')
         # W ('packet = %r event=%r\n' % (p, event))
         if event[0] == 'MD':
             self.mouse_down = True
@@ -165,11 +165,10 @@ if __name__ == '__main__':
     wh = handler ('/sketch', sketch_server.new_session)
     fh = coro.http.handlers.file_handler (cwd)
     handlers = [wh, ih, sh, fh]
-    # server = coro.http.server (('0.0.0.0', 9001))
     server = coro.http.server()
     for h in handlers:
         server.push_handler (h)
     # coro.spawn (server.start)
-    coro.spawn (server.start, ('0.0.0.0', 9001))
-    coro.spawn (coro.backdoor.serve, unix_path='/tmp/ws.bd')
+    coro.spawn (server.start, (b'0.0.0.0', 9001))
+    coro.spawn (coro.backdoor.serve, unix_path=b'/tmp/ws.bd')
     coro.event_loop (30.0)

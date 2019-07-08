@@ -24,9 +24,9 @@
 # This implements the "session" channel of the ssh_connect service.
 #
 
-import channel
+from . import channel
 from coro.ssh.util import packet as ssh_packet
-from connect import *
+from .connect import *
 
 from coro import write_stderr as W
 

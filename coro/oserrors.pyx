@@ -27,7 +27,6 @@ handling.
 """
 
 import errno
-import new
 import sys
 from libc.string cimport strerror
 
@@ -59,6 +58,6 @@ for errcode, errname in errno.errorcode.items():
     # Not sure why __module__ is not getting set properly.  Python looks at
     # globals() to fine __name__ to set the value, and it appears to be
     # set to __main__ for some odd reason.
-    c = new.classobj(errname, (OSError,), {'__module__': 'coro.oserrors'})
+    c = type(errname, (OSError,), {'__module__': 'coro.oserrors'})
     err_map[errcode] = c
     __g[errname] = c

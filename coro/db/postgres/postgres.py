@@ -261,7 +261,7 @@ class postgres_client:
             if self._state == self.DISCONNECTED:
                 try:
                     self._socket = self.connect_socket()
-                except (socket.error, OSError, IOError), e:
+                except (socket.error, OSError, IOError) as e:
                     # problem connecting; Postgres probably isn't running
                     # convert this to a common PostgresError exception
                     raise ConnectError((str(e), sys.exc_info()[2]))
@@ -386,7 +386,7 @@ class postgres_client:
 
             self.query(sql)
             return
-        except QueryError, e:
+        except QueryError as e:
             if e.error_code() == PG_ERROR_UNIQUE_VIOLATION:  # Duplicate key
                 # This usually means a problem with the pg_statistic table
                 # Will retry below...
@@ -522,10 +522,10 @@ class postgres_client:
         data = build_message (message_type, *data_args)
 
         if self._debug:
-            print '-->', repr(message_type)
+            print ('-->', repr(message_type))
             a, b = dump_hex(data)
-            print a
-            print b
+            print (a)
+            print (b)
 
         self._socket.send (data)
 
@@ -540,10 +540,10 @@ class postgres_client:
         msg, length = self.get_header()
         data = self._socket.recv_exact (length)
         if self._debug:
-            print "<--", repr(msg), length, len(data)
+            print ("<--", repr(msg), length, len(data))
             a, b = dump_hex(data)
-            print a
-            print b
+            print (a)
+            print (b)
         return msg, data
 
     def _startup(self):
@@ -600,7 +600,7 @@ class postgres_client:
 
             elif msg == PG_BACKEND_KEY_DATA_MSG:
                 self._backend_pid, self._secret_key = unpack_data (data, 'ii')
-                # print "pid=%d, secret=%d" % (self._backend_pid, self._secret_key)
+                # print ("pid=%d, secret=%d" % (self._backend_pid, self._secret_key))
 
             elif msg == PG_PARAMETER_STATUS_MSG:
                 k, v = unpack_data(data, 'ss')
@@ -692,7 +692,7 @@ class postgres_client:
 
     def _set_parameter(self, key, value):
         self.backend_parameters[key] = value
-# print "Parameter: %s=%s" % (k, v)
+        # print ("Parameter: %s=%s" % (k, v))
 
     def _notice(self, where, data):
         self.notice_received(where, unpack_notice_data(data))
@@ -942,7 +942,7 @@ class async_query:
 
         try:
             res = self._client.query(sql)
-        except PostgresError, e:
+        except PostgresError as e:
             # The query raised an exception, which becomes the "result"
             res = e
 
@@ -1318,7 +1318,7 @@ def connect_to_db(database, username='', address=None, schema=None):
     try:
         db.connect()
         return db
-    except ConnectError, e:  # doesn't exist
+    except ConnectError as e:  # doesn't exist
         if e.error_code() == PG_ERROR_INVALID_CATALOG_NAME:
             if schema is not None:
                 dbm = database_manager(username=username,
@@ -1382,7 +1382,7 @@ class database_manager:
     def drop_database(self, database):
         try:
             self._query('DROP DATABASE %s' % database)
-        except QueryError, e:
+        except QueryError as e:
             if e.error_code() == PG_ERROR_INVALID_CATALOG_NAME:
                 pass  # this is OK
             else:
@@ -1406,7 +1406,7 @@ class database_manager:
             while True:
                 try:
                     return self._db.query(sql)
-                except QueryError, e:
+                except QueryError as e:
                     if e.error_code() == PG_ERROR_OBJECT_IN_USE:
                         self._backoff()
                     else:
@@ -1475,8 +1475,8 @@ def sleep(x):
 # def test_read(db):
 # db.query("BEGIN")
 #    fd = db.lo_open(17219, INV_READ)
-# print db.lo_read(fd, 50)
-# print db.lo_read(fd)
+# print (db.lo_read(fd, 50))
+# print (db.lo_read(fd))
 # db.lo_close(fd)
 # db.query("ROLLBACK")
 

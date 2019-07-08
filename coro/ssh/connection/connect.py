@@ -31,7 +31,7 @@ from coro.ssh.transport import SSH_Service
 from coro.ssh.util import packet as ssh_packet
 from coro.ssh.util import debug as ssh_debug
 from coro.ssh.connection.channel import Channel
-from constants import *
+from .constants import *
 
 class Connection_Service(SSH_Service):
     name = 'ssh-connection'

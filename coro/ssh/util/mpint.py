@@ -46,13 +46,13 @@ def pack_mpint(n):
         return ''
     elif x < 0:
         while 1:
-            s.append(struct.pack('>L', x & 0xffffffffL))
+            s.append(struct.pack('>L', x & 0xffffffff))
             if x == -1:
                 break
             x = x >> 32
     else:
         while x > 0:
-            s.append(struct.pack('>L', x & 0xffffffffL))
+            s.append(struct.pack('>L', x & 0xffffffff))
             x = x >> 32
     s.reverse()
     s = ''.join(s)
@@ -111,7 +111,7 @@ def unpack_mpint(mpint):
         else:
             # Positive
             struct_format = '>I'
-    result = 0L
+    result = 0
     for x in xrange(0, len(mpint), 4):
         result = (result << 32) | struct.unpack(struct_format, mpint[x: x + 4])[0]
     return result
@@ -125,13 +125,13 @@ class mpint_test_case(ssh_packet_test_case):
 
     def runTest(self):
         self.check(0, '')
-        self.check(0x9a378f9b2e332a7L, '\x09\xa3\x78\xf9\xb2\xe3\x32\xa7')
-        self.check(0x80L, '\0\x80')
-        self.check(-0x1234L, '\xed\xcc')
-        self.check(-0xdeadbeefL, '\xff\x21\x52\x41\x11')
-        self.check(0xffffffffL, '\0\xff\xff\xff\xff')
-        self.check(-0xffffffffL, '\xff\0\0\0\x01')
-        self.check(-1L, '\377')
+        self.check(0x9a378f9b2e332a7, '\x09\xa3\x78\xf9\xb2\xe3\x32\xa7')
+        self.check(0x80, '\0\x80')
+        self.check(-0x1234, '\xed\xcc')
+        self.check(-0xdeadbeef, '\xff\x21\x52\x41\x11')
+        self.check(0xffffffff, '\0\xff\xff\xff\xff')
+        self.check(-0xffffffff, '\xff\0\0\0\x01')
+        self.check(-1, '\377')
 
     def check(self, num, string):
         self.assertEqual(pack_mpint(num), string)

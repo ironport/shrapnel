@@ -80,7 +80,8 @@ class InParallelError (Exception):
 SUCCESS = 'success'
 FAILURE = 'failure'
 
-def _in_parallel_wrap (result_list, i, sem, (fun, args)):
+def _in_parallel_wrap (result_list, i, sem, fun_args):
+    fun, args= fun_args
     try:
         result = (SUCCESS, fun (*args))
     except:
@@ -235,7 +236,7 @@ def spawn (fun, *args, **kwargs):
         thread_name = kwargs['thread_name']
         del kwargs['thread_name']
     else:
-        thread_name = '%s' % (fun,)
+        thread_name = str(fun).encode()
     return _original_spawn (fun, *args, **kwargs).set_name (thread_name)
 
 _original_new = new
@@ -258,7 +259,7 @@ def new (fun, *args, **kwargs):
         thread_name = kwargs['thread_name']
         del kwargs['thread_name']
     else:
-        thread_name = '%s' % (fun,)
+        thread_name = str(fun).encode()
     return _original_new (fun, *args, **kwargs).set_name (thread_name)
 
 # ============================================================================
@@ -363,7 +364,7 @@ def event_loop (timeout=30):
     if install_signal_handlers:
         signal_handler.register(signal.SIGTERM, sigterm_handler)
         signal_handler.register(signal.SIGINT, sigterm_handler)
-    spawn (tick_updater).set_name ('tick_updater')
+    spawn (tick_updater).set_name (b'tick_updater')
     try:
         event_loop_is_running = True
         _original_event_loop (timeout)

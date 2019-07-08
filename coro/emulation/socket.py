@@ -154,7 +154,7 @@ class socket(object):
     def connect_ex(self, address):
         try:
             self._with_timeout(self._sock.connect, address)
-        except OSError, e:
+        except OSError as e:
             return e.errno
         else:
             return 0
@@ -276,7 +276,7 @@ def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=N
             sock.connect(sa)
             return sock
 
-        except error, msg:
+        except error:
             if sock is not None:
                 sock.close()
 

@@ -28,7 +28,7 @@ import termios
 import sys
 
 def get_password(prompt):
-    print prompt,
+    print (prompt, " ")
     # Turn off echo.
     term_settings = termios.tcgetattr(0)        # 0 is stdin
     term_settings[3] &= ~termios.ECHO

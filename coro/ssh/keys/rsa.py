@@ -24,7 +24,7 @@
 # Encapsulates the RSA key.
 
 import hashlib
-import public_private_key
+from . import public_private_key
 from coro.ssh.util import packet
 from Crypto.PublicKey import RSA
 from Crypto.Util import number
@@ -38,8 +38,8 @@ class SSH_RSA(public_private_key.SSH_Public_Private_Key):
     supports_signature = 1
     supports_encryption = 0
     name = 'ssh-rsa'
-    private_key = (0L, 0L, 0L, 0L, 0L)  # n, e, d, p, q
-    public_key = (0L, 0L)       # e, n
+    private_key = (0, 0, 0, 0, 0)  # n, e, d, p, q
+    public_key = (0, 0)       # e, n
 
     def set_public_key(self, public_key):
         rsa, e, n = packet.unpack_payload(RSA_PUBLIC_KEY_PAYLOAD, public_key)

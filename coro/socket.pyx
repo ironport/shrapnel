@@ -797,11 +797,15 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
     cdef parse_address_inet (self, tuple address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
         cdef sockaddr_in * sin = <sockaddr_in *>sa
-        cdef bytes ip
+        #XPY3: this seems to work, but we need to understand performance implications.
+        #cdef bytes ip
         cdef uint16_t port
         ip, port = address
+        W ('address = %r\n' % (address,))
         if not ip:
             ip = b'0.0.0.0'
+        if type(ip) is str:
+            ip = ip.encode()
         sin.sin_family = AF_INET
         IF UNAME_SYSNAME == "FreeBSD":
             sin.sin_len = sizeof (sockaddr_in)
@@ -819,7 +823,8 @@ cdef public class sock [ object sock_object, type sock_type ]:
 
     cdef parse_address_inet6 (self, tuple address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
         cdef sockaddr_in6 * sin6 = <sockaddr_in6 *> sa
-        cdef bytes ip
+        #XPY3: ibid
+        #cdef bytes ip
         cdef uint16_t port
         cdef int percent
         cdef int flowinfo
@@ -844,6 +849,8 @@ cdef public class sock [ object sock_object, type sock_type ]:
             sin6.sin6_len = sizeof(sockaddr_in6)
         addr_len[0] = sizeof(sockaddr_in6)
         sin6.sin6_port = htons(port)
+        if type(ip) is str:
+            ip = ip.encode()
         r = inet_pton(AF_INET6, ip, &sin6.sin6_addr)
         if r != 1:
             if resolve:
@@ -854,10 +861,12 @@ cdef public class sock [ object sock_object, type sock_type ]:
             else:
                 raise ValueError ("not a valid IPv6 address")
 
-    cdef parse_address_unix (self, bytes address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
+    cdef parse_address_unix (self, address, sockaddr_storage * sa, socklen_t * addr_len, bint resolve):
         cdef sockaddr_un * sun
         # AF_UNIX
         # +1 to grab the NUL char
+        if type(address) is str:
+            address = address.encode()
         l = len (address) + 1
         sun = <sockaddr_un *>sa
         sun.sun_family = AF_UNIX

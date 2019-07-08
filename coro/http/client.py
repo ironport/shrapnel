@@ -3,7 +3,7 @@
 import re
 import coro
 import coro.read_stream
-from protocol import http_file, header_set, latch
+from .protocol import http_file, header_set, latch
 
 W = coro.write_stderr
 
@@ -116,7 +116,7 @@ class client:
         line = self.stream.read_line()
         if not line:
             raise HTTP_Protocol_Error ('unexpected close')
-        req.response = line[:-2]
+        req.response = line[:-2].decode()
         m = self.response_re.match (req.response)
         if not m:
             raise Bad_Response (req.response)
@@ -157,16 +157,16 @@ class client:
             '%s %s HTTP/1.1\r\n'
             '%s\r\n' % (method, uri, headers)
         )
-        self.conn.send (req)
+        self.conn.send (req.encode())
         # XXX 100 continue
         if content:
             if type(content) is str:
-                self.conn.send (content)
+                self.conn.send (content.encode())
             elif headers.has_key ('content-length'):
                 clen = int (headers.get_one ('content-length'))
                 slen = 0
                 for block in content:
-                    self.conn.send (block)
+                    self.conn.send (block.encode())
                     slen += len(block)
                     if slen > clen:
                         raise HTTP_Protocol_Error ("content larger than declared length", clen, slen)
@@ -177,7 +177,7 @@ class client:
                 # chunked encoding
                 for block in content:
                     if block:
-                        self.conn.writev (['%x\r\n' % (len (block),), block])
+                        self.conn.writev ([('%x\r\n' % (len (block),)).encode(), block])
                 self.conn.send ('0\r\n')
 
     def GET (self, uri, **headers):

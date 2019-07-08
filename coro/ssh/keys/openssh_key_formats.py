@@ -25,7 +25,7 @@
 #
 
 import re
-from rebuild import *
+from .rebuild import *
 
 SPACE = '[ \t]'
 NUMBER = '\d'

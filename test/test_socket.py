@@ -50,7 +50,7 @@ class TestSession:
         self.addr = addr
 
     def run(self):
-        current_buffer = ''
+        current_buffer = b''
         while True:
             block = self.s.recv(1024)
             if not block:

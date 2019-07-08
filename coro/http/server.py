@@ -5,7 +5,7 @@
 
 import coro
 import errno
-import http_date
+from . import http_date
 import mimetypes
 import os
 import re
@@ -16,7 +16,7 @@ import sys
 import time
 import zlib
 
-from protocol import latch, http_file, header_set, HTTP_Upgrade
+from .protocol import latch, http_file, header_set, HTTP_Upgrade
 
 from coro.log import Facility
 
@@ -24,7 +24,7 @@ LOG = Facility ('http')
 
 W = sys.stderr.write
 
-__version__ = '0.1'
+__version__ = b'0.1'
 
 class request_stream:
 
@@ -43,9 +43,9 @@ class request_stream:
             while 1:
                 line = self.stream.read_line()
                 # XXX handle continuation lines
-                if line == '':
+                if line == b'':
                     raise StopIteration
-                elif line == '\r\n':
+                elif line == b'\r\n':
                     break
                 else:
                     lines.append (line[:-2])
@@ -139,6 +139,7 @@ class http_request:
     file         = None
 
     def __init__ (self, client, request, headers):
+        request = request.decode()
         self.reply_headers = header_set()
         self.reply_code = 200
         http_request.request_count = http_request.request_count + 1
@@ -157,14 +158,14 @@ class http_request:
             (self.method, self.uri, ver, self.version) = m.groups()
             self.method = self.method.lower()
             if not self.version:
-                self.version = "0.9"
+                self.version = '0.9'
             m = http_request.path_re.match (self.uri)
             if m:
                 (self.path, self.params, self.query, self.frag) = m.groups()
             else:
                 self.bad = True
         else:
-            self.version = "1.0"
+            self.version = '1.0'
             self.bad = True
         if self.has_body():
             self.file = http_file (headers, client.stream)
@@ -215,7 +216,7 @@ class http_request:
             self['content-encoding'] = 'deflate'
             # http://zoompf.com/blog/2012/02/lose-the-wait-http-compression
             # Note: chrome,firefox,safari,opera all handle the header.  Not MSIE, sigh.  Discard it.
-            assert (self.deflate.compress ('') == '\x78\x9c')
+            #assert (self.deflate.compress (b'') == b'\x78\x9c')
             return self.deflate
 
     def push (self, data, flush=False):
@@ -225,6 +226,8 @@ class http_request:
             self.output.write (self.get_headers())
             if self.chunking:
                 self.output.set_chunk()
+        if type(data) is str:
+            data = data.encode()
         if self.deflate:
             if data:
                 data = self.deflate.compress (data)
@@ -238,9 +241,9 @@ class http_request:
             W ('done called twice?\n')
             return
         if not self.sent_headers:
-            self.push ('')
+            self.push (b'')
         if self.deflate:
-            self.push ('', flush=True)
+            self.push (b'', flush=True)
         self.output.flush()
         if self.close:
             self.client.close()
@@ -270,7 +273,7 @@ class http_request:
             connection_tokens = ()
         close_it = False
         if self.version == '1.1':
-            if 'close' in connection_tokens:
+            if b'close' in connection_tokens:
                 close_it = True
             elif not ho.get_one ('content-length'):
                 ho['transfer-encoding'] = 'chunked'
@@ -295,20 +298,20 @@ class http_request:
         ho['server'] = 'shrapnel httpd/%s' % __version__
         ho['date'] = http_date.build_http_date (coro.now_usec / coro.microseconds)
 
-        return self.response (self.reply_code) + '\r\n' + str (self.reply_headers) + '\r\n'
+        return self.response (self.reply_code) + '\r\n' + str(self.reply_headers) + '\r\n'
 
     def response (self, code=200):
         message = self.responses[code]
         self.reply_code = code
         return 'HTTP/%s %d %s' % (self.version, code, message)
 
-    def error (self, code, reason=None):
+    def error (self, code, reason=b''):
         self.reply_code = code
         message = self.responses[code]
         s = self.DEFAULT_ERROR_MESSAGE % {
             'code': code, 'message': message, 'reason': reason
         }
-        self['content-length'] = str(len(s))
+        self['content-length'] = '%d' % (len(s),)
         self['content-type'] = 'text/html'
         self.push (s, flush=True)
         self.done()
@@ -409,8 +412,8 @@ class buffered_output:
         data, self.buffer = self.buffer, []
         if self.chunk_index >= 0:
             # chunkify (the post-header portion of) our output list
-            data.insert (self.chunk_index, '%x\r\n' % (self.chunk_len,))
-            data.append ('\r\n')
+            data.insert (self.chunk_index, b'%x\r\n' % (self.chunk_len,))
+            data.append (b'\r\n')
             self.chunk_len = 0
             self.chunk_index = 0
         self.len = 0
@@ -418,6 +421,8 @@ class buffered_output:
 
     def write (self, data):
         "Push data to the buffer. If the accumulated data goes over the buffer size, send it."
+        if type(data) is str:
+            data = data.encode()
         self.buffer.append (data)
         self.len += len (data)
         if self.chunk_index >= 0:
@@ -429,7 +434,7 @@ class buffered_output:
         "Flush the data from this buffer."
         data = self.get_data()
         if self.chunk_index >= 0:
-            data.append ('0\r\n\r\n')
+            data.append (b'0\r\n\r\n')
         self.send (data)
 
     def send (self, data):
@@ -437,7 +442,7 @@ class buffered_output:
             self.sent += self.conn.writev (data)
         except AttributeError:
             # underlying socket may not support writev (e.g., tlslite)
-            self.sent += self.conn.send (''.join (data))
+            self.sent += self.conn.send (b''.join (data))
 
 class server:
 
@@ -468,10 +473,10 @@ class server:
         done = 0
         save_errno = 0
         while not done:
-            for x in xrange (retries):
+            for x in range (retries):
                 try:
                     self.sock.bind (addr)
-                except OSError, why:
+                except OSError as why:
                     if why.errno not in (errno.EADDRNOTAVAIL, errno.EADDRINUSE):
                         raise
                     else:
@@ -488,7 +493,7 @@ class server:
 
         self.sock.listen (1024)
         c = coro.spawn (self.run)
-        c.set_name ('%s (%s:%d)' % (self.__class__.__name__, addr[0], addr[1]))
+        c.set_name (('%s (%s:%d)' % (self.__class__.__name__, addr[0], addr[1])).encode())
 
     def run (self):
         self.thread_id = coro.current().thread_id()
@@ -497,7 +502,7 @@ class server:
                 conn, addr = self.accept()
                 client = self.create_connection (conn, addr)
                 c = coro.spawn (client.run)
-                c.set_name ('%s connection on %r' % (self.__class__.__name__, addr,))
+                c.set_name (('%s connection on %r' % (self.__class__.__name__, addr,)).encode())
             except coro.Shutdown:
                 break
             except:
@@ -582,7 +587,7 @@ class openssl_server (server):
     def create_sock (self):
         import coro.ssl
         import socket
-        if ':' in self.addr[0]:
+        if b':' in self.addr[0]:
             domain = socket.AF_INET6
         else:
             domain = socket.AF_INET

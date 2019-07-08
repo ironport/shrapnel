@@ -13,7 +13,7 @@ ssl_op_map = {
     "sslv2sslv3tlsv1": 0
 }
 
-from openssl import x509, pkey, dh_param
+from .openssl import x509, pkey, dh_param
 
 def new_ctx (cert=None, chain=(), key=None, proto=None, ciphers=None, dhparam=None, next_protos=None, auto_ecdh=True):
     ctx = openssl.ssl_ctx()
