@@ -17,14 +17,11 @@ from coro.ssh.util import random as ssh_random
 from coro.ssh.key_exchange import SSH_Key_Exchange
 from coro.ssh.transport import constants
 from coro.ssh.keys import parse_public_key
-from coro.ssh.crypto import curve25519
 
-from coro.ssh.util.mpint import pack_mpint
-
+from coro.sodium import x25519_gen_key, x25519, randombytes
 
 SSH_MSG_KEX_ECDH_INIT = 30
 SSH_MSG_KEX_ECDH_REPLY = 31
-
 
 class ECDH_CURVE25519 (SSH_Key_Exchange):
 
@@ -35,7 +32,7 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
 
     def get_initial_client_kex_packet(self):
         self.transport.debug.write(ssh_debug.DEBUG_3, 'get_initial_kex_packet()')
-        skey, pkey = curve25519.gen_key()
+        skey, pkey = x25519_gen_key (randombytes(32))
         self.secret_key = skey
         self.public_key = pkey
         return pack_payload (KEX_ECDH_INIT_PAYLOAD, (SSH_MSG_KEX_ECDH_INIT, self.public_key))
@@ -55,12 +52,12 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
         self.transport.register_callbacks(self.name, callbacks)
 
     def msg_kex_ecdh_init (self, packet):
-        skey, pkey = curve25519.gen_key()
+        skey, pkey = x25519_gen_key (randombytes (32))
         self.secret_key = skey
         self.public_key = pkey
         _, q_c = unpack_payload (KEX_ECDH_INIT_PAYLOAD, packet)
         self.q_c = q_c
-        K = curve25519.curve25519 (self.secret_key, q_c)
+        K = x25519 (self.secret_key, q_c)
         self.shared_secret = int (K.hex(), 16)
         k_s = self.transport.server_key.get_public_key_blob()
         H = pack_payload (
@@ -98,7 +95,7 @@ class ECDH_CURVE25519 (SSH_Key_Exchange):
 
         self.server_public_host_key = parse_public_key (k_s)
         self.transport.verify_public_host_key (self.server_public_host_key)
-        shared_secret = curve25519.curve25519 (self.secret_key, q_s)
+        shared_secret = x25519 (self.secret_key, q_s)
         # note: endian reversal.
         self.shared_secret = int (shared_secret.hex(), 16)
 
