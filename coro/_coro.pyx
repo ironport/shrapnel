@@ -68,15 +68,17 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from posix.unistd cimport fork as posix_fork
 
 cdef extern from "Python.h":
+    ctypedef struct _PyErr_StackItem:
+        void * exc_type
+        void * exc_value
+        void * exc_traceback
     ctypedef struct PyThreadState:
         PyFrameObject * frame
         int recursion_depth
         void * curexc_type
         void * curexc_value
         void * curexc_traceback
-        void * exc_type
-        void * exc_value
-        void * exc_traceback
+        _PyErr_StackItem exc_state
     PyThreadState * _PyThreadState_Current
     PyThreadState * PyThreadState_Get()
 
@@ -408,16 +410,16 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         self.saved_exception_data[0] = current.curexc_type
         self.saved_exception_data[1] = current.curexc_value
         self.saved_exception_data[2] = current.curexc_traceback
-        self.saved_exception_data[3] = current.exc_type
-        self.saved_exception_data[4] = current.exc_value
-        self.saved_exception_data[5] = current.exc_traceback
+        self.saved_exception_data[3] = current.exc_state.exc_type
+        self.saved_exception_data[4] = current.exc_state.exc_value
+        self.saved_exception_data[5] = current.exc_state.exc_traceback
 
         current.curexc_type      = NULL
         current.curexc_value     = NULL
         current.curexc_traceback = NULL
-        current.exc_type         = NULL
-        current.exc_value        = NULL
-        current.exc_traceback    = NULL
+        current.exc_state.exc_type         = NULL
+        current.exc_state.exc_value        = NULL
+        current.exc_state.exc_traceback    = NULL
 
     cdef restore_exception_data (self):
         cdef void * curexc_type
@@ -435,20 +437,20 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         # main thread doesn't need that level of exception safety.
         #
         # Store locally because DECREF can cause code to execute.
-        current = PyThreadState_Get()
-        curexc_type = current.curexc_type
-        curexc_value = current.curexc_value
+        current          = PyThreadState_Get()
+        curexc_type      = current.curexc_type
+        curexc_value     = current.curexc_value
         curexc_traceback = current.curexc_traceback
-        exc_type = current.exc_type
-        exc_value = current.exc_value
-        exc_traceback = current.exc_traceback
+        exc_type         = current.exc_state.exc_type
+        exc_value        = current.exc_state.exc_value
+        exc_traceback    = current.exc_state.exc_traceback
 
         current.curexc_type = NULL
         current.curexc_value = NULL
         current.curexc_traceback = NULL
-        current.exc_type = NULL
-        current.exc_value = NULL
-        current.exc_traceback = NULL
+        current.exc_state.exc_type = NULL
+        current.exc_state.exc_value = NULL
+        current.exc_state.exc_traceback = NULL
 
         # Can't use XDECREF when casting a void in Pyrex.
         if curexc_type != NULL:
@@ -467,9 +469,9 @@ cdef public class coro [ object _coro_object, type _coro_type ]:
         current.curexc_type      = self.saved_exception_data[0]
         current.curexc_value     = self.saved_exception_data[1]
         current.curexc_traceback = self.saved_exception_data[2]
-        current.exc_type         = self.saved_exception_data[3]
-        current.exc_value        = self.saved_exception_data[4]
-        current.exc_traceback    = self.saved_exception_data[5]
+        current.exc_state.exc_type         = self.saved_exception_data[3]
+        current.exc_state.exc_value        = self.saved_exception_data[4]
+        current.exc_state.exc_traceback    = self.saved_exception_data[5]
 
         self.saved_exception_data[0] = NULL
         self.saved_exception_data[1] = NULL
