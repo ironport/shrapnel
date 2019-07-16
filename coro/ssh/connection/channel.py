@@ -342,7 +342,7 @@ class Channel:
             data = b.read_at_most(bytes_left)
             if not data:
                 if result:
-                    return ''.join(result)
+                    return b''.join(result)
                 else:
                     raise EOFError
             result.append(data)
@@ -350,7 +350,7 @@ class Channel:
             # Only adjust the window when the buffer is clear.
             if not b:
                 self._check_window_adjust()
-        return ''.join(result)
+        return b''.join(result)
 
     # Make an alias for convenience.
     recv = read

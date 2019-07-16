@@ -25,14 +25,10 @@
 #
 
 from coro.ssh.util import packet
-from . import dss
-from . import rsa
 from . import ed25519
 
 # Map of supported key types.
 keytypes = {
-    'ssh-dss': dss.SSH_DSS,
-    'ssh-rsa': rsa.SSH_RSA,
     'ssh-ed25519' : ed25519.SSH_ED25519,
 }
 

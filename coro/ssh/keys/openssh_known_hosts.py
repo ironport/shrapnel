@@ -54,7 +54,7 @@ import re
 import hmac
 import hashlib
 
-from coro.ssh.keys import dss, rsa, ed25519
+from coro.ssh.keys import ed25519
 from coro.ssh.keys import openssh_key_formats
 from coro.ssh.keys.key_storage import Host_Key_Changed_Error
 from coro.ssh.keys.remote_host import IPv4_Remote_Host_ID
@@ -171,6 +171,8 @@ class OpenSSH_Known_Hosts:
         # It just assumes that it will match character-for-character.
         # Thus, 001.002.003.004 != 1.2.3.4 even though those are technically
         # the same IP.
+        if type(host) is bytes:
+            host = host.decode ('us-ascii')
         if pattern and pattern[0] == '!':
             negate = 1
             pattern = pattern[1:]
@@ -260,11 +262,7 @@ class OpenSSH_Known_Hosts:
                             # XXX: This code needs to be refactored.
                             base64_key = m.group('base64_key')
                             binary_key = binascii.a2b_base64(base64_key)
-                            if public_host_key.name == 'ssh-dss':
-                                key_obj = dss.SSH_DSS()
-                            elif public_host_key.name == 'ssh-rsa':
-                                key_obj = dss.SSH_RSA()
-                            elif public_host_key.name == 'ssh-ed25519':
+                            if public_host_key.name == 'ssh-ed25519':
                                 key_obj = ed25519.SSH_ED25519()
                             else:
                                 # This should never happen.

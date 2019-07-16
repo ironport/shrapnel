@@ -136,26 +136,13 @@ class SSH_Key_Exchange:
             )
             key_data = [key]
             key_data_len = len(key)
-            import sys
-            W = sys.stderr.write
             while len(key) < required_size:
                 h = self.get_hash_object()
                 h.update (shared_secret)
                 h.update (self.exchange_hash)
                 h.update (key)
                 key += h.digest()
-            # while key_data_len < required_size:
-            #     additional_key_data = self.get_hash_object(
-            #         shared_secret,
-            #         self.exchange_hash,
-            #         b''.join(key_data)
-            #     ).digest()
-            #     key_data.append(additional_key_data)
-            #     key_data_len += len(additional_key_data)
-            #     W ('key_data:\n%s\n' % ('\n'.join ([x.hex() for x in key_data])))
             key = key[:required_size]
-            #key = b''.join(key_data)[:required_size]
-            W ('final key: %s\n' % (key.hex(),))
         else:
             # Key is just the right length.
             pass

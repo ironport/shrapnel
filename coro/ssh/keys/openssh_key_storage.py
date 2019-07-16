@@ -32,8 +32,6 @@ import hashlib
 import os
 import re
 from . import rebuild
-from . import dss
-from . import rsa
 from . import ed25519
 
 from coro.asn1.ber import decode as ber_decode
@@ -152,7 +150,9 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
             except IOError:
                 pass
             else:
-                result.append(self.parse_private_key(data))
+                key = self.parse_private_key (data)
+                if key is not None:
+                    result.append (key)
         return result
 
     load_private_keys = classmethod(load_private_keys)
@@ -187,6 +187,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
         # keydata_base64
         # -----END DSA PRIVATE KEY-----
         # keydata is BER-encoded
+
         data = private_key.split('\n')
         self._strip_empty_surrounding_lines(data)
 
@@ -429,13 +430,7 @@ class OpenSSH_Key_Storage(key_storage.SSH_Key_Storage):
 
 
 keytype_map = {
-    'ssh-dss': dss.SSH_DSS,
-    'dss': dss.SSH_DSS,
-    'dsa': dss.SSH_DSS,
-    'ssh-rsa': rsa.SSH_RSA,
-    'rsa': rsa.SSH_RSA,
     'ssh-ed25519' : ed25519.SSH_ED25519,
-    #'rsa1': None
 }
 
 import unittest

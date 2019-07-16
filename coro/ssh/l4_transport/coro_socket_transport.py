@@ -45,7 +45,7 @@ class coro_socket_transport(l4_transport.Transport):
         self.bind_ip = bind_ip
         self.hostname = hostname
         if sock is None:
-            if b':' in ip:
+            if ':' in ip:
                 self.s = coro.tcp6_sock()
             else:
                 self.s = coro.tcp_sock()
@@ -56,7 +56,7 @@ class coro_socket_transport(l4_transport.Transport):
     def connect(self):
         if self.bind_ip is not None:
             self.s.bind((self.bind_ip, 0))
-        if b'%' in self.ip:
+        if '%' in self.ip:
             # link local address, need 4-tuple
             ai = socket.getaddrinfo (self.ip, self.port)
             address = ai[0][4]
