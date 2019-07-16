@@ -45,7 +45,7 @@ class coro_socket_transport(l4_transport.Transport):
         self.bind_ip = bind_ip
         self.hostname = hostname
         if sock is None:
-            if ':' in ip:
+            if b':' in ip:
                 self.s = coro.tcp6_sock()
             else:
                 self.s = coro.tcp_sock()
@@ -56,7 +56,7 @@ class coro_socket_transport(l4_transport.Transport):
     def connect(self):
         if self.bind_ip is not None:
             self.s.bind((self.bind_ip, 0))
-        if '%' in self.ip:
+        if b'%' in self.ip:
             # link local address, need 4-tuple
             ai = socket.getaddrinfo (self.ip, self.port)
             address = ai[0][4]
@@ -84,11 +84,11 @@ class coro_socket_transport(l4_transport.Transport):
                 raise EOFError
             count -= len(chunk)
             result.append(chunk)
-        return ''.join(result)
+        return b''.join(result)
 
-    def write(self, bytes):
+    def write(self, data):
         try:
-            return self.s.send(bytes)
+            return self.s.send(data)
         except OSError as why:
             if why.errno == errno.EBADF:
                 raise_oserror(errno.EPIPE)
@@ -116,17 +116,17 @@ class coro_socket_transport(l4_transport.Transport):
             if not it:
                 raise EOFError
 
-            if it == '\r':
+            if it == b'\r':
                 # This is a part of CR LF line ending.  Skip it.
                 pass
 
-            elif it == '\n':
+            elif it == b'\n':
                 break
 
             else:
                 result.append(it)
 
-        return ''.join(result)
+        return (b''.join(result)).decode()
 
     def close(self):
         self.s.close()

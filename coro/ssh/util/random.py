@@ -24,36 +24,14 @@
 # Consolidated location for getting random data.
 #
 
-import Crypto.Util.number
-import Crypto.Util.randpool
+from coro.sodium import randombytes
 import math
 
-# XXX: Should we stir the pool occasionally?
-random_pool = Crypto.Util.randpool.RandomPool()
-
-def get_random_data(bytes):
-    """get_random_data(bytes) -> str
-    Gets <bytes> number of bytes of random data.
+def get_random_data (size):
+    """get_random_data(size) -> str
+    Gets <size> number of bytes of random data.
     """
-    return random_pool.get_bytes(bytes)
-
-def get_random_number(bits):
-    """get_random_number(bits) -> python long
-    Return a random number.
-    <bits> is the number of bits in the number.
-    """
-    return Crypto.Util.number.getRandomNumber(bits, random_pool.get_bytes)
-
-def get_random_number_from_range(low, high):
-    """get_random_number_from_range(low, high) -> python long
-    Returns a random number that is greater than <low> and less than <high>.
-    """
-    bits = highest_bit(high)
-    while 1:
-        x = get_random_number(bits)
-        if x > low and x < high:
-            break
-    return x
+    return randombytes (size)
 
 def highest_bit(num):
     """highest_bit(num) -> n

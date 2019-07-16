@@ -14,7 +14,7 @@ coro.set_resolver (coro.dummy_resolver())
 class client:
 
     # this is to avoid a PTR lookup, its value is not important
-    hostname = 'host'
+    hostname = b'host'
 
     def __init__ (self, ip, username, port=22):
         self.ip = ip
@@ -43,17 +43,19 @@ class client:
         channel = self.open()
         channel.exec_command (cmd)
         for block in self.read_all (channel):
-            output.write (block)
+            output.write (block.decode ('us-ascii'))
         channel.close()
 
 def go (ip, username, cmd):
-    c = client (ip, username)
+    c = client (ip.encode(), username)
     c.command (cmd)
     coro.set_exit()
 
 # try: python remote_exec.py 10.1.1.3 bubba "ls -l"
 if __name__ == '__main__':
     import sys
+    #from coro.ssh.util.debug import Debug
+    #Debug.level = 5
     if len(sys.argv) < 3:
         sys.stderr.write ('Usage: %s <ip> <username> <cmd>\n' % (sys.argv[0],))
         sys.stderr.write ('Example: python %s 10.1.1.3 bubba "ls -l"\n' % (sys.argv[0],))

@@ -63,4 +63,4 @@ def str_xor(a, b):
     Returns a^b for every character in <a> and <b>.
     <a> and <b> must be strings of equal length.
     """
-    return ''.join(map(lambda x, y: chr(ord(x) ^ ord(y)), a, b))
+    return bytes(map(lambda x, y: x ^ y, a, b))

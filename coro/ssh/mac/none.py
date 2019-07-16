@@ -31,4 +31,4 @@ class MAC_None(SSH_MAC_Method):
     name = 'none'
 
     def digest(self, sequence_number, data):
-        return ''
+        return b''

@@ -117,11 +117,8 @@ class SSH_Key_Exchange:
         <required_size> is the length of the key that you require (in bytes).
         """
         shared_secret = ssh_packet.pack_payload((ssh_packet.MPINT,), (self.shared_secret,))
-        key = self.get_hash_object(
-            shared_secret,
-            self.exchange_hash,
-            letter,
-            self.session_id).digest()
+        key = self.get_hash_object(shared_secret, self.exchange_hash, letter, self.session_id).digest()
+        #import pdb; pdb.set_trace()
         if len(key) > required_size:
             # Key is too big...return only what is needed.
             key = key[:required_size]
@@ -133,16 +130,32 @@ class SSH_Key_Exchange:
             # ...
             # key = K1 || K2 || K3 || ...
             self.transport.debug.write(
-                ssh_debug.DEBUG_2, 'get_encryption_key: computed key is too small len(key)=%i required_size=%i',
-                (len(key), required_size))
+                ssh_debug.DEBUG_2,
+                'get_encryption_key: computed key is too small len(key)=%i required_size=%i',
+                (len(key), required_size)
+            )
             key_data = [key]
             key_data_len = len(key)
-            while key_data_len < required_size:
-                additional_key_data = self.get_hash_object(
-                    shared_secret, self.exchange_hash, ''.join(key_data)).digest()
-                key_data.append(additional_key_data)
-                key_data_len += len(additional_key_data)
-            key = ''.join(key_data)[:required_size]
+            import sys
+            W = sys.stderr.write
+            while len(key) < required_size:
+                h = self.get_hash_object()
+                h.update (shared_secret)
+                h.update (self.exchange_hash)
+                h.update (key)
+                key += h.digest()
+            # while key_data_len < required_size:
+            #     additional_key_data = self.get_hash_object(
+            #         shared_secret,
+            #         self.exchange_hash,
+            #         b''.join(key_data)
+            #     ).digest()
+            #     key_data.append(additional_key_data)
+            #     key_data_len += len(additional_key_data)
+            #     W ('key_data:\n%s\n' % ('\n'.join ([x.hex() for x in key_data])))
+            key = key[:required_size]
+            #key = b''.join(key_data)[:required_size]
+            W ('final key: %s\n' % (key.hex(),))
         else:
             # Key is just the right length.
             pass

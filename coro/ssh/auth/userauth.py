@@ -128,7 +128,7 @@ class Publickey(Userauth_Authentication_Method):
     def _try_auth(self, packet, loaded_key, username, service_name):
         self.transport.debug.write(ssh_debug.DEBUG_1, 'Publickey Auth: Got OK for this key type.')
         msg, key_algorithm_name, key_blob = unpack_payload(PAYLOAD_MSG_USERAUTH_PK_OK, packet)
-        assert (key_algorithm_name == loaded_key.name)
+        assert (key_algorithm_name.decode('us-ascii') == loaded_key.name)
         # XXX: Check key_blob, too?
         # Send the actual request.
         # Compute signature.
@@ -329,9 +329,9 @@ class Authenticator:
             # possibles? [think about combinations of service/user/etc... though]
             message_type, packet = self.transport.receive_message ((SSH_MSG_USERAUTH_REQUEST,))
             msg, username, service, method = unpack_payload (PAYLOAD_MSG_USERAUTH_REQUEST, packet)
-            if method == 'none':
+            if method == b'none':
                 self.send_failure()
-            elif method == 'publickey':
+            elif method == b'publickey':
                 mprobe = self.by_name.get ('publickey')
                 if not mprobe:
                     self.send_failure()
@@ -351,7 +351,7 @@ class Authenticator:
                             tries -= 1
                             coro.sleep_relative (self.sleep_time)
                             self.send_failure()
-            elif method == 'password':
+            elif method == b'password':
                 mprobe = self.by_name.get ('password')
                 if not mprobe:
                     self.send_failure()

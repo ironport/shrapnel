@@ -27,11 +27,13 @@
 from coro.ssh.util import packet
 from . import dss
 from . import rsa
+from . import ed25519
 
 # Map of supported key types.
 keytypes = {
     'ssh-dss': dss.SSH_DSS,
     'ssh-rsa': rsa.SSH_RSA,
+    'ssh-ed25519' : ed25519.SSH_ED25519,
 }
 
 class Unknown_Key_Type(Exception):
@@ -51,7 +53,7 @@ def parse_public_key(public_key):
                   with the first value being a string to identify the type.
     """
     data, offset = packet.unpack_payload_get_offset((packet.STRING,), public_key)
-    keytype = data[0]
+    keytype = data[0].decode()
     if keytype not in keytypes:
         raise Unknown_Key_Type(keytype)
 

@@ -16,26 +16,22 @@ import sys
 
 from coro.ssh.keys.openssh_key_storage import OpenSSH_Key_Storage
 
-server_key_pri = """-----BEGIN DSA PRIVATE KEY-----
-MIIBuwIBAAKBgQDTfwvvQo0WnUmZpnUFmqF/TXSXFaJ1NKbBLQXPh8dhHgTN1uFO
-ZibFXMKpDHLCGCdGRm5eHansB9hu2+nNoaFf3oLDHc8ctuE7xRHT8x174D2AxcnX
-r0Fw3BnZHj58lLlhayDJ4S6W77yefGEOuo/wKUEPjAUBCrvxKq3bKAeVUQIVAPpR
-bJO1QQZPlj4w+MXmRTgW7wGfAoGAVUkBIX+RLrh9guyiAadi9xGk8S7n5w2PbcsP
-KTG8x/ttCDEuaBp6El6qt86cA+M2GPvXjuMGR5BQT8IOaWS7Aw2+J1IamLCsrPfq
-oiQvz3cqxOAutuIuorzbIAgVo0hiAyovZE4u2zzKeci7OtfD8pRThSby4Dgbkeix
-FQFhW08CgYBSxcduHDSqJTCjFK4hwTlNck4h2hC1E4xuMfxYsUZkLrBAsD3nzU2W
-jNoZppTz3W8XC7YnTxonncXNWxCWsDWpvs0b2zGj7uUvGRtlyxtQpybyN3LZ0flo
-DssTygy7t0KlS7T2a1IhqiVDbrSUoGXz+Wp/z66lCpSLTlPsGpLeLwIVAMQldwwH
-OekNfzzIBr6QkMvmIOuL
------END DSA PRIVATE KEY-----
+server_key_pri = """
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDYaUFlkTs33hn1vYPaIOAoBaFhETM1WblgNIEehS6RwwAAAJDPpxNBz6cT
+QQAAAAtzc2gtZWQyNTUxOQAAACDYaUFlkTs33hn1vYPaIOAoBaFhETM1WblgNIEehS6Rww
+AAAEAmllCCIf5nt6CnNjHL2p7zJ6FmJMxDwkZa2neJEmEEANhpQWWROzfeGfW9g9og4CgF
+oWERMzVZuWA0gR6FLpHDAAAADXJ1c2hpbmdAcnl6ZW4=
+-----END OPENSSH PRIVATE KEY-----
 """
 
 ks = OpenSSH_Key_Storage()
 server_key_ob = ks.parse_private_key (server_key_pri)
 
-# will authentication user 'foo' with password 'bar' for the
+# will authenticate user 'foo' with password 'bar' for the
 # 'ssh-connection' service [the only service currently supported]
-pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo': {'ssh-connection': 'bar'}})
+pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({b'foo': {b'ssh-connection': b'bar'}})
 
 # how to add public-key authentication:
 #
@@ -46,18 +42,20 @@ pwd_auth = coro.ssh.auth.userauth.Password_Authenticator ({'foo': {'ssh-connecti
 # add/replace <pubkey_auth> to the list "[pwd_auth]" below...
 
 def usage():
-    print 'backdoor.py [-p port]'
+    print ('backdoor.py [-p port]')
 
 def main():
 
     login_username = None
     ip = None
     port = 8022
+    #from coro.ssh.util.debug import Debug
+    #Debug.level = 5
 
     try:
         optlist, args = getopt.getopt(sys.argv[1:], 'p:')
-    except getopt.GetoptError, why:
-        print str(why)
+    except getopt.GetoptError as why:
+        print (str(why))
         usage()
         sys.exit(1)
 

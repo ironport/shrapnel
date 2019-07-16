@@ -28,8 +28,13 @@ from coro.ssh.cipher import SSH_Cipher_Method
 
 class Cipher_None(SSH_Cipher_Method):
 
-    def encrypt(self, data):
-        return data
+    use_mac = True
 
-    def decrypt(self, data):
+    def encrypt(self, data, tran):
+        return data, b''
+
+    def decrypt_header (self, header, nonce):
+        return header
+
+    def decrypt_packet (self, header, data, nonce, tag):
         return data

@@ -58,7 +58,7 @@ class SSH_Client_Transport(transport.SSH_Transport):
         else:
             comments = ''
         self.c2s.version_string = 'SSH-' + self.c2s.protocol_version + '-' + self.c2s.software_version + comments
-        transport.write(self.c2s.version_string + '\r\n')
+        transport.write(self.c2s.version_string.encode() + b'\r\n')
         # Receive server's identification string.
         while 1:
             # We might receive lines before we get the version.  Just ignore
@@ -140,7 +140,7 @@ class SSH_Client_Transport(transport.SSH_Transport):
         message_type, packet = self.receive_message((transport.SSH_MSG_SERVICE_ACCEPT,))
         msg, accepted_service_name = ssh_packet.unpack_payload(ssh_packet.PAYLOAD_MSG_SERVICE_ACCEPT, packet)
         self.debug.write(debug.DEBUG_3, 'authenticate: got SERVICE_ACCEPT')
-        if accepted_service_name != authentication_method.name:
+        if accepted_service_name.decode('us-ascii') != authentication_method.name:
             self.send_disconnect(transport.SSH_DISCONNECT_PROTOCOL_ERROR,
                                  'accepted service does not match requested service "%s"!="%s"' %
                                  (authentication_method.name, accepted_service_name))

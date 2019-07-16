@@ -113,6 +113,17 @@ OpenSSL_Extension = Extension (
     include_dirs=[O('include')],
     cython_compile_time_env={'NPN': USE_NPN},
 )
+
+
+# --------------------------------------------------------------------------
+
+# libsodium (for coro.ssh & other crypto needs).
+sodium_Extension = Extension (
+    'coro.sodium',
+    ['coro/sodium.pyx'],
+    libraries=['sodium']
+    )
+
 # --------------------------------------------------------------------------
 
 setup (
@@ -177,11 +188,12 @@ setup (
         ),
         # the pre-computed openssl extension from above
         OpenSSL_Extension,
+        sodium_Extension
     ],
     packages= find_packages(),
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
     scripts=['coro/log/catlog'],
     download_url = 'https://pypi.python.org/pypi?name=coro',
-    install_requires = ['cython>=0.22', 'pycrypto'],
+    install_requires = ['cython>=0.22'],
     cmdclass={'build_ext': build_ext},
 )

@@ -48,15 +48,15 @@ class SSH_HMAC(SSH_MAC_Method):
             # is going to be the correct size.  However, I put it in here
             # for completeness with the HMAC spec.
             import sys
-            sys.stderr.write('WARNING: Unexecpted HMAC key size!!!\n')
+            sys.stderr.write('WARNING: Unexpected HMAC key size!!!\n')
             h = self.get_hash_object()
             self.key = h.update(key).digest()
         else:
             self.key = key
 
-        ipad = '\x36' * self.block_size
-        opad = '\x5C' * self.block_size
-        padded_key = self.key + '\0' * (self.block_size - len(self.key))
+        ipad = b'\x36' * self.block_size
+        opad = b'\x5C' * self.block_size
+        padded_key = self.key + b'\0' * (self.block_size - len(self.key))
 
         self._enc_ipad = str_xor(padded_key, ipad)
         self._enc_opad = str_xor(padded_key, opad)

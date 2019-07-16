@@ -51,11 +51,14 @@ import binascii
 import errno
 import os
 import re
+import hmac
+import hashlib
 
-from coro.ssh.keys import dss, rsa
+from coro.ssh.keys import dss, rsa, ed25519
 from coro.ssh.keys import openssh_key_formats
 from coro.ssh.keys.key_storage import Host_Key_Changed_Error
 from coro.ssh.keys.remote_host import IPv4_Remote_Host_ID
+
 
 class OpenSSH_Known_Hosts:
 
@@ -149,7 +152,10 @@ class OpenSSH_Known_Hosts:
         # Negated_Pattern is used to terminate the checks.
         try:
             for p in patterns:
-                if self._match_pattern(host, port, p):
+                if p[0] == '|':
+                    if self._match_hashed_host (host, port, p):
+                        return 1
+                elif self._match_pattern(host, port, p):
                     return 1
         except OpenSSH_Known_Hosts.Negated_Pattern:
             return 0
@@ -203,6 +209,14 @@ class OpenSSH_Known_Hosts:
         else:
             return 0
 
+    def _match_hashed_host (self, host, port, hashed):
+        hashed = hashed.encode ('us-ascii')
+        [_, v, salt, digest] = hashed.split(b'|')
+        salt = base64.decodestring (salt)
+        digest0 = base64.decodestring (digest)
+        digest1 = hmac.HMAC (salt, host, hashlib.sha1).digest()
+        return digest0 == digest1
+
     def _match_key(self, key_obj, base64_key):
         key = key_obj.name + ' ' + base64_key
         # XXX: static or class method would make this instantiation not necessary.
@@ -250,6 +264,8 @@ class OpenSSH_Known_Hosts:
                                 key_obj = dss.SSH_DSS()
                             elif public_host_key.name == 'ssh-rsa':
                                 key_obj = dss.SSH_RSA()
+                            elif public_host_key.name == 'ssh-ed25519':
+                                key_obj = ed25519.SSH_ED25519()
                             else:
                                 # This should never happen.
                                 raise ValueError(public_host_key.name)

@@ -171,6 +171,7 @@ class Interactive_Session_Server(Interactive_Session):
     def handle_request(self, request_type, want_reply, type_specific_packet_data):
         # W ('interactive_session_server: handle_request %r %r %r\n' %
         #    (request_type, want_reply, type_specific_packet_data))
+        request_type = request_type.decode ('us-ascii')
         if request_type in self.request_handlers:
             self.request_handlers[request_type] (self, want_reply, type_specific_packet_data)
         elif want_reply:

@@ -46,7 +46,7 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
         else:
             comments = ''
         self.s2c.version_string = 'SSH-' + self.s2c.protocol_version + '-' + self.s2c.software_version + comments
-        transport.write(self.s2c.version_string + '\r\n')
+        transport.write(self.s2c.version_string.encode() + b'\r\n')
         # Receive client's identification string.
         while 1:
             line = transport.read_line()
@@ -60,7 +60,7 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
                     line = line[:i]
                 # Break up the identification string into its parts.
                 parts = line.split('-')
-                if len(parts) != 3:
+                if len(parts) < 3:
                     self.send_disconnect (
                         ssh_transport.SSH_DISCONNECT_PROTOCOL_ERROR,
                         'server identification invalid: %r' % line
@@ -105,7 +105,7 @@ class SSH_Server_Transport (ssh_transport.SSH_Transport):
         msg, service_name = ssh_packet.unpack_payload (ssh_packet.PAYLOAD_MSG_SERVICE_REQUEST, packet)
         self.debug.write (debug.DEBUG_1, 'service_request: %r' % (service_name,))
         # XXX consider other possibilities
-        if service_name != 'ssh-userauth':
+        if service_name != b'ssh-userauth':
             self.send_disconnect (SSH_DISCONNECT_SERVICE_NOT_AVAILABLE, "not today, zurg")
         else:
             self.send_packet (

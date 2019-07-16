@@ -213,7 +213,7 @@ def serve (port=None, ip=b'', unix_path=None, welcome_message=None, global_dict=
         s = coro.make_socket (coro.PF.INET, coro.SOCK.STREAM)
         s.set_reuse_addr()
         if port is None:
-            ports = xrange(8023, 8033)
+            ports = range(8023, 8033)
         else:
             if type(port) is int:
                 ports = [port]
@@ -286,5 +286,5 @@ class ssh_server:
 
 if __name__ == '__main__':
     thread = coro.spawn (serve, welcome_message='Testing backdoor.py')
-    thread.set_name('backdoor server')
+    thread.set_name(b'backdoor server')
     coro.event_loop (30.0)

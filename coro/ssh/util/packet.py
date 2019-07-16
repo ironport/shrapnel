@@ -62,7 +62,7 @@ def unpack_payload_get_offset(format, payload, offset=0):
             result.append(payload[i])
             i += 1
         elif value_type is BOOLEAN:
-            result.append(ord(payload[i]) and 1 or 0)
+            result.append(payload[i] and 1 or 0)
             i += 1
         elif value_type is UINT32:
             result.append(struct.unpack('>I', payload[i:i + 4])[0])
@@ -84,9 +84,9 @@ def unpack_payload_get_offset(format, payload, offset=0):
         elif value_type is NAME_LIST:
             list_len = struct.unpack('>I', payload[i:i + 4])[0]
             i += 4
-            result.append(payload[i:i + list_len].split(','))
+            result.append(payload[i:i + list_len].split(b','))
             i += list_len
-        elif isinstance(value_type, types.TupleType):
+        elif isinstance(value_type, tuple):
             if value_type[0] is FIXED_STRING:
                 str_len = value_type[1]
                 result.append(payload[i:i + str_len])
@@ -102,26 +102,34 @@ def pack_payload(format, values):
     <format> is a list Format Codes.
     <values> is a tuple of values to use.
     """
-    packet = [''] * len(format)
+    packet = [b''] * len(format)
     if __debug__:
         assert(len(values) == len(format))
     i = 0
     for value_type in format:
         if value_type is BYTE:
-            if isinstance(values[i], types.StringType):
+            if isinstance (values[i], str):
                 if __debug__:
                     assert(len(values[i]) == 1)
+                packet[i] = values[i].encode()
+            elif type(values[i]) is bytes:
                 packet[i] = values[i]
             else:
-                packet[i] = chr(values[i])
+                packet[i] = bytes([values[i]])
         elif value_type is BOOLEAN:
-            packet[i] = chr(values[i] and 1 or 0)
+            packet[i] = bytes([values[i] and 1 or 0])
         elif value_type is UINT32:
             packet[i] = struct.pack('>I', values[i])
         elif value_type is UINT64:
             packet[i] = struct.pack('>Q', values[i])
         elif value_type is STRING:
-            packet[i] = struct.pack('>I', len(values[i])) + values[i]
+            if type(values[i]) is str:
+                s = values[i].encode()
+            elif type(values[i]) is bytes:
+                s = values[i]
+            else:
+                raise ValueError (values[i])
+            packet[i] = struct.pack('>I', len(s)) + s
         elif value_type is MPINT:
             n = mpint.pack_mpint(values[i])
             packet[i] = struct.pack('>I', len(n)) + n
@@ -129,14 +137,14 @@ def pack_payload(format, values):
             # We could potentially check for validity here.
             # Names should be at least 1 byte long and should not
             # contain commas.
-            s = ','.join(values[i])
+            s = (','.join(values[i])).encode()
             packet[i] = struct.pack('>I', len(s)) + s
-        elif isinstance(value_type, types.TupleType) and value_type[0] is FIXED_STRING:
+        elif isinstance(value_type, tuple) and value_type[0] is FIXED_STRING:
             packet[i] = values[i]
         else:
             raise ValueError(value_type)
         i += 1
-    return ''.join(packet)
+    return b''.join(packet)
 
 # Packet format definitions.
 PAYLOAD_MSG_DISCONNECT = (
