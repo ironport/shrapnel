@@ -2,6 +2,12 @@
 Note: This SSH implementation was written by Eric Huss, probably around 2005-2006.
 It has been modified so as to integrate it into the shrapnel/coro package directly.
 
+Note (2019.07.15): this package has been brutally modernized in order
+  to depend only on libsodium.  As such, it requires the use of
+  ed25519 host and user keys, the x25519 key exchange, and either
+  chacha20-poly1305 or aes256-gcm ciphers.  All other cipher and key
+  types have been removed - this includes dsa, dss, and rsa keys.
+
 python implementation of SSH2
 
 Eric's Python SSH Library
