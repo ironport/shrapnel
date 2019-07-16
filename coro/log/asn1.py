@@ -59,7 +59,7 @@ class Sync:
                     return i
         raise ValueError ("unable to sync: is this an asn1 log file?")
 
-def await (f):
+def wait_for (f):
     magic = f.read (4)
     if not magic:
         pos0 = f.tell()
@@ -90,7 +90,7 @@ def gen_log (f, limit=10000, follow=False):
             continue
         yield size, timestamp / 1000000.0, info
         if follow:
-            magic = await (f)
+            magic = wait_for (f)
         else:
             magic = f.read (4)
         if not magic:
