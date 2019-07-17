@@ -14,14 +14,12 @@ mail appliances.  It was open-sourced by Cisco Systems in late 2011.
 Status
 ======
 
-Apr 18, 2013: I've recently merged in a long chain of branches for several
-important features:
+Jul 16, 2019: Ported to Python 3.7.  Will not work with 3.6 or previous
+versions due to changes in how exceptions are stored in the internal
+thread state object.  Some subsystems have not yet been tested, including
+postgres and ldap.  These will probably require some str/bytes work.
 
- * Support for pure-cython servers (branch 'pxdfix')
- * Full DNS resolver implementation (branch 'dns-cache')
- * Updated postgres support (branch 'postgres')
- * Included OpenSSL support
-
+Note: this branch will no longer work with Python 2.
 
 Features
 ========
