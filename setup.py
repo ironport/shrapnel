@@ -121,14 +121,16 @@ OpenSSL_Extension = Extension (
 sodium_Extension = Extension (
     'coro.sodium',
     ['coro/sodium.pyx'],
-    libraries=['sodium']
+    libraries=['sodium'],
+    include_dirs=['/usr/local/include'],
+    library_dirs=['/usr/local/lib'],
     )
 
 # --------------------------------------------------------------------------
 
 setup (
     name='coro',
-    version='1.0.5',
+    version='1.1.0',
     description='IronPort Coroutine/Threading Library',
     author='Sam Rushing, Eric Huss, IronPort Engineering',
     author_email='sam-coro@rushing.nightmare.com',
@@ -194,6 +196,6 @@ setup (
     py_modules = ['backdoor', 'coro.read_stream', 'coro_process', 'coro_unittest', ],
     scripts=['coro/log/catlog'],
     download_url = 'https://pypi.python.org/pypi?name=coro',
-    install_requires = ['cython>=0.22'],
+    install_requires = ['cython>=0.29.11'],
     cmdclass={'build_ext': build_ext},
 )
